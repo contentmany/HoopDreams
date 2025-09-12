@@ -1,17 +1,26 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, RotateCcw, Users, Mail, Settings } from "lucide-react";
+import { Play, RotateCcw, Users, Settings } from "lucide-react";
+import { activeSlot } from "@/utils/localStorage";
 
 interface MainMenuProps {
   onNavigate?: (path: string) => void;
 }
 
 export default function MainMenu({ onNavigate }: MainMenuProps) {
+  const handlePlayClick = () => {
+    const currentSlot = activeSlot.get();
+    if (currentSlot) {
+      onNavigate?.('/home');
+    } else {
+      onNavigate?.('/new');
+    }
+  };
+
   const menuItems = [
-    { icon: Play, label: "Play", path: "/new", primary: true },
+    { icon: Play, label: "Play", onClick: handlePlayClick, primary: true },
     { icon: RotateCcw, label: "Load / Continue", path: "/load" },
     { icon: Users, label: "Roster Editor", path: "/roster-editor" },
-    { icon: Mail, label: "Inbox", path: "/inbox" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
@@ -25,15 +34,15 @@ export default function MainMenu({ onNavigate }: MainMenuProps) {
       </div>
       
       <div className="w-full max-w-sm space-y-3">
-        {menuItems.map((item) => {
+        {menuItems.map((item, index) => {
           const Icon = item.icon;
           return (
             <Button
-              key={item.path}
+              key={item.path || index}
               variant={item.primary ? "default" : "outline"}
               size="lg"
               className="w-full justify-start gap-3 h-12"
-              onClick={() => onNavigate?.(item.path)}
+              onClick={() => item.onClick ? item.onClick() : onNavigate?.(item.path)}
               data-testid={`button-${item.label.toLowerCase().replace(/[\s/]/g, '-')}`}
             >
               <Icon className="w-5 h-5" />

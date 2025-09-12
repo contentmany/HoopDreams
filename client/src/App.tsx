@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import MainMenu from "@/pages/MainMenu";
 import Dashboard from "@/pages/Dashboard";
 import CreatePlayer from "@/pages/CreatePlayer";
+import PlayerBuilder from "@/pages/PlayerBuilder";
 import LoadSave from "@/pages/LoadSave";
 import Settings from "@/pages/Settings";
 import League from "@/pages/League";
@@ -31,8 +32,11 @@ function Router() {
       <Route path="/new">
         <CreatePlayer onCreatePlayer={(data) => {
           console.log('Player created:', data);
-          setLocation('/home');
+          setLocation('/builder');
         }} />
+      </Route>
+      <Route path="/builder">
+        <PlayerBuilder onSaveBuild={() => setLocation('/home')} />
       </Route>
       <Route path="/load">
         <LoadSave 
