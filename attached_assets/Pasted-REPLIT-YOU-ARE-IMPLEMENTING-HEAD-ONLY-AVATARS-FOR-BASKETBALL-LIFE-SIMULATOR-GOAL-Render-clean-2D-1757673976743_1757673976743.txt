@@ -1,22 +1,50 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
-import { useLocation } from 'wouter';
+REPLIT: YOU ARE IMPLEMENTING HEAD-ONLY AVATARS FOR “BASKETBALL LIFE SIMULATOR”
 
-interface AvatarCustomizeNewProps {
-  onNavigate?: (path: string) => void;
-}
+GOAL
+Render clean 2D head avatars (transparent PNGs) by stacking image layers in the correct order. Use this on /customize (128px), /builder (128px), /home header and cards (64px/40px). No full body. Must randomize NPC faces reliably.
 
-export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
-  const [, setLocation] = useLocation();
-  const [loading, setLoading] = useState(true);
+ACCEPTANCE
+- Shows a crisp head in the preview box (NOT a circle).
+- Layers draw in this exact order: base skin → eyes → brows → nose → mouth → facial hair (optional) → hair (optional) → accessory (optional).
+- Works at sizes 128/64/40 and never overlaps other UI.
+- Randomize button produces believable, varied faces.
+- If any asset is missing, show a clear error in console and draw a neutral placeholder.
 
-  useEffect(() => {
-    // Initialize the avatar system after component mounts
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.textContent = `
+FOLDER STRUCTURE (upload your PNGs with transparent background)
+public/
+  avatars/
+    heads/
+      base/       skin_F1.png, skin_F2.png, skin_F3.png, skin_F4.png
+      eyes/       eyes_01.png ... eyes_06.png
+      brows/      brows_01.png ... brows_06.png
+      nose/       nose_01.png ... nose_04.png
+      mouth/      mouth_01.png ... mouth_06.png
+      beard/      beard_00.png (empty), beard_01.png ... beard_06.png
+      hair/       hair_00.png (bald), hair_01.png ... hair_12.png
+      accessory/  none_00.png, headband_01.png, beanie_01.png, durag_01.png
+    masks/
+      headband_mask.png   (white shape to tint)
+      beanie_mask.png
+      durag_mask.png
+
+ADD THIS HTML where you want the preview (e.g., /customize):
+<div class="avatar-wrap">
+  <canvas id="avatarCanvas" width="128" height="128" aria-label="avatar preview"></canvas>
+  <div class="avatar-actions">
+    <button id="btnRandom">Randomize</button>
+  </div>
+</div>
+
+ADD THIS CSS (keeps size consistent; prevents overlap):
+<style>
+.avatar-wrap{display:inline-flex;flex-direction:column;gap:.5rem;align-items:center}
+#avatarCanvas{width:128px;height:128px;image-rendering:auto;border-radius:12px;background:#2a2320}
+.avatar-head-64 { width:64px;height:64px }
+.avatar-head-40 { width:40px;height:40px }
+</style>
+
+ADD THIS SCRIPT (vanilla JS, no framework). It preloads, stacks, randomizes, and supports tinting for team color accents:
+<script type="module">
 const ASSETS = '/avatars/heads/';       // served from /public/avatars/heads
 const MASKS  = '/avatars/masks/';       // served from /public/avatars/masks
 
@@ -29,6 +57,7 @@ const cfg = {
   beard:     ['beard_00.png','beard_01.png','beard_02.png','beard_03.png','beard_04.png','beard_05.png','beard_06.png'],
   hair:      ['hair_00.png','hair_01.png','hair_02.png','hair_03.png','hair_04.png','hair_05.png','hair_06.png','hair_07.png','hair_08.png','hair_09.png','hair_10.png','hair_11.png','hair_12.png'],
   accessory: ['none_00.png','headband_01.png','beanie_01.png','durag_01.png'],
+  // mask mapping for tintable accessories; upload white masks matching item silhouette
   masks: {
     'headband_01.png':'headband_mask.png',
     'beanie_01.png':'beanie_mask.png',
@@ -43,24 +72,9 @@ function rngFromSeed(seed){const n=xmur3(seed)();return sfc32(n, n^0x9E3779B1, n
 
 async function load(src){
   return new Promise((res,rej)=>{
-    const img=new Image(); img.crossOrigin='anonymous'; 
-    img.onload=()=>res(img); 
-    img.onerror=()=>{
-      console.warn('Missing avatar asset:', src);
-      // Create a placeholder colored rectangle
-      const canvas = document.createElement('canvas');
-      canvas.width = 128; canvas.height = 128;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#555';
-      ctx.fillRect(0, 0, 128, 128);
-      const placeholderImg = new Image();
-      placeholderImg.src = canvas.toDataURL();
-      res(placeholderImg);
-    }; 
-    img.src = src;
+    const img=new Image(); img.crossOrigin='anonymous'; img.onload=()=>res(img); img.onerror=()=>rej(new Error('Missing '+src)); img.src=src;
   });
 }
-
 async function preload(list, folder){ return Object.fromEntries(await Promise.all(list.map(async f=>[f, await load(folder+f)]))) }
 
 function pick(r, arr){ return arr[Math.floor(r()*arr.length)] }
@@ -93,7 +107,7 @@ async function composeAvatar(canvas, parts, assets, masks, teamColor){
       const maskName = cfg.masks[file];
       tintLayer(ctx, masks[maskName], teamColor || '#ff6a00'); // default accent if no team
       ctx.drawImage(assets[layer][file],0,0,W,H);
-    } else if (assets[layer] && assets[layer][file]) {
+    } else {
       ctx.drawImage(assets[layer][file],0,0,W,H);
     }
   }
@@ -123,11 +137,6 @@ function randomParts(seed){
 
 (async function main(){
   const canvas = document.getElementById('avatarCanvas');
-  if (!canvas) {
-    console.error('Avatar canvas not found');
-    return;
-  }
-  
   // scale logic for high-DPI without blur
   const scale = Math.min(2, window.devicePixelRatio || 1);
   canvas.width  = 128*scale; canvas.height = 128*scale;
@@ -153,7 +162,7 @@ function randomParts(seed){
     };
 
     // initial face
-    const teamColor = '#7A5BFF';               // team purple from design
+    const teamColor = '#EA6A11';               // change per team if you want
     const seed = 'player-preview';             // stable preview
     let parts = randomParts(seed);
     await composeAvatar(canvas, parts, assets, masks, teamColor);
@@ -171,136 +180,24 @@ function randomParts(seed){
     console.error('[Avatar]', err);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#2a2320'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('Loading avatar system...', 10, 64);
+    ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('Missing avatar assets', 10, 24);
   }
 })();
-    `;
-    document.head.appendChild(script);
-    setLoading(false);
-  }, []);
+</script>
 
-  const handleSave = () => {
-    // Save current avatar configuration
-    try {
-      localStorage.setItem('hd:playerAppearance', JSON.stringify({}));
-    } catch (error) {
-      console.error('Failed to save appearance:', error);
-    }
-    onNavigate?.('/builder');
-    setLocation('/builder');
-  };
+HOOKUPS ON OTHER PAGES
+- On /home, create a <canvas class="avatar-head-64" id="homeAvatar"></canvas>, then:
+<script>
+  const c = document.getElementById('homeAvatar');
+  c.width=64*window.devicePixelRatio; c.height=64*window.devicePixelRatio; c.style.width='64px'; c.style.height='64px';
+  const seed = 'npc-42';
+  const parts = window.__avatar.randomParts(seed);
+  window.__avatar.composeAvatar(c, parts, window.__avatar.assets, window.__avatar.masks, '#EA6A11');
+</script>
 
-  return (
-    <div className="min-h-screen bg-background p-4 pb-20">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => {
-                  onNavigate?.('/new');
-                  setLocation('/new');
-                }}
-                data-testid="button-back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <CardTitle>Customize Appearance</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground">
-              Create your unique look for the basketball courts
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Avatar Preview */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center space-y-4">
-                <div className="avatar-wrap">
-                  <canvas 
-                    id="avatarCanvas" 
-                    width="128" 
-                    height="128" 
-                    aria-label="avatar preview"
-                    style={{
-                      width: '128px',
-                      height: '128px',
-                      imageRendering: 'auto',
-                      borderRadius: '12px',
-                      background: '#2a2320'
-                    }}
-                  />
-                  <div className="avatar-actions mt-4">
-                    <Button id="btnRandom" data-testid="button-randomize">
-                      Randomize
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Instructions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Avatar System</h4>
-                <p className="text-sm text-muted-foreground">
-                  This head-only avatar system uses layered PNG assets for crisp rendering at any size.
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-2">Asset Requirements</h4>
-                <p className="text-sm text-muted-foreground">
-                  Upload transparent PNG files to /public/avatars/heads/ folders:
-                  base, eyes, brows, nose, mouth, beard, hair, accessory
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Layer Order</h4>
-                <p className="text-sm text-muted-foreground">
-                  Renders in order: skin → eyes → brows → nose → mouth → facial hair → hair → accessory
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-between">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              onNavigate?.('/new');
-              setLocation('/new');
-            }}
-            data-testid="button-back"
-          >
-            Back
-          </Button>
-          <Button 
-            onClick={handleSave}
-            data-testid="button-save"
-          >
-            Save & Continue
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
+TROUBLESHOOTING (if you only see a pink circle / eyes):
+- A layer file is missing or misnamed. Open DevTools → Console; you’ll see “Missing …png”.
+- Your assets aren’t in /public. In Replit, put PNGs under `public/avatars/heads/...` and the masks under `public/avatars/masks/...`.
+- PNGs must be transparent (RGBA). Re-export if you see white boxes.
+- Canvas too blurry or too big? Confirm width/height are multiplied by devicePixelRatio while CSS size stays 128/64/40.
+END
