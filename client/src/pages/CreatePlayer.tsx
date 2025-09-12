@@ -47,18 +47,13 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
       document.head.appendChild(link);
     }
     
-    // Initialize player avatar
+    // Initialize player avatar chip
     const script = document.createElement('script');
     script.type = 'module';
     script.innerHTML = `
-      import { renderAvatar, dnaFromSeed } from '/js/proc-avatar.js';
+      import { attachImgCanvas } from '/js/avatar-hooks.js';
       setTimeout(() => {
-        document.querySelectorAll('canvas.avatar64').forEach(c => {
-          if (c.dataset.seed) {
-            c.width = 64; c.height = 64;
-            renderAvatar(c, dnaFromSeed(c.dataset.seed));
-          }
-        });
+        attachImgCanvas('#avatarChip', 40);
       }, 100);
     `;
     document.head.appendChild(script);
@@ -336,7 +331,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <canvas className="avatar64" data-seed={avatarSeed} style={{borderRadius: '8px'}}></canvas>
+                <canvas id="avatarChip" className="avatar40" data-seed={avatarSeed} style={{borderRadius: '8px'}}></canvas>
                 <div className="flex-1">
                   <Button
                     variant="outline"

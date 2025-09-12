@@ -11,6 +11,7 @@ interface AvatarCustomizeNewProps {
 export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(true);
+  const [avatarReady, setAvatarReady] = useState(false);
 
   useEffect(() => {
     // Load CSS and JS modules
@@ -19,14 +20,38 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
     link.href = '/css/avatar.css';
     document.head.appendChild(link);
 
-    // Load and initialize procedural avatar system
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { mountCustomize } from '/js/avatar-hooks.js'; 
-      mountCustomize();
-    `;
-    document.head.appendChild(script);
+    // Load and initialize procedural avatar system after DOM is ready
+    const initializeAvatar = () => {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.innerHTML = `
+        import { mountCustomize } from '/js/avatar-hooks.js';
+        
+        // Robust DOM readiness check with retries
+        function waitForElements(maxAttempts = 20) {
+          const canvas = document.getElementById('avatarCanvas');
+          const skinSelect = document.getElementById('skin');
+          const hairSelect = document.getElementById('hair');
+          
+          if (canvas && skinSelect && hairSelect) {
+            console.log('Avatar elements found, initializing...');
+            mountCustomize();
+          } else if (maxAttempts > 0) {
+            console.log('Waiting for avatar elements... attempts left:', maxAttempts);
+            setTimeout(() => waitForElements(maxAttempts - 1), 100);
+          } else {
+            console.error('Avatar elements not found after maximum attempts');
+          }
+        }
+        
+        // Start checking for elements
+        waitForElements();
+      `;
+      document.head.appendChild(script);
+    };
+    
+    // Initialize after a small delay to ensure React has rendered
+    setTimeout(initializeAvatar, 100);
 
     setLoading(false);
   }, []);
@@ -82,31 +107,31 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
                   />
                   <div className="controls">
                     <label>Skin:
-                      <select id="skin" data-testid="select-skin">
+                      <select id="skin" data-testid="select-skin" defaultValue="F3">
                         <option value="F1">F1</option>
                         <option value="F2">F2</option>
-                        <option value="F3" selected>F3</option>
+                        <option value="F3">F3</option>
                         <option value="F4">F4</option>
                       </select>
                     </label>
                     <label>Hair:
-                      <select id="hair" data-testid="select-hair">
-                        <option>bald</option>
-                        <option>buzz</option>
-                        <option selected>short</option>
-                        <option>afro</option>
-                        <option>curls</option>
-                        <option>braids</option>
-                        <option>waves</option>
-                        <option>locs</option>
-                        <option>beanie</option>
-                        <option>durag</option>
-                        <option>headband</option>
+                      <select id="hair" data-testid="select-hair" defaultValue="short">
+                        <option value="bald">bald</option>
+                        <option value="buzz">buzz</option>
+                        <option value="short">short</option>
+                        <option value="afro">afro</option>
+                        <option value="curls">curls</option>
+                        <option value="braids">braids</option>
+                        <option value="waves">waves</option>
+                        <option value="locs">locs</option>
+                        <option value="beanie">beanie</option>
+                        <option value="durag">durag</option>
+                        <option value="headband">headband</option>
                       </select>
                     </label>
                     <label>Hair Color:
-                      <select id="hairColor" data-testid="select-hair-color">
-                        <option value="#2b2018" selected>#2b2018</option>
+                      <select id="hairColor" data-testid="select-hair-color" defaultValue="#2b2018">
+                        <option value="#2b2018">#2b2018</option>
                         <option value="#3a2f25">#3a2f25</option>
                         <option value="#4b382e">#4b382e</option>
                         <option value="#754c24">#754c24</option>
@@ -114,19 +139,19 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
                       </select>
                     </label>
                     <label>Eyes:
-                      <select id="eyeColor" data-testid="select-eye-color">
-                        <option value="#3a2f25" selected>#3a2f25</option>
+                      <select id="eyeColor" data-testid="select-eye-color" defaultValue="#3a2f25">
+                        <option value="#3a2f25">#3a2f25</option>
                         <option value="#1f2d57">#1f2d57</option>
                         <option value="#0a6a4f">#0a6a4f</option>
                         <option value="#5b3a2e">#5b3a2e</option>
                       </select>
                     </label>
                     <label>Facial Hair:
-                      <select id="facial" data-testid="select-facial">
-                        <option selected>none</option>
-                        <option>goatee</option>
-                        <option>mustache</option>
-                        <option>full</option>
+                      <select id="facial" data-testid="select-facial" defaultValue="none">
+                        <option value="none">none</option>
+                        <option value="goatee">goatee</option>
+                        <option value="mustache">mustache</option>
+                        <option value="full">full</option>
                       </select>
                     </label>
                     <button id="btnRandom" data-testid="button-random">Randomize</button>

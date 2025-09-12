@@ -37,15 +37,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     script.innerHTML = `
       import { attachImgCanvas } from '/js/avatar-hooks.js';
       setTimeout(() => {
-        document.querySelectorAll('canvas.avatar64').forEach(c => {
-          if (c.dataset.seed) {
-            const canvas = c;
-            canvas.width = 64; canvas.height = 64;
-            import('/js/proc-avatar.js').then(({renderAvatar, dnaFromSeed}) => {
-              renderAvatar(canvas, dnaFromSeed(c.dataset.seed));
-            });
-          }
-        });
+        attachImgCanvas('#avatarHomeMe', 64);
       }, 100);
     `;
     document.head.appendChild(script);
@@ -228,7 +220,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <main className="space-y-6">
         {/* Player Info Card */}
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-          <canvas className="avatar64" data-seed={`player-${currentPlayer?.nameFirst || 'default'}-${currentPlayer?.nameLast || 'player'}`} style={{borderRadius: '8px'}}></canvas>
+          <canvas id="avatarHomeMe" className="avatar64" data-seed={`player-${currentPlayer?.nameFirst || 'default'}-${currentPlayer?.nameLast || 'player'}`} style={{borderRadius: '8px'}}></canvas>
           <div className="flex-1">
             <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
             <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>

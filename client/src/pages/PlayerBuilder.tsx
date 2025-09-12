@@ -51,13 +51,9 @@ export default function PlayerBuilder() {
     const script = document.createElement('script');
     script.type = 'module';
     script.innerHTML = `
-      import { renderAvatar, dnaFromSeed } from '/js/proc-avatar.js';
+      import { attachImgCanvas } from '/js/avatar-hooks.js';
       setTimeout(() => {
-        const canvas = document.getElementById('avatarBuilder');
-        if (canvas) {
-          canvas.width = 128; canvas.height = 128;
-          renderAvatar(canvas, dnaFromSeed('builder-player'));
-        }
+        attachImgCanvas('#avatarBuilder', 96);
       }, 100);
     `;
     document.head.appendChild(script);
@@ -205,7 +201,7 @@ export default function PlayerBuilder() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-center">
-                <canvas id="avatarBuilder" className="avatar128" style={{borderRadius: '12px'}}></canvas>
+                <canvas id="avatarBuilder" className="avatar96" style={{borderRadius: '12px'}}></canvas>
               </div>
               
               <div className="text-center space-y-1">
