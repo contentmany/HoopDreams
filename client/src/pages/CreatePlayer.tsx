@@ -16,9 +16,9 @@ import {
   feetInchesToInches
 } from "@/utils/gameConfig";
 import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
-import CharacterPreview from "@/components/CharacterPreview";
+import { CharacterPreview } from "@/components/character/CharacterPreview";
 import { getDraftPlayer } from "@/utils/character";
-import { DEFAULT_APPEARANCE } from "@/types/appearance";
+import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
@@ -310,7 +310,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
               <div className="flex items-center gap-4">
                 <CharacterPreview 
                   size="sm" 
-                  appearance={getDraftPlayer()?.appearance || DEFAULT_APPEARANCE}
+                  look={getDraftPlayer()?.look || DEFAULT_CHARACTER_LOOK}
                   className="w-16 h-20" 
                 />
                 <div className="flex-1">

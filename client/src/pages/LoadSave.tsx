@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import CharacterPreview from "@/components/CharacterPreview";
-import { DEFAULT_APPEARANCE } from "@/types/appearance";
+import { CharacterPreview } from "@/components/character/CharacterPreview";
+import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
 import { Plus, Trash2 } from "lucide-react";
 
 interface SaveSlot {
@@ -56,7 +56,7 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
                     <div className="flex items-center gap-3">
                       <CharacterPreview 
                         size="sm" 
-                        appearance={DEFAULT_APPEARANCE}
+                        look={DEFAULT_CHARACTER_LOOK}
                         className="w-12 h-15"
                       />
                       

@@ -4,8 +4,8 @@ import GameCard from "@/components/GameCard";
 import QuickActions from "@/components/QuickActions";
 import LeagueSnapshot from "@/components/LeagueSnapshot";
 import StatsStrip from "@/components/StatsStrip";
-import CharacterPreview from "@/components/CharacterPreview";
-import { DEFAULT_APPEARANCE } from "@/types/appearance";
+import { CharacterPreview } from "@/components/character/CharacterPreview";
+import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
 import BottomTabBar from "@/components/BottomTabBar";
 import GameResultsModal from "@/components/GameResultsModal";
 import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
@@ -200,7 +200,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
           <CharacterPreview 
             size="sm" 
-            appearance={currentPlayer?.appearance || DEFAULT_APPEARANCE}
+            look={currentPlayer?.look || DEFAULT_CHARACTER_LOOK}
           />
           <div className="flex-1">
             <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
