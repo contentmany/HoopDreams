@@ -22,109 +22,178 @@ export function renderHeadPNG(dna: AvatarDNA, size: number = 96): string {
 
 export function drawHead(ctx: CanvasRenderingContext2D, size: number, dna: AvatarDNA): void {
   const center = size / 2;
-  const headRadius = size * 0.35;
+  const headWidth = size * 0.32;
+  const headHeight = size * 0.4;
   
   // Clear canvas (transparent background)
   ctx.clearRect(0, 0, size, size);
   
-  // Draw head shape (rounded oval)
+  // Draw head shape (clean oval, flat style)
   ctx.save();
   const skinColor = skinHex[dna.skin];
   ctx.fillStyle = skinColor;
   ctx.beginPath();
-  ctx.ellipse(center, center * 0.95, headRadius, headRadius * 1.1, 0, 0, 2 * Math.PI);
-  ctx.fill();
-  
-  // Add subtle head shadow/dimension
-  const gradient = ctx.createRadialGradient(center - headRadius * 0.3, center - headRadius * 0.2, 0, center, center, headRadius);
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-  gradient.addColorStop(1, 'rgba(0, 0, 0, 0.05)');
-  ctx.fillStyle = gradient;
+  ctx.ellipse(center, center * 0.9, headWidth, headHeight, 0, 0, 2 * Math.PI);
   ctx.fill();
   ctx.restore();
   
-  // Draw ears
-  drawEars(ctx, center, headRadius, skinColor);
+  // Draw ears (simple flat ovals)
+  drawEars(ctx, center, headWidth, headHeight, skinColor);
   
   // Draw hair (before facial features for proper layering)
-  drawHair(ctx, center, headRadius, dna.hairStyle, dna.hairColor, size);
+  if (dna.hairStyle !== 'bald') {
+    drawHair(ctx, center, headWidth, headHeight, dna.hairStyle, dna.hairColor, size);
+  }
   
   // Draw eyes
-  drawEyes(ctx, center, headRadius, dna.eyeShape, dna.eyeColor);
+  drawEyes(ctx, center, headWidth, headHeight, dna.eyeShape, dna.eyeColor, size);
   
-  // Draw brows
-  drawBrows(ctx, center, headRadius, dna.brow, dna.hairColor);
+  // Draw brows  
+  drawBrows(ctx, center, headWidth, headHeight, dna.brow, dna.hairColor, size);
   
-  // Draw nose
-  drawNose(ctx, center, headRadius, skinColor);
+  // Draw nose (subtle, like references)
+  drawNose(ctx, center, headWidth, headHeight, skinColor, size);
   
   // Draw mouth
-  drawMouth(ctx, center, headRadius);
+  drawMouth(ctx, center, headWidth, headHeight, size);
   
   // Draw facial hair
   if (dna.facialHair !== 'none') {
-    drawFacialHair(ctx, center, headRadius, dna.facialHair, dna.hairColor);
+    drawFacialHair(ctx, center, headWidth, headHeight, dna.facialHair, dna.hairColor, size);
   }
   
   // Draw head gear
   if (dna.headGear !== 'none' && dna.headGearColor) {
-    drawHeadGear(ctx, center, headRadius, dna.headGear, dna.headGearColor, size);
+    drawHeadGear(ctx, center, headWidth, headHeight, dna.headGear, dna.headGearColor, size);
   }
   
   // Draw accents (earrings)
   if (dna.accent !== 'none') {
-    drawAccents(ctx, center, headRadius, dna.accent);
+    drawAccents(ctx, center, headWidth, headHeight, dna.accent, size);
   }
   
-  // Draw jersey collar hint at bottom
-  drawJerseyHint(ctx, center, size, dna.jerseyColor);
+  // Draw jersey collar hint
+  drawJerseyCollar(ctx, center, headWidth, headHeight, dna.jerseyColor, size);
 }
 
-function drawEars(ctx: CanvasRenderingContext2D, center: number, headRadius: number, skinColor: string): void {
-  const earSize = headRadius * 0.15;
-  const earY = center * 0.95;
+function drawEars(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, skinColor: string): void {
+  const earWidth = headWidth * 0.15;
+  const earHeight = headHeight * 0.2;
+  const earY = centerX * 0.9;
   
   ctx.fillStyle = skinColor;
   
   // Left ear
   ctx.beginPath();
-  ctx.ellipse(center - headRadius * 0.9, earY, earSize, earSize * 1.2, 0, 0, 2 * Math.PI);
+  ctx.ellipse(centerX - headWidth - earWidth/2, earY, earWidth, earHeight, 0, 0, 2 * Math.PI);
   ctx.fill();
   
-  // Right ear
+  // Right ear  
   ctx.beginPath();
-  ctx.ellipse(center + headRadius * 0.9, earY, earSize, earSize * 1.2, 0, 0, 2 * Math.PI);
-  ctx.fill();
-  
-  // Ear inner shadow
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-  ctx.beginPath();
-  ctx.ellipse(center - headRadius * 0.9, earY, earSize * 0.4, earSize * 0.6, 0, 0, 2 * Math.PI);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(center + headRadius * 0.9, earY, earSize * 0.4, earSize * 0.6, 0, 0, 2 * Math.PI);
+  ctx.ellipse(centerX + headWidth + earWidth/2, earY, earWidth, earHeight, 0, 0, 2 * Math.PI);
   ctx.fill();
 }
 
-function drawEyes(ctx: CanvasRenderingContext2D, center: number, headRadius: number, shape: EyeShape, color: EyeColor): void {
-  const eyeY = center * 0.85;
-  const eyeWidth = headRadius * 0.25;
-  const eyeHeight = headRadius * 0.15;
-  const eyeSpacing = headRadius * 0.6;
+function drawHair(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, hairStyle: HairStyle, hairColor: string, size: number): void {
+  ctx.fillStyle = hairColor;
+  ctx.strokeStyle = darkenColor(hairColor, 0.2);
+  ctx.lineWidth = size * 0.01;
   
-  const eyeColor = eyeHex[color];
+  const hairTop = centerX * 0.9 - headHeight;
+  const hairBottom = centerX * 0.9 - headHeight * 0.3;
+  
+  ctx.beginPath();
+  
+  switch (hairStyle) {
+    case 'short':
+      // Clean short hair around head
+      ctx.ellipse(centerX, hairTop + headHeight * 0.1, headWidth * 1.1, headHeight * 0.4, 0, 0, Math.PI, true);
+      break;
+      
+    case 'fade':
+      // Short sides, longer top
+      ctx.ellipse(centerX, hairTop + headHeight * 0.15, headWidth * 1.05, headHeight * 0.35, 0, 0, Math.PI, true);
+      break;
+      
+    case 'waves':
+      // Wavy texture on top
+      ctx.ellipse(centerX, hairTop + headHeight * 0.1, headWidth * 1.1, headHeight * 0.4, 0, 0, Math.PI, true);
+      ctx.fill();
+      // Add wave lines
+      ctx.beginPath();
+      ctx.strokeStyle = darkenColor(hairColor, 0.3);
+      for (let i = -2; i <= 2; i++) {
+        const y = hairTop + headHeight * 0.2;
+        ctx.moveTo(centerX - headWidth * 0.8 + i * headWidth * 0.4, y);
+        ctx.quadraticCurveTo(centerX - headWidth * 0.4 + i * headWidth * 0.4, y - headHeight * 0.1, centerX + i * headWidth * 0.4, y);
+      }
+      ctx.stroke();
+      return;
+      
+    case 'afroLow':
+      // Small afro
+      ctx.ellipse(centerX, hairTop + headHeight * 0.05, headWidth * 1.2, headHeight * 0.45, 0, 0, Math.PI, true);
+      break;
+      
+    case 'afroHigh':  
+      // Large afro
+      ctx.ellipse(centerX, hairTop - headHeight * 0.1, headWidth * 1.4, headHeight * 0.6, 0, 0, Math.PI, true);
+      break;
+      
+    case 'braids':
+      // Braided hair
+      ctx.ellipse(centerX, hairTop + headHeight * 0.1, headWidth * 1.1, headHeight * 0.4, 0, 0, Math.PI, true);
+      ctx.fill();
+      // Add braid lines
+      ctx.beginPath();
+      ctx.strokeStyle = darkenColor(hairColor, 0.3);
+      for (let i = -3; i <= 3; i++) {
+        const x = centerX + i * headWidth * 0.2;
+        ctx.moveTo(x, hairTop + headHeight * 0.1);
+        ctx.lineTo(x, hairBottom);
+      }
+      ctx.stroke();
+      return;
+      
+    case 'twists':
+      // Twisted hair
+      ctx.ellipse(centerX, hairTop + headHeight * 0.1, headWidth * 1.1, headHeight * 0.4, 0, 0, Math.PI, true);
+      break;
+      
+    case 'locs':
+      // Dreadlocks
+      ctx.ellipse(centerX, hairTop + headHeight * 0.1, headWidth * 1.15, headHeight * 0.4, 0, 0, Math.PI, true);
+      break;
+      
+    case 'buzz':
+      // Very short buzz cut
+      ctx.ellipse(centerX, hairTop + headHeight * 0.2, headWidth * 1.05, headHeight * 0.3, 0, 0, Math.PI, true);
+      break;
+  }
+  
+  ctx.fill();
+  if (ctx.lineWidth > 0) {
+    ctx.stroke();
+  }
+}
+
+function drawEyes(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, eyeShape: EyeShape, eyeColor: EyeColor, size: number): void {
+  const eyeY = centerX * 0.85;
+  const eyeWidth = size * 0.08;
+  const eyeHeight = size * 0.08;
+  const eyeSpacing = headWidth * 0.5;
+  
+  const pupilColor = eyeHex[eyeColor];
   
   // Left eye
-  drawSingleEye(ctx, center - eyeSpacing, eyeY, eyeWidth, eyeHeight, shape, eyeColor);
+  drawSingleEye(ctx, centerX - eyeSpacing, eyeY, eyeWidth, eyeHeight, eyeShape, pupilColor);
   
-  // Right eye  
-  drawSingleEye(ctx, center + eyeSpacing, eyeY, eyeWidth, eyeHeight, shape, eyeColor);
+  // Right eye
+  drawSingleEye(ctx, centerX + eyeSpacing, eyeY, eyeWidth, eyeHeight, eyeShape, pupilColor);
 }
 
-function drawSingleEye(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, shape: EyeShape, color: string): void {
-  ctx.save();
-  
-  // Eye white
+function drawSingleEye(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, shape: EyeShape, pupilColor: string): void {
+  // White of eye
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   
@@ -133,338 +202,200 @@ function drawSingleEye(ctx: CanvasRenderingContext2D, x: number, y: number, widt
       ctx.ellipse(x, y, width, height, 0, 0, 2 * Math.PI);
       break;
     case 'almond':
+      // Almond shape - ellipse with points
       ctx.ellipse(x, y, width * 1.1, height * 0.8, 0, 0, 2 * Math.PI);
       break;
     case 'narrow':
-      ctx.ellipse(x, y, width * 1.2, height * 0.6, 0, 0, 2 * Math.PI);
+      ctx.ellipse(x, y, width * 1.2, height * 0.7, 0, 0, 2 * Math.PI);
       break;
   }
-  ctx.fill();
   
-  // Iris
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(x, y, width * 0.6, height * 0.8, 0, 0, 2 * Math.PI);
   ctx.fill();
   
   // Pupil
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = pupilColor;
   ctx.beginPath();
-  ctx.ellipse(x, y, width * 0.3, height * 0.4, 0, 0, 2 * Math.PI);
+  ctx.ellipse(x, y, width * 0.6, height * 0.6, 0, 0, 2 * Math.PI);
   ctx.fill();
   
-  // Highlight
+  // White highlight
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.ellipse(x - width * 0.1, y - height * 0.2, width * 0.15, height * 0.2, 0, 0, 2 * Math.PI);
+  ctx.ellipse(x - width * 0.2, y - height * 0.2, width * 0.25, height * 0.25, 0, 0, 2 * Math.PI);
   ctx.fill();
-  
-  ctx.restore();
 }
 
-function drawBrows(ctx: CanvasRenderingContext2D, center: number, headRadius: number, style: BrowStyle, hairColor: string): void {
-  const browY = center * 0.75;
-  const browWidth = headRadius * 0.3;
-  const browHeight = headRadius * 0.08;
-  const browSpacing = headRadius * 0.6;
+function drawBrows(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, browStyle: BrowStyle, hairColor: string, size: number): void {
+  const browY = centerX * 0.75;
+  const browWidth = size * 0.07;
+  const browHeight = size * 0.02;
+  const browSpacing = headWidth * 0.5;
   
-  const browColor = darkenColor(hairColor, 0.1);
-  ctx.fillStyle = browColor;
-  ctx.strokeStyle = browColor;
-  ctx.lineWidth = browHeight;
-  ctx.lineCap = 'round';
+  ctx.fillStyle = darkenColor(hairColor, 0.3);
+  ctx.strokeStyle = darkenColor(hairColor, 0.3);
+  ctx.lineWidth = size * 0.01;
+  
+  // Left brow
+  drawSingleBrow(ctx, centerX - browSpacing, browY, browWidth, browHeight, browStyle, false);
+  
+  // Right brow  
+  drawSingleBrow(ctx, centerX + browSpacing, browY, browWidth, browHeight, browStyle, true);
+}
+
+function drawSingleBrow(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, style: BrowStyle, isRight: boolean): void {
+  ctx.beginPath();
+  
+  const direction = isRight ? 1 : -1;
   
   switch (style) {
     case 'straight':
-      // Left brow
-      ctx.beginPath();
-      ctx.moveTo(center - browSpacing - browWidth/2, browY);
-      ctx.lineTo(center - browSpacing + browWidth/2, browY);
-      ctx.stroke();
-      
-      // Right brow
-      ctx.beginPath();
-      ctx.moveTo(center + browSpacing - browWidth/2, browY);
-      ctx.lineTo(center + browSpacing + browWidth/2, browY);
-      ctx.stroke();
+      ctx.ellipse(x, y, width, height, 0, 0, 2 * Math.PI);
       break;
-      
     case 'soft':
-      // Left brow (slightly curved)
-      ctx.beginPath();
-      ctx.moveTo(center - browSpacing - browWidth/2, browY + browHeight/4);
-      ctx.quadraticCurveTo(center - browSpacing, browY - browHeight/4, center - browSpacing + browWidth/2, browY + browHeight/4);
-      ctx.stroke();
-      
-      // Right brow
-      ctx.beginPath();
-      ctx.moveTo(center + browSpacing - browWidth/2, browY + browHeight/4);
-      ctx.quadraticCurveTo(center + browSpacing, browY - browHeight/4, center + browSpacing + browWidth/2, browY + browHeight/4);
-      ctx.stroke();
+      ctx.ellipse(x, y, width, height * 1.2, direction * 0.1, 0, 2 * Math.PI);
       break;
-      
     case 'arched':
-      // Left brow (more arched)
-      ctx.beginPath();
-      ctx.moveTo(center - browSpacing - browWidth/2, browY + browHeight/2);
-      ctx.quadraticCurveTo(center - browSpacing, browY - browHeight/2, center - browSpacing + browWidth/2, browY + browHeight/2);
-      ctx.stroke();
-      
-      // Right brow
-      ctx.beginPath();
-      ctx.moveTo(center + browSpacing - browWidth/2, browY + browHeight/2);
-      ctx.quadraticCurveTo(center + browSpacing, browY - browHeight/2, center + browSpacing + browWidth/2, browY + browHeight/2);
-      ctx.stroke();
+      ctx.ellipse(x, y, width, height * 1.1, direction * 0.2, 0, 2 * Math.PI);
       break;
   }
-}
-
-function drawNose(ctx: CanvasRenderingContext2D, center: number, headRadius: number, skinColor: string): void {
-  const noseY = center * 1.0;
-  const noseWidth = headRadius * 0.12;
-  const noseHeight = headRadius * 0.15;
   
-  // Simple nose shadow/definition
-  const gradient = ctx.createLinearGradient(center - noseWidth, noseY, center + noseWidth, noseY);
-  gradient.addColorStop(0, 'rgba(0, 0, 0, 0.05)');
-  gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.1)');
-  gradient.addColorStop(1, 'rgba(0, 0, 0, 0.05)');
-  
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.ellipse(center, noseY, noseWidth, noseHeight, 0, 0, 2 * Math.PI);
   ctx.fill();
 }
 
-function drawMouth(ctx: CanvasRenderingContext2D, center: number, headRadius: number): void {
-  const mouthY = center * 1.2;
-  const mouthWidth = headRadius * 0.2;
+function drawNose(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, skinColor: string, size: number): void {
+  const noseY = centerX * 0.95;
+  const noseWidth = size * 0.02;
+  const noseHeight = size * 0.03;
   
-  ctx.strokeStyle = '#b87b7b';
-  ctx.lineWidth = headRadius * 0.02;
-  ctx.lineCap = 'round';
+  // Subtle nose shadow
+  ctx.fillStyle = darkenColor(skinColor, 0.1);
+  ctx.beginPath();
+  ctx.ellipse(centerX, noseY, noseWidth, noseHeight, 0, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function drawMouth(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, size: number): void {
+  const mouthY = centerX * 1.05;
+  const mouthWidth = size * 0.04;
+  const mouthHeight = size * 0.01;
+  
+  // Simple mouth line
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.ellipse(centerX, mouthY, mouthWidth, mouthHeight, 0, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function drawFacialHair(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, facialHair: FacialHair, hairColor: string, size: number): void {
+  ctx.fillStyle = darkenColor(hairColor, 0.2);
+  
+  const chinY = centerX * 0.9 + headHeight;
+  const mouthY = centerX * 1.05;
   
   ctx.beginPath();
-  ctx.moveTo(center - mouthWidth/2, mouthY);
-  ctx.quadraticCurveTo(center, mouthY + headRadius * 0.05, center + mouthWidth/2, mouthY);
-  ctx.stroke();
-}
-
-function drawHair(ctx: CanvasRenderingContext2D, center: number, headRadius: number, style: HairStyle, color: string, size: number): void {
-  if (style === 'bald') return;
   
-  ctx.fillStyle = color;
-  ctx.strokeStyle = color;
-  
-  switch (style) {
-    case 'short':
-      // Simple short hair cap
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.7, headRadius * 0.95, headRadius * 0.6, 0, 0, Math.PI, true);
-      ctx.fill();
-      break;
-      
-    case 'fade':
-      // Faded sides, longer on top
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.65, headRadius * 0.9, headRadius * 0.5, 0, 0, Math.PI, true);
-      ctx.fill();
-      break;
-      
-    case 'waves':
-      // Wavy texture on top
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.7, headRadius * 0.95, headRadius * 0.65, 0, 0, Math.PI, true);
-      ctx.fill();
-      
-      // Add wave texture
-      ctx.strokeStyle = darkenColor(color, 0.2);
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 5; i++) {
-        const waveY = center * 0.6 + i * (headRadius * 0.1);
-        ctx.beginPath();
-        ctx.moveTo(center - headRadius * 0.7, waveY);
-        ctx.quadraticCurveTo(center - headRadius * 0.3, waveY + 2, center, waveY);
-        ctx.quadraticCurveTo(center + headRadius * 0.3, waveY - 2, center + headRadius * 0.7, waveY);
-        ctx.stroke();
-      }
-      break;
-      
-    case 'afroLow':
-      // Small afro
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.75, headRadius * 1.1, headRadius * 0.8, 0, 0, 2 * Math.PI);
-      ctx.fill();
-      break;
-      
-    case 'afroHigh':
-      // Large afro
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.7, headRadius * 1.3, headRadius * 1.0, 0, 0, 2 * Math.PI);
-      ctx.fill();
-      break;
-      
-    case 'braids':
-      // Braided pattern
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.7, headRadius * 0.95, headRadius * 0.7, 0, 0, Math.PI, true);
-      ctx.fill();
-      
-      // Add braid lines
-      ctx.strokeStyle = darkenColor(color, 0.3);
-      ctx.lineWidth = 2;
-      for (let i = -2; i <= 2; i++) {
-        ctx.beginPath();
-        ctx.moveTo(center + i * (headRadius * 0.25), center * 0.5);
-        ctx.lineTo(center + i * (headRadius * 0.25), center * 0.9);
-        ctx.stroke();
-      }
-      break;
-      
-    case 'twists':
-      // Twisted hair
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.7, headRadius * 0.95, headRadius * 0.7, 0, 0, Math.PI, true);
-      ctx.fill();
-      break;
-      
-    case 'locs':
-      // Dreadlocks
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.7, headRadius * 1.0, headRadius * 0.8, 0, 0, Math.PI, true);
-      ctx.fill();
-      
-      // Add loc strands
-      ctx.strokeStyle = darkenColor(color, 0.2);
-      ctx.lineWidth = 3;
-      for (let i = -3; i <= 3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(center + i * (headRadius * 0.2), center * 0.55);
-        ctx.lineTo(center + i * (headRadius * 0.2), center * 1.1);
-        ctx.stroke();
-      }
-      break;
-      
-    case 'buzz':
-      // Very short buzz cut
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.75, headRadius * 0.9, headRadius * 0.5, 0, 0, Math.PI, true);
-      ctx.fill();
-      break;
-  }
-}
-
-function drawFacialHair(ctx: CanvasRenderingContext2D, center: number, headRadius: number, style: FacialHair, color: string): void {
-  ctx.fillStyle = color;
-  
-  switch (style) {
+  switch (facialHair) {
     case 'goatee':
-      ctx.beginPath();
-      ctx.ellipse(center, center * 1.3, headRadius * 0.15, headRadius * 0.2, 0, 0, 2 * Math.PI);
-      ctx.fill();
+      // Small goatee under chin
+      ctx.ellipse(centerX, chinY - headHeight * 0.1, headWidth * 0.2, headHeight * 0.15, 0, 0, 2 * Math.PI);
       break;
       
     case 'mustache':
-      ctx.strokeStyle = color;
-      ctx.lineWidth = headRadius * 0.08;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(center - headRadius * 0.2, center * 1.1);
-      ctx.lineTo(center + headRadius * 0.2, center * 1.1);
-      ctx.stroke();
+      // Mustache above mouth
+      ctx.ellipse(centerX, mouthY - headHeight * 0.05, headWidth * 0.25, headHeight * 0.05, 0, 0, 2 * Math.PI);
       break;
       
     case 'beardShort':
-      ctx.beginPath();
-      ctx.ellipse(center, center * 1.25, headRadius * 0.4, headRadius * 0.25, 0, 0, Math.PI);
-      ctx.fill();
+      // Short beard along jawline
+      ctx.ellipse(centerX, chinY - headHeight * 0.05, headWidth * 0.8, headHeight * 0.2, 0, 0, Math.PI);
       break;
       
     case 'beardFull':
-      ctx.beginPath();
-      ctx.ellipse(center, center * 1.3, headRadius * 0.6, headRadius * 0.4, 0, 0, Math.PI);
-      ctx.fill();
+      // Full beard
+      ctx.ellipse(centerX, chinY, headWidth * 0.9, headHeight * 0.25, 0, 0, Math.PI);
       break;
   }
+  
+  ctx.fill();
 }
 
-function drawHeadGear(ctx: CanvasRenderingContext2D, center: number, headRadius: number, gear: HeadGear, color: string, size: number): void {
-  ctx.fillStyle = color;
+function drawHeadGear(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, headGear: HeadGear, headGearColor: string, size: number): void {
+  ctx.fillStyle = headGearColor;
   
-  switch (gear) {
+  const headTop = centerX * 0.9 - headHeight;
+  
+  switch (headGear) {
     case 'headband':
-      // Thin band around forehead area
-      ctx.strokeStyle = color;
-      ctx.lineWidth = headRadius * 0.12;
+      // Thin headband around forehead
       ctx.beginPath();
-      ctx.ellipse(center, center * 0.8, headRadius * 0.95, headRadius * 0.95, 0, Math.PI * 0.2, Math.PI * 0.8);
-      ctx.stroke();
+      ctx.ellipse(centerX, headTop + headHeight * 0.25, headWidth * 1.1, headHeight * 0.08, 0, 0, Math.PI, true);
+      ctx.fill();
       break;
       
     case 'durag':
-      // Smooth cap with tail
+      // Durag covering most of head
       ctx.beginPath();
-      ctx.ellipse(center, center * 0.75, headRadius * 1.0, headRadius * 0.7, 0, 0, Math.PI, true);
+      ctx.ellipse(centerX, headTop + headHeight * 0.1, headWidth * 1.15, headHeight * 0.5, 0, 0, Math.PI, true);
       ctx.fill();
-      
-      // Durag tail/ties at back
+      // Add durag ties
+      ctx.fillStyle = darkenColor(headGearColor, 0.2);
       ctx.beginPath();
-      ctx.ellipse(center + headRadius * 0.8, center * 0.9, headRadius * 0.15, headRadius * 0.05, Math.PI/4, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(center - headRadius * 0.8, center * 0.9, headRadius * 0.15, headRadius * 0.05, -Math.PI/4, 0, 2 * Math.PI);
+      ctx.ellipse(centerX - headWidth * 0.8, headTop + headHeight * 0.3, headWidth * 0.1, headHeight * 0.05, -0.3, 0, 2 * Math.PI);
+      ctx.ellipse(centerX + headWidth * 0.8, headTop + headHeight * 0.3, headWidth * 0.1, headHeight * 0.05, 0.3, 0, 2 * Math.PI);
       ctx.fill();
       break;
       
     case 'beanie':
-      // Knit cap
+      // Knit beanie
       ctx.beginPath();
-      ctx.ellipse(center, center * 0.65, headRadius * 1.0, headRadius * 0.8, 0, 0, Math.PI, true);
+      ctx.ellipse(centerX, headTop - headHeight * 0.05, headWidth * 1.2, headHeight * 0.6, 0, 0, Math.PI, true);
       ctx.fill();
-      
-      // Add fold/rim
-      ctx.strokeStyle = darkenColor(color, 0.2);
-      ctx.lineWidth = headRadius * 0.08;
-      ctx.beginPath();
-      ctx.ellipse(center, center * 0.85, headRadius * 0.95, headRadius * 0.95, 0, Math.PI * 0.15, Math.PI * 0.85);
-      ctx.stroke();
       break;
   }
 }
 
-function drawAccents(ctx: CanvasRenderingContext2D, center: number, headRadius: number, accent: Accent): void {
-  const earringSize = headRadius * 0.05;
-  const earY = center * 0.95;
+function drawAccents(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, accent: Accent, size: number): void {
+  const earringSize = size * 0.015;
+  const earY = centerX * 0.9;
+  const earX = headWidth + earringSize;
   
-  ctx.fillStyle = '#ffd700'; // Gold color for earrings
+  ctx.fillStyle = '#FFD700'; // Gold color for earrings
   
-  if (accent === 'earringL' || accent === 'earringBoth') {
-    // Left earring
-    ctx.beginPath();
-    ctx.ellipse(center - headRadius * 0.95, earY + headRadius * 0.15, earringSize, earringSize, 0, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  
-  if (accent === 'earringR' || accent === 'earringBoth') {
-    // Right earring
-    ctx.beginPath();
-    ctx.ellipse(center + headRadius * 0.95, earY + headRadius * 0.15, earringSize, earringSize, 0, 0, 2 * Math.PI);
-    ctx.fill();
+  switch (accent) {
+    case 'earringL':
+      ctx.beginPath();
+      ctx.ellipse(centerX - earX, earY + headHeight * 0.1, earringSize, earringSize, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      break;
+      
+    case 'earringR':
+      ctx.beginPath();
+      ctx.ellipse(centerX + earX, earY + headHeight * 0.1, earringSize, earringSize, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      break;
+      
+    case 'earringBoth':
+      ctx.beginPath();
+      ctx.ellipse(centerX - earX, earY + headHeight * 0.1, earringSize, earringSize, 0, 0, 2 * Math.PI);
+      ctx.ellipse(centerX + earX, earY + headHeight * 0.1, earringSize, earringSize, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      break;
   }
 }
 
-function drawJerseyHint(ctx: CanvasRenderingContext2D, center: number, size: number, color: string): void {
-  // Draw tiny V-neck collar at bottom of avatar
-  const collarY = size * 0.9;
-  const collarWidth = size * 0.3;
+function drawJerseyCollar(ctx: CanvasRenderingContext2D, centerX: number, headWidth: number, headHeight: number, jerseyColor: string, size: number): void {
+  const collarY = centerX * 0.9 + headHeight + headHeight * 0.1;
+  const collarWidth = headWidth * 0.6;
+  const collarHeight = size * 0.08;
   
-  ctx.fillStyle = color;
+  // Draw V-neck collar hint
+  ctx.fillStyle = jerseyColor;
   ctx.beginPath();
-  ctx.moveTo(center - collarWidth/2, collarY);
-  ctx.lineTo(center, collarY + size * 0.08);
-  ctx.lineTo(center + collarWidth/2, collarY);
-  ctx.lineTo(center + collarWidth/2, size);
-  ctx.lineTo(center - collarWidth/2, size);
+  ctx.moveTo(centerX - collarWidth, collarY);
+  ctx.lineTo(centerX, collarY + collarHeight);
+  ctx.lineTo(centerX + collarWidth, collarY);
+  ctx.lineTo(centerX + collarWidth * 0.8, collarY - collarHeight * 0.2);
+  ctx.lineTo(centerX - collarWidth * 0.8, collarY - collarHeight * 0.2);
   ctx.closePath();
   ctx.fill();
 }
