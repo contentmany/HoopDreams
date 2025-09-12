@@ -1,173 +1,127 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Minus, HelpCircle, RotateCcw } from "lucide-react";
-import CharacterPreview from "@/components/CharacterPreview";
-import { getDraftPlayer, getActivePlayer } from "@/utils/character";
-import { DEFAULT_APPEARANCE } from "@/types/appearance";
-import { 
-  getAttributeCaps, 
-  calculateOVR, 
-  difficultySettings,
-  badges,
-  inchesToFeetInches 
-} from "@/utils/gameConfig";
-import { settings, activeSlot, player as playerStorage, createDefaultAttributes, saveSlots } from "@/utils/localStorage";
-import type { Attributes, Player } from "@/utils/localStorage";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { useLocation } from 'wouter';
+import { CharacterFull } from '@/components/character/CharacterFull';
+import { CharacterLook, DEFAULT_CHARACTER_LOOK } from '@/types/character';
+import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
+import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
 
-interface PlayerBuilderProps {
-  onSaveBuild?: () => void;
+interface BuilderAttributes {
+  finishing: number;
+  shooting: number;
+  playmaking: number;
+  rebounding: number;
+  defense: number;
+  physicals: number;
 }
 
-export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
-  const [attributes, setAttributes] = useState<Attributes>(createDefaultAttributes());
-  const [availablePoints, setAvailablePoints] = useState(250);
-  const [playerInfo, setPlayerInfo] = useState<Partial<Player>>({});
-  const [attributeCaps, setAttributeCaps] = useState<Partial<Attributes>>({});
+const DEFAULT_BUILDER_ATTRIBUTES: BuilderAttributes = {
+  finishing: 60,
+  shooting: 55,
+  playmaking: 50,
+  rebounding: 45,
+  defense: 40,
+  physicals: 65
+};
 
-  const currentSettings = settings.get();
-  const difficulty = difficultySettings[currentSettings.difficulty] || difficultySettings.Normal;
-  const maxPoints = difficulty.startingPoints;
+export default function PlayerBuilder() {
+  const [, setLocation] = useLocation();
+  const [look, setLook] = useState<CharacterLook>(DEFAULT_CHARACTER_LOOK);
+  const [playerName, setPlayerName] = useState({ firstName: '', lastName: '' });
+  const [position, setPosition] = useState('PG');
+  const [archetype, setArchetype] = useState('Balanced');
+  const [height, setHeight] = useState({ inches: 72, cm: 183 });
+  const [attributes, setAttributes] = useState<BuilderAttributes>(DEFAULT_BUILDER_ATTRIBUTES);
+  const [availablePoints, setAvailablePoints] = useState(20);
 
   useEffect(() => {
-    // Load player data from localStorage or temp storage
-    let currentPlayer = playerStorage.get();
-    
-    // If no current player, try loading from temp storage (during creation)
-    if (!currentPlayer) {
-      const tempPlayerData = localStorage.getItem('hd:tempPlayer');
-      if (tempPlayerData) {
-        const tempPlayer = JSON.parse(tempPlayerData);
-        setPlayerInfo(tempPlayer);
-        setAttributeCaps(getAttributeCaps(tempPlayer.position, tempPlayer.heightInches));
-        return;
+    // Load draft player data
+    const draft = getDraftPlayer();
+    if (draft) {
+      if (draft.look) {
+        setLook(draft.look);
       }
-    }
-    
-    if (currentPlayer) {
-      setPlayerInfo(currentPlayer);
-      setAttributeCaps(getAttributeCaps(currentPlayer.position, currentPlayer.heightInches));
+      setPlayerName({
+        firstName: draft.nameFirst || draft.firstName || '',
+        lastName: draft.nameLast || draft.lastName || ''
+      });
+      setPosition(draft.position || 'PG');
+      setArchetype(draft.archetype || 'Balanced');
+      if (draft.heightInches) {
+        setHeight({
+          inches: draft.heightInches,
+          cm: draft.heightCm || Math.round(draft.heightInches * 2.54)
+        });
+      }
+      if (draft.attributes) {
+        setAttributes(draft.attributes);
+      }
     }
   }, []);
 
-  useEffect(() => {
-    // Calculate available points
-    const usedPoints = Object.values(attributes).reduce((sum, val) => sum + Math.max(0, val - 25), 0);
-    setAvailablePoints(maxPoints - usedPoints);
-  }, [attributes, maxPoints]);
-
-  const adjustAttribute = (attr: keyof Attributes, delta: number) => {
-    setAttributes(prev => {
-      const currentValue = prev[attr];
-      const newValue = Math.max(25, Math.min(99, currentValue + delta));
-      const cap = attributeCaps[attr] || 99;
-      
-      return {
-        ...prev,
-        [attr]: Math.min(newValue, cap)
-      };
-    });
+  const adjustAttribute = (attr: keyof BuilderAttributes, delta: number) => {
+    const newValue = Math.max(25, Math.min(99, attributes[attr] + delta));
+    const actualDelta = newValue - attributes[attr];
+    
+    if (actualDelta > 0 && availablePoints < actualDelta) return;
+    
+    setAttributes(prev => ({ ...prev, [attr]: newValue }));
+    setAvailablePoints(prev => prev - actualDelta);
   };
 
-  const resetAttributes = () => {
-    setAttributes(createDefaultAttributes());
-  };
+  const handleStartCareer = () => {
+    // Convert BuilderAttributes to full Attributes
+    const fullAttributes = {
+      // Shooting
+      close: attributes.finishing,
+      mid: attributes.shooting,
+      three: attributes.shooting,
+      freeThrow: attributes.shooting,
+      // Finishing  
+      drivingLayup: attributes.finishing,
+      drivingDunk: attributes.finishing,
+      postControl: attributes.finishing,
+      // Playmaking
+      passAccuracy: attributes.playmaking,
+      ballHandle: attributes.playmaking,
+      speedWithBall: attributes.playmaking,
+      // Defense
+      interiorD: attributes.defense,
+      perimeterD: attributes.defense,
+      steal: attributes.defense,
+      block: attributes.defense,
+      oReb: attributes.rebounding,
+      dReb: attributes.rebounding,
+      // Physicals
+      speed: attributes.physicals,
+      acceleration: attributes.physicals,
+      strength: attributes.physicals,
+      vertical: attributes.physicals,
+      stamina: attributes.physicals
+    };
 
-  const canIncrease = (attr: keyof Attributes) => {
-    const currentValue = attributes[attr];
-    const cap = attributeCaps[attr] || 99;
-    return currentValue < cap && currentValue < 99 && availablePoints > 0;
-  };
-
-  const canDecrease = (attr: keyof Attributes) => {
-    return attributes[attr] > 25;
-  };
-
-  const getOVR = () => {
-    if (!playerInfo.position) return 0;
-    // Cap OVR at 65 for new players regardless of difficulty
-    return Math.min(65, calculateOVR(attributes, playerInfo.position));
-  };
-
-  const getAvailableBadges = () => {
-    return badges.filter(badge => {
-      let attributeValue = 0;
-      
-      if (badge.attributeKey === 'calculated') {
-        // Handle calculated badges
-        switch (badge.id) {
-          case 'green-machine':
-            attributeValue = attributes.three + ((playerInfo.mood || 7) / 10) * 10;
-            break;
-          case 'fearless-finisher':
-            attributeValue = (attributes.drivingLayup + attributes.strength) / 2;
-            break;
-          case 'putback-boss':
-            attributeValue = (attributes.oReb + attributes.drivingDunk) / 2;
-            break;
-          case 'unpluckable':
-            attributeValue = (attributes.ballHandle + attributes.strength) / 2;
-            break;
-          case 'boxout-beast':
-            attributeValue = (attributes.strength + attributes.dReb) / 2;
-            break;
-          default:
-            return false;
-        }
-      } else {
-        attributeValue = attributes[badge.attributeKey];
-      }
-
-      // Apply difficulty scaling
-      const scaledThresholds = {
-        Bronze: Math.round(badge.thresholds.Bronze * difficulty.badgeThresholdScale),
-        Silver: Math.round(badge.thresholds.Silver * difficulty.badgeThresholdScale),
-        Gold: Math.round(badge.thresholds.Gold * difficulty.badgeThresholdScale),
-        HOF: Math.round(badge.thresholds.HOF * difficulty.badgeThresholdScale),
-      };
-
-      let availableTier: 'Bronze' | 'Silver' | 'Gold' | 'HOF' | null = null;
-      
-      if (attributeValue >= scaledThresholds.HOF) availableTier = 'HOF';
-      else if (attributeValue >= scaledThresholds.Gold) availableTier = 'Gold';
-      else if (attributeValue >= scaledThresholds.Silver) availableTier = 'Silver';
-      else if (attributeValue >= scaledThresholds.Bronze) availableTier = 'Bronze';
-      
-      return availableTier ? { ...badge, availableTier, attributeValue } : null;
-    }).filter(Boolean);
-  };
-
-  const handleSaveBuild = () => {
-    if (!playerInfo.nameFirst) {
-      alert('Player data not found');
-      return;
-    }
-
-    const finalPlayer: Player = {
-      nameFirst: playerInfo.nameFirst,
-      nameLast: playerInfo.nameLast || '',
-      position: playerInfo.position || 'PG',
-      archetype: playerInfo.archetype || '',
-      heightInches: playerInfo.heightInches || 74,
-      heightCm: playerInfo.heightCm || 188,
-      teamId: playerInfo.teamId || '1',
-      avatarId: playerInfo.avatarId || 1,
-      attributes,
-      badgePoints: difficulty.startingBadgePoints,
-      badges: [],
-      year: 2026,
+    // Create final player object
+    const finalPlayer: Partial<Player> = {
+      nameFirst: playerName.firstName,
+      nameLast: playerName.lastName,
+      position,
+      archetype,
+      heightInches: height.inches,
+      heightCm: height.cm,
+      look: { ...look, teamNumber: 23 }, // Include character look with team number
+      teamId: 'user-team', // Default team
+      year: 1,
       week: 1,
-      age: 14,
-      energy: 10,
-      mood: 7,
-      clout: 5,
-      chemistry: 50,
-      health: 100,
-      reputation: 0,
-      seasonCapUsed: 0,
+      age: 18,
+      attributes: fullAttributes,
+      badgePoints: 0,
+      badges: [],
       milestones: {
         threeMade: 0,
         assists: 0,
@@ -175,228 +129,215 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
         blocks: 0,
         dunks: 0,
         stops: 0,
-        deepThrees: 0,
+        deepThrees: 0
       },
+      energy: 100,
+      mood: 80,
+      clout: 0,
+      chemistry: 50,
+      health: 100,
+      reputation: 0,
+      seasonCapUsed: 0
     };
 
-    // Find first available save slot and set it as active
-    const slots = saveSlots.get();
-    let slotToUse = 1;
-    
-    for (let i = 0; i < slots.length; i++) {
-      if (!slots[i].player) {
-        slotToUse = i + 1;
-        break;
-      }
-    }
+    // Save to slot 1 and set as active
+    saveSlots.save(1, finalPlayer as Player);
+    activeSlot.set(1);
 
-    // Set active slot FIRST, then save player
-    activeSlot.set(slotToUse);
-    saveSlots.save(slotToUse, finalPlayer);
-    
-    console.log('Player build saved to slot', slotToUse, ':', finalPlayer);
-    console.log('Active slot set to:', slotToUse);
-    
-    // Verify the save worked
-    const savedPlayer = playerStorage.get();
-    console.log('Verification - player loaded back:', savedPlayer);
-    
-    // Clean up temp data
-    localStorage.removeItem('hd:tempPlayer');
-
-    onSaveBuild?.();
+    // Navigate to dashboard
+    setLocation('/dashboard');
   };
 
-  const attributeCategories = {
-    'SHOOTING': ['close', 'mid', 'three', 'freeThrow'],
-    'FINISHING': ['drivingLayup', 'drivingDunk', 'postControl'],
-    'PLAYMAKING': ['passAccuracy', 'ballHandle', 'speedWithBall'],
-    'DEFENSE': ['interiorD', 'perimeterD', 'steal', 'block', 'oReb', 'dReb'],
-    'PHYSICALS': ['speed', 'acceleration', 'strength', 'vertical', 'stamina'],
+  const handleBack = () => {
+    setLocation('/customize');
   };
 
-  const attributeLabels: Record<keyof Attributes, string> = {
-    close: 'Close Shot', mid: 'Mid-Range', three: '3-Point', freeThrow: 'Free Throw',
-    drivingLayup: 'Driving Layup', drivingDunk: 'Driving Dunk', postControl: 'Post Control',
-    passAccuracy: 'Pass Accuracy', ballHandle: 'Ball Handle', speedWithBall: 'Speed w/ Ball',
-    interiorD: 'Interior Defense', perimeterD: 'Perimeter Defense', steal: 'Steal', block: 'Block',
-    oReb: 'Off. Rebound', dReb: 'Def. Rebound',
-    speed: 'Speed', acceleration: 'Acceleration', strength: 'Strength', vertical: 'Vertical', stamina: 'Stamina',
+  const getAttributeColor = (value: number) => {
+    if (value >= 80) return 'bg-green-500';
+    if (value >= 70) return 'bg-yellow-500';
+    if (value >= 60) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  const attributeLabels: Record<keyof BuilderAttributes, string> = {
+    finishing: 'Finishing',
+    shooting: 'Shooting',
+    playmaking: 'Playmaking',
+    rebounding: 'Rebounding',
+    defense: 'Defense',
+    physicals: 'Physicals'
   };
 
   return (
-    <div>
-      <main className="px-4 pt-4 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Player Info & OVR */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Player Info</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CharacterPreview 
-                    size="sm" 
-                    appearance={getDraftPlayer()?.appearance || getActivePlayer()?.appearance || DEFAULT_APPEARANCE}
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{playerInfo.nameFirst} {playerInfo.nameLast}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline">{playerInfo.position}</Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {playerInfo.heightInches ? inchesToFeetInches(playerInfo.heightInches) : 'N/A'}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {playerInfo.archetype}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="text-center py-4">
-                  <div className="text-4xl font-bold text-primary mb-2" data-testid="text-ovr">
-                    {getOVR()}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Overall Rating</p>
-                  <div className="mt-2">
-                    <Progress value={(getOVR() / 99) * 100} className="h-2" />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Max at creation: 65 OVR
-                  </p>
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-sm font-medium">Available Points</p>
-                  <p className="text-2xl font-bold text-primary" data-testid="text-available-points">
-                    {availablePoints}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Starting: {maxPoints} ({currentSettings.difficulty})
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+    <div className="min-h-screen bg-background p-4 pb-20">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold text-primary">Player Builder</h1>
+          <p className="text-sm text-muted-foreground">Basketball Life Simulator</p>
+        </div>
 
-            {/* Badge Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  Badge Preview
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <HelpCircle className="w-4 h-4" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Badges available based on current attributes</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  {getAvailableBadges().map((badge: any) => (
-                    <div key={badge.id} className="p-2 border rounded-md">
-                      <p className="text-xs font-medium truncate">{badge.name}</p>
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {badge.availableTier}
-                      </Badge>
-                    </div>
-                  ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Character Preview */}
+          <Card className="lg:sticky lg:top-4 h-fit">
+            <CardHeader>
+              <CardTitle>Character Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-center">
+                <CharacterFull 
+                  look={{
+                    ...look,
+                    teamNumber: 23 // Show default team number in preview
+                  }} 
+                  size="lg" 
+                  showTeamNumber={true}
+                  className="bg-gradient-to-b from-card via-card/90 to-card/50"
+                />
+              </div>
+              
+              <div className="text-center space-y-1">
+                <h3 className="font-semibold text-lg" data-testid="text-player-name">
+                  {playerName.firstName} {playerName.lastName}
+                </h3>
+                <div className="flex justify-center gap-2 flex-wrap">
+                  <Badge variant="secondary">{position}</Badge>
+                  <Badge variant="outline">{archetype}</Badge>
+                  <Badge variant="outline">
+                    {Math.floor(height.inches / 12)}'{height.inches % 12}" ({height.cm}cm)
+                  </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Badges will be unlocked during your career
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Attributes */}
-          <div className="lg:col-span-2 space-y-4">
-            {Object.entries(attributeCategories).map(([category, attrs]) => (
-              <Card key={category}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{category}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {attrs.map((attr) => {
-                      const attrKey = attr as keyof Attributes;
-                      const value = attributes[attrKey];
-                      const cap = attributeCaps[attrKey] || 99;
-                      
-                      return (
-                        <div key={attr} className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{attributeLabels[attrKey]}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Progress value={(value / 99) * 100} className="flex-1 h-2" />
-                              <span className="text-sm font-mono w-8 text-right">{value}</span>
-                              <span className="text-xs text-muted-foreground">/{cap}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-1 ml-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0"
-                              onClick={() => adjustAttribute(attrKey, -1)}
-                              disabled={!canDecrease(attrKey)}
-                              data-testid={`decrease-${attr}`}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0"
-                              onClick={() => adjustAttribute(attrKey, 1)}
-                              disabled={!canIncrease(attrKey)}
-                              data-testid={`increase-${attr}`}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Attributes
+                  <Badge variant="outline" data-testid="text-available-points">
+                    {availablePoints} points available
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.entries(attributes).map(([key, value]) => (
+                  <div key={key} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">
+                        {attributeLabels[key as keyof BuilderAttributes]}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => adjustAttribute(key as keyof BuilderAttributes, -1)}
+                          disabled={value <= 25}
+                          data-testid={`button-${key}-decrease`}
+                        >
+                          -
+                        </Button>
+                        <span className="w-12 text-center font-mono" data-testid={`text-${key}-value`}>
+                          {value}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => adjustAttribute(key as keyof BuilderAttributes, 1)}
+                          disabled={value >= 99 || availablePoints <= 0}
+                          data-testid={`button-${key}-increase`}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <Progress 
+                        value={value} 
+                        max={99}
+                        className="h-2"
+                      />
+                      <div 
+                        className={`absolute top-0 left-0 h-2 rounded-full transition-all ${getAttributeColor(value)}`}
+                        style={{ width: `${(value / 99) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            {/* Actions */}
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Player Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Player Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={playerName.firstName}
+                      onChange={(e) => setPlayerName(prev => ({ ...prev, firstName: e.target.value }))}
+                      data-testid="input-first-name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={playerName.lastName}
+                      onChange={(e) => setPlayerName(prev => ({ ...prev, lastName: e.target.value }))}
+                      data-testid="input-last-name"
+                    />
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Position</Label>
+                    <div className="text-sm text-muted-foreground mt-1" data-testid="text-position">
+                      {position}
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Archetype</Label>
+                    <div className="text-sm text-muted-foreground mt-1" data-testid="text-archetype">
+                      {archetype}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Navigation */}
             <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                className="flex-1 gap-2"
-                onClick={resetAttributes}
-                data-testid="button-reset"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Reset
-              </Button>
-              <Button 
-                variant="default" 
+              <Button
+                variant="secondary"
+                onClick={handleBack}
                 className="flex-1"
-                onClick={handleSaveBuild}
-                disabled={getOVR() > 65}
+                data-testid="button-back"
+              >
+                Back to Customize
+              </Button>
+              <Button
+                onClick={handleStartCareer}
+                className="flex-1"
+                disabled={!playerName.firstName || !playerName.lastName}
                 data-testid="button-start-career"
               >
                 Start Career
               </Button>
             </div>
-            
-            {getOVR() > 65 && (
-              <p className="text-sm text-destructive text-center">
-                OVR cannot exceed 65 at creation. Remove some attribute points.
-              </p>
-            )}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
