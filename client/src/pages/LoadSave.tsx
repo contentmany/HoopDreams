@@ -1,20 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { CharacterPreview } from "@/components/character/CharacterPreview";
 import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
 import { Plus, Trash2 } from "lucide-react";
-
-interface SaveSlot {
-  id: number;
-  playerName?: string;
-  team?: string;
-  year?: number;
-  week?: number;
-  avatarId?: number;
-}
+import { saveSlots, activeSlot, type SaveSlot } from "@/utils/localStorage";
 
 interface LoadSaveProps {
   onLoadSlot?: (slotId: number) => void;
@@ -23,21 +14,35 @@ interface LoadSaveProps {
 }
 
 export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSaveProps) {
-  // todo: remove mock functionality
-  const [saveSlots] = useState<SaveSlot[]>([
-    { id: 1, playerName: "Marcus Johnson", team: "Central High", year: 2026, week: 8, avatarId: 1 },
-    { id: 2, playerName: "Tyler Williams", team: "Westside Prep", year: 2025, week: 15, avatarId: 3 },
-    { id: 3 }, // Empty slot
-    { id: 4 }, // Empty slot
-    { id: 5 }, // Empty slot
-  ]);
+  const [slots, setSlots] = useState<SaveSlot[]>([]);
+
+  useEffect(() => {
+    // Load all save slots
+    const allSlots = saveSlots.get();
+    setSlots(allSlots);
+  }, []);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
   const handleDelete = (slotId: number) => {
     setShowDeleteConfirm(null);
+    saveSlots.delete(slotId);
+    // Refresh slots after deletion
+    setSlots(saveSlots.get());
     onDeleteSlot?.(slotId);
-    console.log('Delete slot:', slotId);
+  };
+
+  const handleLoadSlot = (slotId: number) => {
+    activeSlot.set(slotId);
+    onLoadSlot?.(slotId);
+    // Refresh slots to update lastPlayed
+    setSlots(saveSlots.get());
+  };
+
+  const handleNewGame = () => {
+    onNewGame?.();
+    // Refresh slots after potential new game creation
+    setTimeout(() => setSlots(saveSlots.get()), 100);
   };
 
   return (
@@ -49,27 +54,30 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
           </CardHeader>
           
           <CardContent className="space-y-4">
-            {saveSlots.map((slot) => (
+            {slots.map((slot) => (
               <div key={slot.id} className="border border-border rounded-lg p-4">
-                {slot.playerName ? (
+                {slot.player ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <CharacterPreview 
                         size="sm" 
-                        look={DEFAULT_CHARACTER_LOOK}
+                        look={slot.player.look || DEFAULT_CHARACTER_LOOK}
                         className="w-12 h-15"
                       />
                       
                       <div>
                         <h3 className="font-semibold" data-testid={`text-player-name-${slot.id}`}>
-                          {slot.playerName}
+                          {slot.player.nameFirst} {slot.player.nameLast}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">
-                            {slot.team}
+                            {slot.player.teamName || 'Team'}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {slot.player.position}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            {slot.year} • W{slot.week?.toString().padStart(2, '0')}
+                            Year {slot.player.year} • Week {slot.player.week.toString().padStart(2, '0')}
                           </span>
                         </div>
                       </div>
@@ -86,7 +94,7 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
                       </Button>
                       <Button 
                         variant="default" 
-                        onClick={() => onLoadSlot?.(slot.id)}
+                        onClick={() => handleLoadSlot(slot.id)}
                         data-testid={`button-continue-${slot.id}`}
                       >
                         Continue
@@ -98,7 +106,7 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
                     <Button 
                       variant="outline" 
                       className="gap-2"
-                      onClick={onNewGame}
+                      onClick={handleNewGame}
                       data-testid={`button-new-game-${slot.id}`}
                     >
                       <Plus className="w-4 h-4" />
