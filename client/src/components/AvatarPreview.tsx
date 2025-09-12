@@ -15,6 +15,7 @@ interface AvatarPreviewProps {
   size?: 'small' | 'medium' | 'large';
   appearance?: AppearanceData;
   className?: string;
+  slotId?: number;
 }
 
 const DEFAULT_APPEARANCE: AppearanceData = {
@@ -42,15 +43,36 @@ const HAIR_COLORS = {
 export default function AvatarPreview({ 
   size = 'medium',
   appearance,
-  className = ""
+  className = "",
+  slotId
 }: AvatarPreviewProps) {
   const [avatarData, setAvatarData] = useState<AppearanceData>(DEFAULT_APPEARANCE);
 
   useEffect(() => {
     if (appearance) {
       setAvatarData(appearance);
+    } else if (slotId) {
+      // Load appearance from save slot
+      const slotsData = localStorage.getItem('hd:saveSlots');
+      if (slotsData) {
+        try {
+          const slots = JSON.parse(slotsData);
+          const slot = slots[slotId - 1];
+          if (slot?.player?.appearance) {
+            setAvatarData(slot.player.appearance);
+          } else {
+            // Fallback to global appearance for existing saves
+            const stored = localStorage.getItem('hd:appearance');
+            if (stored) {
+              setAvatarData(JSON.parse(stored));
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse save slot data:', e);
+        }
+      }
     } else {
-      // Load from localStorage
+      // Load from global localStorage
       const stored = localStorage.getItem('hd:appearance');
       if (stored) {
         try {
@@ -60,7 +82,7 @@ export default function AvatarPreview({
         }
       }
     }
-  }, [appearance]);
+  }, [appearance, slotId]);
 
   const sizeClasses = {
     small: 'w-8 h-8',

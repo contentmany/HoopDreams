@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import RouteGuard from "@/components/RouteGuard";
-import { activeSlot } from "@/utils/localStorage";
+import { activeSlot, player as playerStorage } from "@/utils/localStorage";
 
 // Layouts
 import PreGameLayout from "@/layouts/PreGameLayout";
@@ -39,11 +39,21 @@ function Router() {
         </PreGameLayout>
       </Route>
       <Route path="/home">
-        <RouteGuard requireActiveSave>
-          <GameLayout>
-            <Dashboard onNavigate={handleNavigate} />
-          </GameLayout>
-        </RouteGuard>
+        {() => {
+          const player = playerStorage.get();
+          return (
+            <RouteGuard requireActiveSave>
+              <GameLayout 
+                year={player?.seasonData?.currentYear}
+                week={player?.seasonData?.currentWeek}
+                maxWeeks={20}
+                showAdvanceWeek={true}
+              >
+                <Dashboard onNavigate={handleNavigate} />
+              </GameLayout>
+            </RouteGuard>
+          );
+        }}
       </Route>
       <Route path="/new">
         <PreGameLayout title="Create Player">
