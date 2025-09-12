@@ -69,7 +69,9 @@ function Router() {
       </Route>
       
       <Route path="/customize">
-        <AvatarCustomize onNavigate={handleNavigate} />
+        <PreGameLayout title="Customize Appearance">
+          <AvatarCustomize onNavigate={handleNavigate} />
+        </PreGameLayout>
       </Route>
       <Route path="/builder">
         <PreGameLayout title="Player Builder">

@@ -1,4 +1,4 @@
-import type { AvatarDNA, EyeShape, BrowStyle, HairStyle, FacialHair, HeadGear, Accent } from './types';
+import type { AvatarDNA, EyeShape, BrowStyle, HairStyle, FacialHair, HeadGear, Accent, EyeColor } from './types';
 import { skinHex, eyeHex, darkenColor } from './colors';
 
 export function renderHeadPNG(dna: AvatarDNA, size: number = 96): string {
@@ -106,7 +106,7 @@ function drawEars(ctx: CanvasRenderingContext2D, center: number, headRadius: num
   ctx.fill();
 }
 
-function drawEyes(ctx: CanvasRenderingContext2D, center: number, headRadius: number, shape: EyeShape, color: string): void {
+function drawEyes(ctx: CanvasRenderingContext2D, center: number, headRadius: number, shape: EyeShape, color: EyeColor): void {
   const eyeY = center * 0.85;
   const eyeWidth = headRadius * 0.25;
   const eyeHeight = headRadius * 0.15;

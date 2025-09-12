@@ -1,0 +1,142 @@
+PROMPT FOR REPLIT — COPY EVERYTHING BELOW (one paste)
+
+Goal
+Build a HEAD-ONLY avatar system (no full body) for “Hoop Dreams”. Clean 2D (barely pixelated), smooth facial features, transparent background, not boxed. Use a single reference image only to match proportions/cleanliness, not to clone it.
+
+Reference
+I will upload one image to: public/ref/head_style_reference.png (transparent PNG). Use it only as style reference.
+
+What to Deliver (exact files & APIs)
+Create these files and wire them into the app:
+
+1) src/avatar/types.ts
+- Export AvatarDNA and enums so we can store one compact DNA per player/NPC.
+- Fields:
+  - seed:number
+  - skin: 'porcelain'|'fair'|'olive'|'tan'|'brown'|'deep'
+  - eyeColor: 'brown'|'darkBrown'|'hazel'|'green'|'blue'|'gray'
+  - eyeShape: 'round'|'almond'|'narrow'
+  - brow: 'straight'|'soft'|'arched'
+  - hairStyle: 'short'|'fade'|'waves'|'afroLow'|'afroHigh'|'braids'|'twists'|'locs'|'buzz'|'bald'
+  - hairColor: hex string
+  - facialHair: 'none'|'goatee'|'mustache'|'beardShort'|'beardFull'
+  - headGear: 'none'|'headband'|'durag'|'beanie'
+  - headGearColor: optional hex
+  - accent: 'none'|'earringL'|'earringR'|'earringBoth'
+  - jerseyColor: hex (for tiny collar hint)
+
+2) src/avatar/factory.ts
+- Deterministic RNG (mulberry32).
+- dnaFromSeed(seed:number):AvatarDNA → picks valid values using palettes below.
+- mergeDNA(base:AvatarDNA, overrides:Partial<AvatarDNA>):AvatarDNA.
+- npcSeed(teamId:number, index:number):number so we can generate thousands of NPCs stably.
+
+Palettes:
+- hair: ['#1b1b1f','#222222','#2a251f','#3a2d22','#4a3528','#5a3d2e']
+- headGearColor: ['#ffffff','#ff3b30','#34c759','#0a84ff','#ffd60a','#ff9f0a']
+- jerseyColor: app theme primary by default.
+
+3) src/avatar/colors.ts
+skinHex map:
+- porcelain:#f6d8c9
+- fair:#eac2a8
+- olive:#d7b08a
+- tan:#b9835a
+- brown:#8a5b3d
+- deep:#5b3926
+
+eyeHex map:
+- brown:#6a4a2f
+- darkBrown:#3c2a1a
+- hazel:#7a5a2f
+- green:#3d7a5a
+- blue:#3a66a8
+- gray:#6b6f7a
+
+4) src/avatar/render.ts (Canvas-only, transparent)
+Export:
+- renderHeadPNG(dna:AvatarDNA, size=96):string (returns dataURL)
+- drawHead(ctx, size, dna): internal
+Rendering rules (match the reference style; smooth 2D, not blocky):
+- Head: rounded rectangle/oval with subtle shadow, no outline box, transparent canvas.
+- Ears: small rounded on the sides, same skin shade with slight inner shadow.
+- Eyes: simple pupils + highlight; 3 shapes: round, almond, narrow; color by eyeColor.
+- Brows: 3 shapes; match hairColor (slightly darker).
+- Hair styles: short, fade, waves, afroLow, afroHigh, braids, twists, locs, buzz, bald.
+- Facial hair: draw overlay only if not ‘none’.
+- HeadGear: headband (thin around top w/ color), durag (smooth cap & tail), beanie (knit cap). If hairStyle is ‘bald’, allow headGear still.
+- Jersey hint: a tiny V/crew collar at bottom of head area using jerseyColor so the avatar reads as basketball player.
+- Enable imageSmoothing for crisp edges but keep shapes clean (not chunky pixel blocks).
+
+5) src/avatar/index.ts
+Export a simple API the rest of the app will call:
+- createAvatar(seedOrDNA: number | Partial<AvatarDNA>): { dna:AvatarDNA, toDataURL:(size?:number)=>string }
+- randomAvatar(seed:number): same as above.
+- helpers: small components for React (if app is React), e.g. <HeadAvatar dna size className />
+
+6) Integrations (pages/components)
+Replace any placeholder art with the new head avatar. Use the exact sizes so nothing overlaps and it “just fits”.
+
+A) /customize (Character Creator page)
+- Preview box: render head at 160x160 (size=160) centered, transparent.
+- Controls (dropdowns/toggles) bound to DNA fields (skin, hairStyle, hairColor, eyeColor, eyeShape, brow, facialHair, headGear, headGearColor, accent).
+- “Save Appearance” merges into player DNA and localStorage save.
+- Button “Use Random Look” → calls randomAvatar(Date.now()) to shuffle.
+- Keep the look live-updating as options change.
+
+B) /new (Create Player)
+- The “Appearance” card thumbnail = head 72x72.
+- Tapping “Customize” navigates to /customize (no bottom nav on this page before a game exists).
+
+C) /builder (Player Builder)
+- Character Preview area shows the head at 128x128 above name/position/height (no giant full body).
+- This uses the saved DNA.
+
+D) /home (after season starts)
+- Top left card uses head 56x56 next to “vs Team” panel (NOT overlapping text).
+- League Snapshot row keeps as-is.
+
+E) Lists & Social
+- Social/Team lists use head 28x28 in a circle container.
+- Roster grid, schedule, awards use 40x40.
+
+F) Settings (from main menu before game)
+- Do NOT show bottom nav tabs here. They only appear in-game.
+
+7) Storage & state
+- Save player.dna (AvatarDNA) in your existing save blob.
+- For NPCs: generate dna lazily from npcSeed(conferenceOrTeamId, index) and cache by id so the same NPC looks the same next session.
+- DO NOT store rendered PNGs in save; always regenerate from DNA to keep saves tiny.
+
+8) Utility (optional but helpful)
+Create src/avatar/cache.ts with a tiny memo that caches dataURL per (seed,size) so UI lists scroll smoothly.
+
+9) CSS sizing tokens
+Add CSS variables/classes so the same component can be reused:
+- .av-xxs  { width:28px; height:28px }
+- .av-xs   { width:40px; height:40px }
+- .av-sm   { width:56px; height:56px }
+- .av-md   { width:72px; height:72px }
+- .av-lg   { width:96px; height:96px }
+- .av-xl   { width:128px; height:128px }
+- .av-2xl  { width:160px; height:160px }
+
+10) Randomization logic (must be tasteful)
+- Ensure believable combos: if headGear==='durag' then hairStyle can be anything (hair is partially hidden); if 'headband' and hairStyle is 'bald', still show the band.
+- Keep skin/eye/hair combinations diverse; distribute evenly.
+- Guarantee at least 10k unique combos via seed space.
+
+11) Accept/Done Criteria
+- Head renders on transparent background at all target sizes with no overlap or clipping.
+- /customize lets me change every field and press “Save Appearance”.
+- /new shows 72x72 head; /builder shows 128x128; /home shows 56x56; Social/Team lists show 28x28; Roster/Schedule/Awards use 40x40.
+- NPCs across teams render unique heads based on npcSeed and remain stable across reloads.
+- No full-body sprites used anywhere.
+- Style matches the proportions/cleanliness of public/ref/head_style_reference.png without cloning it exactly.
+
+Notes
+- Please keep the renderer self-contained (pure Canvas) and export a simple toDataURL(size) so we can drop the image anywhere.
+- Use TypeScript throughout.
+- Keep everything transparent—no background boxes.
+
+END OF PROMPT

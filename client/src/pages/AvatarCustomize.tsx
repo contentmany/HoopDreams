@@ -7,9 +7,20 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Shuffle, RotateCcw } from 'lucide-react';
 import { useLocation } from 'wouter';
-import PlayerSprite from '@/components/PlayerSprite';
-import { AvatarData, DEFAULT_AVATAR, SKIN_TONE_OPTIONS, HAIR_STYLE_OPTIONS, EYE_OPTIONS, BROW_OPTIONS, NOSE_OPTIONS, MOUTH_OPTIONS, FACIAL_HAIR_OPTIONS } from '@/types/avatar';
-import { avatarStorage } from '@/utils/avatarStorage';
+import HeadAvatar from '@/components/HeadAvatar';
+import type { AvatarDNA } from '@/avatar/types';
+import { 
+  SKIN_TONES, 
+  EYE_COLORS, 
+  EYE_SHAPES, 
+  BROW_STYLES, 
+  HAIR_STYLES, 
+  FACIAL_HAIR_STYLES, 
+  HEAD_GEAR_OPTIONS, 
+  ACCENT_OPTIONS 
+} from '@/avatar/types';
+import { dnaFromSeed, mergeDNA } from '@/avatar/factory';
+import { hairPalette, headGearColorPalette } from '@/avatar/colors';
 
 interface AvatarCustomizeProps {
   onNavigate?: (path: string) => void;
@@ -17,148 +28,195 @@ interface AvatarCustomizeProps {
 
 export default function AvatarCustomize({ onNavigate }: AvatarCustomizeProps) {
   const [, setLocation] = useLocation();
-  const [avatarData, setAvatarData] = useState<AvatarData>(() => avatarStorage.get());
+  
+  // Initialize with a default avatar
+  const [avatarDNA, setAvatarDNA] = useState<AvatarDNA>(() => {
+    // Try to load from localStorage first
+    try {
+      const saved = localStorage.getItem('hd:playerAvatarDNA');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.log('No saved avatar DNA, using default');
+    }
+    return dnaFromSeed(Date.now());
+  });
 
-  const updateAvatar = (updates: Partial<AvatarData>) => {
-    const newAvatarData = { ...avatarData, ...updates };
-    setAvatarData(newAvatarData);
-    avatarStorage.set(newAvatarData);
+  const updateDNA = (updates: Partial<AvatarDNA>) => {
+    const newDNA = mergeDNA(avatarDNA, updates);
+    setAvatarDNA(newDNA);
+    localStorage.setItem('hd:playerAvatarDNA', JSON.stringify(newDNA));
   };
 
   const randomizeAvatar = () => {
-    const randomChoice = <T,>(array: T[]): T => array[Math.floor(Math.random() * array.length)];
-    
-    const randomAvatar: AvatarData = {
-      skinTone: randomChoice(SKIN_TONE_OPTIONS),
-      hairStyle: randomChoice(HAIR_STYLE_OPTIONS),
-      hairColor: randomChoice(['#4a3728', '#2d1b14', '#8b6914', '#d4b852', '#c95429', '#000000']),
-      eyes: randomChoice(EYE_OPTIONS),
-      brows: randomChoice(BROW_OPTIONS),
-      nose: randomChoice(NOSE_OPTIONS),
-      mouth: randomChoice(MOUTH_OPTIONS),
-      facialHair: randomChoice(FACIAL_HAIR_OPTIONS),
-      headband: {
-        on: Math.random() < 0.15,
-        color: avatarData.headband.color
-      },
-      jerseyColor: avatarData.jerseyColor,
-      shortsColor: avatarData.shortsColor,
-      shoesColor: randomChoice(['#ffffff', '#000000', avatarData.jerseyColor])
-    };
-    
-    updateAvatar(randomAvatar);
+    const newDNA = dnaFromSeed(Date.now());
+    setAvatarDNA(newDNA);
+    localStorage.setItem('hd:playerAvatarDNA', JSON.stringify(newDNA));
   };
 
   const resetAvatar = () => {
-    updateAvatar(DEFAULT_AVATAR);
+    const defaultDNA = dnaFromSeed(0);
+    setAvatarDNA(defaultDNA);
+    localStorage.setItem('hd:playerAvatarDNA', JSON.stringify(defaultDNA));
   };
 
   const handleSave = () => {
+    // Save avatar DNA to player data
+    try {
+      const playerData = JSON.parse(localStorage.getItem('player') || '{}');
+      playerData.avatarDNA = avatarDNA;
+      localStorage.setItem('player', JSON.stringify(playerData));
+    } catch (error) {
+      console.log('Could not save to player data');
+    }
+    
+    // Navigate back to builder or wherever appropriate
     onNavigate?.('/builder');
-  };
-
-  const handleBack = () => {
-    onNavigate?.('/new');
+    setLocation('/builder');
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6">
-      <main className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-4 pb-20">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={handleBack}
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onNavigate?.('/builder') || setLocation('/builder')}
+            className="gap-2"
             data-testid="button-back"
           >
             <ArrowLeft className="w-4 h-4" />
+            Back
           </Button>
-          <div>
-            <h1 className="text-xl font-bold">Character Creator</h1>
-            <p className="text-sm text-muted-foreground">Customize your player's appearance</p>
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl font-bold text-primary">Customize Appearance</h1>
+            <p className="text-sm text-muted-foreground">Basketball Life Simulator</p>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Preview</CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <PlayerSprite variant="full" />
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Avatar Preview */}
+          <Card className="lg:sticky lg:top-4 h-fit">
+            <CardHeader>
+              <CardTitle>Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <HeadAvatar 
+                dna={avatarDNA} 
+                variant="2xl"
+                className="border border-border rounded-lg"
+                data-testid="avatar-preview"
+              />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Skin Tone */}
-            <div className="space-y-2">
-              <Label>Skin Tone</Label>
-              <Select value={avatarData.skinTone} onValueChange={(value) => updateAvatar({ skinTone: value })}>
-                <SelectTrigger data-testid="select-skin-tone">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SKIN_TONE_OPTIONS.map((tone) => (
-                    <SelectItem key={tone} value={tone}>
-                      {tone.charAt(0).toUpperCase() + tone.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Hair Style */}
-            <div className="space-y-2">
-              <Label>Hair Style</Label>
-              <Select value={avatarData.hairStyle} onValueChange={(value) => updateAvatar({ hairStyle: value })}>
-                <SelectTrigger data-testid="select-hair-style">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {HAIR_STYLE_OPTIONS.map((style) => (
-                    <SelectItem key={style} value={style}>
-                      {style.charAt(0).toUpperCase() + style.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Hair Color */}
-            <div className="space-y-2">
-              <Label>Hair Color</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={avatarData.hairColor}
-                  onChange={(e) => updateAvatar({ hairColor: e.target.value })}
-                  className="w-8 h-8 rounded border border-border"
-                  data-testid="color-hair"
-                />
-                <span className="text-xs text-muted-foreground">{avatarData.hairColor}</span>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Facial Features */}
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Facial Features</Label>
+          {/* Customization Controls */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance Options</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
               
-              {/* Eyes */}
+              {/* Skin Tone */}
               <div className="space-y-2">
-                <Label className="text-sm">Eyes</Label>
-                <Select value={avatarData.eyes} onValueChange={(value) => updateAvatar({ eyes: value })}>
-                  <SelectTrigger data-testid="select-eyes">
+                <Label className="text-sm">Skin Tone</Label>
+                <Select value={avatarDNA.skin} onValueChange={(value) => updateDNA({ skin: value as any })}>
+                  <SelectTrigger data-testid="select-skin">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {EYE_OPTIONS.map((eye) => (
-                      <SelectItem key={eye} value={eye}>
-                        {eye.charAt(0).toUpperCase() + eye.slice(1)}
+                    {SKIN_TONES.map((skin) => (
+                      <SelectItem key={skin} value={skin}>
+                        {skin.charAt(0).toUpperCase() + skin.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Hair Style */}
+              <div className="space-y-2">
+                <Label className="text-sm">Hair Style</Label>
+                <Select value={avatarDNA.hairStyle} onValueChange={(value) => updateDNA({ hairStyle: value as any })}>
+                  <SelectTrigger data-testid="select-hair-style">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HAIR_STYLES.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {style === 'afroLow' ? 'Afro (Low)' : 
+                         style === 'afroHigh' ? 'Afro (High)' :
+                         style.charAt(0).toUpperCase() + style.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Hair Color */}
+              <div className="space-y-2">
+                <Label className="text-sm">Hair Color</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={avatarDNA.hairColor}
+                    onChange={(e) => updateDNA({ hairColor: e.target.value })}
+                    className="w-8 h-8 rounded border border-border"
+                    data-testid="color-hair"
+                  />
+                  <Select value={avatarDNA.hairColor} onValueChange={(value) => updateDNA({ hairColor: value })}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hairPalette.map((color) => (
+                        <SelectItem key={color} value={color}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-4 h-4 rounded-full border border-border" 
+                              style={{ backgroundColor: color }}
+                            />
+                            {color}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Eye Color */}
+              <div className="space-y-2">
+                <Label className="text-sm">Eye Color</Label>
+                <Select value={avatarDNA.eyeColor} onValueChange={(value) => updateDNA({ eyeColor: value as any })}>
+                  <SelectTrigger data-testid="select-eye-color">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EYE_COLORS.map((color) => (
+                      <SelectItem key={color} value={color}>
+                        {color === 'darkBrown' ? 'Dark Brown' : 
+                         color.charAt(0).toUpperCase() + color.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Eye Shape */}
+              <div className="space-y-2">
+                <Label className="text-sm">Eye Shape</Label>
+                <Select value={avatarDNA.eyeShape} onValueChange={(value) => updateDNA({ eyeShape: value as any })}>
+                  <SelectTrigger data-testid="select-eye-shape">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EYE_SHAPES.map((shape) => (
+                      <SelectItem key={shape} value={shape}>
+                        {shape.charAt(0).toUpperCase() + shape.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -168,48 +226,14 @@ export default function AvatarCustomize({ onNavigate }: AvatarCustomizeProps) {
               {/* Brows */}
               <div className="space-y-2">
                 <Label className="text-sm">Brows</Label>
-                <Select value={avatarData.brows} onValueChange={(value) => updateAvatar({ brows: value })}>
+                <Select value={avatarDNA.brow} onValueChange={(value) => updateDNA({ brow: value as any })}>
                   <SelectTrigger data-testid="select-brows">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {BROW_OPTIONS.map((brow) => (
+                    {BROW_STYLES.map((brow) => (
                       <SelectItem key={brow} value={brow}>
                         {brow.charAt(0).toUpperCase() + brow.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Nose */}
-              <div className="space-y-2">
-                <Label className="text-sm">Nose</Label>
-                <Select value={avatarData.nose} onValueChange={(value) => updateAvatar({ nose: value })}>
-                  <SelectTrigger data-testid="select-nose">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NOSE_OPTIONS.map((nose) => (
-                      <SelectItem key={nose} value={nose}>
-                        {nose.charAt(0).toUpperCase() + nose.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Mouth */}
-              <div className="space-y-2">
-                <Label className="text-sm">Mouth</Label>
-                <Select value={avatarData.mouth} onValueChange={(value) => updateAvatar({ mouth: value })}>
-                  <SelectTrigger data-testid="select-mouth">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MOUTH_OPTIONS.map((mouth) => (
-                      <SelectItem key={mouth} value={mouth}>
-                        {mouth.charAt(0).toUpperCase() + mouth.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -219,143 +243,135 @@ export default function AvatarCustomize({ onNavigate }: AvatarCustomizeProps) {
               {/* Facial Hair */}
               <div className="space-y-2">
                 <Label className="text-sm">Facial Hair</Label>
-                <Select value={avatarData.facialHair} onValueChange={(value) => updateAvatar({ facialHair: value })}>
+                <Select value={avatarDNA.facialHair} onValueChange={(value) => updateDNA({ facialHair: value as any })}>
                   <SelectTrigger data-testid="select-facial-hair">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {FACIAL_HAIR_OPTIONS.map((hair) => (
-                      <SelectItem key={hair} value={hair}>
-                        {hair === 'none' ? 'None' : hair.charAt(0).toUpperCase() + hair.slice(1)}
+                    {FACIAL_HAIR_STYLES.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {style === 'beardShort' ? 'Beard (Short)' :
+                         style === 'beardFull' ? 'Beard (Full)' :
+                         style === 'none' ? 'None' :
+                         style.charAt(0).toUpperCase() + style.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <Separator />
-
-            {/* Accessories */}
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Accessories</Label>
-              
-              {/* Headband */}
+              {/* Head Gear */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Headband</Label>
-                  <Switch
-                    checked={avatarData.headband.on}
-                    onCheckedChange={(checked) => updateAvatar({ 
-                      headband: { ...avatarData.headband, on: checked } 
-                    })}
-                    data-testid="switch-headband"
-                  />
-                </div>
-                {avatarData.headband.on && (
+                <Label className="text-sm">Head Gear</Label>
+                <Select value={avatarDNA.headGear} onValueChange={(value) => updateDNA({ headGear: value as any })}>
+                  <SelectTrigger data-testid="select-headgear">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HEAD_GEAR_OPTIONS.map((gear) => (
+                      <SelectItem key={gear} value={gear}>
+                        {gear === 'none' ? 'None' : 
+                         gear.charAt(0).toUpperCase() + gear.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Head Gear Color */}
+              {avatarDNA.headGear !== 'none' && (
+                <div className="space-y-2">
+                  <Label className="text-sm">Head Gear Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={avatarData.headband.color}
-                      onChange={(e) => updateAvatar({ 
-                        headband: { ...avatarData.headband, color: e.target.value } 
-                      })}
+                      value={avatarDNA.headGearColor || '#ffffff'}
+                      onChange={(e) => updateDNA({ headGearColor: e.target.value })}
                       className="w-8 h-8 rounded border border-border"
-                      data-testid="color-headband"
+                      data-testid="color-headgear"
                     />
-                    <span className="text-xs text-muted-foreground">{avatarData.headband.color}</span>
+                    <Select 
+                      value={avatarDNA.headGearColor || '#ffffff'} 
+                      onValueChange={(value) => updateDNA({ headGearColor: value })}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {headGearColorPalette.map((color) => (
+                          <SelectItem key={color} value={color}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-4 h-4 rounded-full border border-border" 
+                                style={{ backgroundColor: color }}
+                              />
+                              {color}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Colors */}
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Team Colors</Label>
-              
-              {/* Jersey Color */}
-              <div className="space-y-2">
-                <Label className="text-sm">Jersey Color</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={avatarData.jerseyColor}
-                    onChange={(e) => updateAvatar({ jerseyColor: e.target.value })}
-                    className="w-8 h-8 rounded border border-border"
-                    data-testid="color-jersey"
-                  />
-                  <span className="text-xs text-muted-foreground">{avatarData.jerseyColor}</span>
                 </div>
-              </div>
+              )}
 
-              {/* Shorts Color */}
+              {/* Accents */}
               <div className="space-y-2">
-                <Label className="text-sm">Shorts Color</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={avatarData.shortsColor}
-                    onChange={(e) => updateAvatar({ shortsColor: e.target.value })}
-                    className="w-8 h-8 rounded border border-border"
-                    data-testid="color-shorts"
-                  />
-                  <span className="text-xs text-muted-foreground">{avatarData.shortsColor}</span>
-                </div>
+                <Label className="text-sm">Accessories</Label>
+                <Select value={avatarDNA.accent} onValueChange={(value) => updateDNA({ accent: value as any })}>
+                  <SelectTrigger data-testid="select-accent">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACCENT_OPTIONS.map((accent) => (
+                      <SelectItem key={accent} value={accent}>
+                        {accent === 'none' ? 'None' :
+                         accent === 'earringL' ? 'Earring (Left)' :
+                         accent === 'earringR' ? 'Earring (Right)' :
+                         accent === 'earringBoth' ? 'Earrings (Both)' :
+                         accent}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Shoes Color */}
-              <div className="space-y-2">
-                <Label className="text-sm">Shoes Color</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={avatarData.shoesColor}
-                    onChange={(e) => updateAvatar({ shoesColor: e.target.value })}
-                    className="w-8 h-8 rounded border border-border"
-                    data-testid="color-shoes"
-                  />
-                  <span className="text-xs text-muted-foreground">{avatarData.shoesColor}</span>
-                </div>
+              <Separator />
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={randomizeAvatar}
+                  className="flex-1 gap-2"
+                  data-testid="button-randomize"
+                >
+                  <Shuffle className="w-4 h-4" />
+                  Use Random Look
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={resetAvatar}
+                  className="flex-1 gap-2"
+                  data-testid="button-reset"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset
+                </Button>
               </div>
-            </div>
 
-            <Separator />
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
               <Button 
-                variant="outline" 
-                onClick={randomizeAvatar}
-                className="flex-1 gap-2"
-                data-testid="button-randomize"
+                className="w-full" 
+                size="lg" 
+                onClick={handleSave}
+                data-testid="button-save"
               >
-                <Shuffle className="w-4 h-4" />
-                Randomize
+                Save Appearance
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={resetAvatar}
-                className="flex-1 gap-2"
-                data-testid="button-reset"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Reset
-              </Button>
-            </div>
-
-            <Button 
-              className="w-full" 
-              size="lg" 
-              onClick={handleSave}
-              data-testid="button-save"
-            >
-              Save & Continue
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

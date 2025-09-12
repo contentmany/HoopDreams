@@ -15,8 +15,8 @@ import {
   feetInchesToInches
 } from "@/utils/gameConfig";
 import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
-import { Avatar } from "@/components/Avatar";
-import { avatarStorage, generateRandomAvatar } from "@/utils/avatarStorage";
+import HeadAvatar from "@/components/HeadAvatar";
+import { randomAvatar } from "@/avatar";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
@@ -38,7 +38,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
-  const [avatarData, setAvatarData] = useState(() => avatarStorage.get());
+  const [avatarSeed, setAvatarSeed] = useState(() => Math.floor(Math.random() * 10000));
   
   const teamsList = teams.get();
   const currentSettings = settings.get();
@@ -49,17 +49,9 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
     setUseMetric(currentSettings.units === 'metric');
   }, [currentSettings.units]);
 
-  // Initialize avatar if none exists
+  // Generate new avatar when team changes
   useEffect(() => {
-    const storedAvatar = avatarStorage.get();
-    if (!storedAvatar || JSON.stringify(storedAvatar) === JSON.stringify(avatarData)) {
-      // Generate random avatar with team colors if available
-      const selectedTeam = teamsList.find(t => t.id === playerData.teamId);
-      const teamColor = selectedTeam?.color || '#7a5bff';
-      const randomAvatar = generateRandomAvatar(teamColor);
-      avatarStorage.set(randomAvatar);
-      setAvatarData(randomAvatar);
-    }
+    setAvatarSeed(Math.floor(Math.random() * 10000));
   }, [playerData.teamId]);
 
   // Update height when position changes
@@ -320,9 +312,9 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <Avatar 
-                  stageSize="sm" 
-                  avatarData={avatarData}
+                <HeadAvatar 
+                  variant="sm" 
+                  seed={avatarSeed}
                 />
                 <div className="flex-1">
                   <Button

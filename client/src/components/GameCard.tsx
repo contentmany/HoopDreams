@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin } from "lucide-react";
-import PlayerSprite from "@/components/PlayerSprite";
+import HeadAvatar from "@/components/HeadAvatar";
 
 interface GameCardProps {
   opponent: string;
@@ -36,7 +36,7 @@ export default function GameCard({
         <div className="flex items-center gap-4 py-4">
           {/* Avatar on the left */}
           <div className="flex-shrink-0">
-            <PlayerSprite variant="face" />
+            <HeadAvatar variant="sm" seed={1234} />
           </div>
           
           {/* Game info on the right */}
