@@ -4,6 +4,7 @@ import GameCard from "@/components/GameCard";
 import QuickActions from "@/components/QuickActions";
 import LeagueSnapshot from "@/components/LeagueSnapshot";
 import StatsStrip from "@/components/StatsStrip";
+import AvatarPreview from "@/components/AvatarPreview";
 import BottomTabBar from "@/components/BottomTabBar";
 import GameResultsModal from "@/components/GameResultsModal";
 import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
@@ -192,17 +193,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <GameHeader 
-        year={seasonData.currentYear}
-        week={seasonData.currentWeek}
-        maxWeeks={20}
-        showAdvanceWeek={true}
-        onAdvanceWeek={handleAdvanceWeek}
-        onSimWeeks={handleSimWeeks}
-      />
-      
-      <main className="px-4 pt-4 space-y-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8rem)' }}>
+    <>
+      <main className="space-y-6">
+        {/* Player Info Card */}
+        <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+          <AvatarPreview size="medium" />
+          <div className="flex-1">
+            <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
+            <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>
+          </div>
+        </div>
+
         {seasonData.upcomingGame && !seasonData.isSeasonComplete ? (
           <GameCard 
             opponent={seasonData.upcomingGame.opponent.name}
@@ -229,9 +230,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           onViewFull={(tab) => onNavigate?.(`/league?tab=${tab}`)}
         />
       </main>
-      
-      <StatsStrip stats={stats} />
-      <BottomTabBar />
 
       {gameResultsModal.result && gameResultsModal.opponent && (
         <GameResultsModal
@@ -242,6 +240,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           location={gameResultsModal.location!}
         />
       )}
-    </div>
+    </>
   );
 }

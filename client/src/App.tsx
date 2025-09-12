@@ -7,6 +7,10 @@ import NotFound from "@/pages/not-found";
 import RouteGuard from "@/components/RouteGuard";
 import { activeSlot } from "@/utils/localStorage";
 
+// Layouts
+import PreGameLayout from "@/layouts/PreGameLayout";
+import GameLayout from "@/layouts/GameLayout";
+
 // Game Pages
 import MainMenu from "@/pages/MainMenu";
 import Dashboard from "@/pages/Dashboard";
@@ -18,6 +22,7 @@ import League from "@/pages/League";
 import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
+import Customize from "@/pages/Customize";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -29,43 +34,75 @@ function Router() {
   return (
     <Switch>
       <Route path="/">
-        <MainMenu onNavigate={handleNavigate} />
+        <PreGameLayout showHeader={false}>
+          <MainMenu onNavigate={handleNavigate} />
+        </PreGameLayout>
       </Route>
       <Route path="/home">
         <RouteGuard requireActiveSave>
-          <Dashboard onNavigate={handleNavigate} />
+          <GameLayout>
+            <Dashboard onNavigate={handleNavigate} />
+          </GameLayout>
         </RouteGuard>
       </Route>
       <Route path="/new">
-        <CreatePlayer onCreatePlayer={(data) => {
-          console.log('Player created:', data);
-          setLocation('/builder');
-        }} />
+        <PreGameLayout title="Create Player">
+          <CreatePlayer 
+            onCreatePlayer={(data) => {
+              console.log('Player created:', data);
+              setLocation('/builder');
+            }}
+            onNavigate={handleNavigate}
+          />
+        </PreGameLayout>
+      </Route>
+      
+      <Route path="/customize">
+        <Customize onNavigate={handleNavigate} />
       </Route>
       <Route path="/builder">
-        <PlayerBuilder onSaveBuild={() => setLocation('/home')} />
+        <PreGameLayout title="Player Builder">
+          <PlayerBuilder onSaveBuild={() => setLocation('/home')} />
+        </PreGameLayout>
       </Route>
       <Route path="/load">
-        <LoadSave 
-          onLoadSlot={(id) => {
-            console.log('Loading slot:', id);
-            setLocation('/home');
-          }}
-          onNewGame={() => setLocation('/new')}
-          onDeleteSlot={(id) => console.log('Delete slot:', id)}
-        />
+        <PreGameLayout title="Load Game">
+          <LoadSave 
+            onLoadSlot={(id) => {
+              console.log('Loading slot:', id);
+              setLocation('/home');
+            }}
+            onNewGame={() => setLocation('/new')}
+            onDeleteSlot={(id) => console.log('Delete slot:', id)}
+          />
+        </PreGameLayout>
       </Route>
       <Route path="/settings">
         {() => {
           const currentSlot = activeSlot.get();
           const noSaveMode = currentSlot === null;
-          return (
-            <Settings 
-              onNavigateToLoad={() => setLocation('/load')}
-              onResetGame={() => setLocation('/')}
-              noSaveMode={noSaveMode}
-            />
-          );
+          
+          if (noSaveMode) {
+            return (
+              <PreGameLayout title="Settings">
+                <Settings 
+                  onNavigateToLoad={() => setLocation('/load')}
+                  onResetGame={() => setLocation('/')}
+                  noSaveMode={noSaveMode}
+                />
+              </PreGameLayout>
+            );
+          } else {
+            return (
+              <GameLayout>
+                <Settings 
+                  onNavigateToLoad={() => setLocation('/load')}
+                  onResetGame={() => setLocation('/')}
+                  noSaveMode={noSaveMode}
+                />
+              </GameLayout>
+            );
+          }
         }}
       </Route>
       <Route path="/league">
@@ -74,7 +111,9 @@ function Router() {
           const tab = urlParams.get('tab') || 'standings';
           return (
             <RouteGuard requireActiveSave>
-              <League defaultTab={tab} />
+              <GameLayout>
+                <League defaultTab={tab} />
+              </GameLayout>
             </RouteGuard>
           );
         }}
@@ -86,56 +125,68 @@ function Router() {
       {/* Protected routes - require active save */}
       <Route path="/team">
         <RouteGuard requireActiveSave>
-          <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-2xl font-pixel mb-4">Team</h1>
-              <p className="text-muted-foreground">Coming Soon</p>
+          <GameLayout>
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <div className="text-center">
+                <h1 className="text-2xl font-pixel mb-4">Team</h1>
+                <p className="text-muted-foreground">Coming Soon</p>
+              </div>
             </div>
-          </div>
+          </GameLayout>
         </RouteGuard>
       </Route>
       
       <Route path="/social">
         <RouteGuard requireActiveSave>
-          <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-2xl font-pixel mb-4">Social</h1>
-              <p className="text-muted-foreground">Coming Soon</p>
+          <GameLayout>
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <div className="text-center">
+                <h1 className="text-2xl font-pixel mb-4">Social</h1>
+                <p className="text-muted-foreground">Coming Soon</p>
+              </div>
             </div>
-          </div>
+          </GameLayout>
         </RouteGuard>
       </Route>
       
       <Route path="/inbox">
         <RouteGuard requireActiveSave>
-          <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-2xl font-pixel mb-4">Inbox</h1>
-              <p className="text-muted-foreground">Coming Soon</p>
+          <GameLayout>
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <div className="text-center">
+                <h1 className="text-2xl font-pixel mb-4">Inbox</h1>
+                <p className="text-muted-foreground">Coming Soon</p>
+              </div>
             </div>
-          </div>
+          </GameLayout>
         </RouteGuard>
       </Route>
       
       <Route path="/news">
         <RouteGuard requireActiveSave>
-          <News onNavigate={handleNavigate} />
+          <GameLayout>
+            <News onNavigate={handleNavigate} />
+          </GameLayout>
         </RouteGuard>
       </Route>
       
       <Route path="/dash">
         <RouteGuard requireActiveSave>
-          <Dash onNavigate={handleNavigate} />
+          <GameLayout>
+            <Dash onNavigate={handleNavigate} />
+          </GameLayout>
         </RouteGuard>
       </Route>
       
       <Route path="/roster-editor">
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-pixel mb-4">Roster Editor</h1>
-            <p className="text-muted-foreground">Coming Soon</p>
+        <PreGameLayout title="Roster Editor">
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="text-center">
+              <h1 className="text-2xl font-pixel mb-4">Roster Editor</h1>
+              <p className="text-muted-foreground">Coming Soon</p>
+            </div>
           </div>
-        </div>
+        </PreGameLayout>
       </Route>
       
       <Route component={NotFound} />

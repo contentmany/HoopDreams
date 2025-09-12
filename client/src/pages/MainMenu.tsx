@@ -54,7 +54,7 @@ export default function MainMenu({ onNavigate }: MainMenuProps) {
       
       <div className="mt-12">
         <Badge variant="secondary" className="text-xs">
-          Version 0.1
+          Version 0.2
         </Badge>
       </div>
     </div>

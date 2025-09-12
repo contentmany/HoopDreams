@@ -1,0 +1,163 @@
+You are editing the EXISTING Hoop Dreams Vite+React+TS project you already created. 
+⚠️ Do NOT start over. Make the following PATCH (v0.2). Keep all current working code/styles.
+
+====================================================
+PATCH v0.2 — Avatar Creator, Pre-Game Settings, Flow
+====================================================
+
+GOALS
+1) Replace the “grid of many avatars” with a real Character Creator (single avatar preview + “Customize”).
+2) Create a PRE-GAME layout so visiting /settings from the main menu does NOT inject the in-game bottom nav.
+3) Show the player’s face on the /builder screen (and everywhere relevant).
+4) Home quick buttons: remove Team & Social (duplicates), add Dash and News.
+5) Replace “+1w” with a pixel-style **»** button that opens a SIM modal (Sim N weeks / Sim to end of season).
+6) Keep archetypes, but filter them by position; height units stay toggleable.
+
+---------------------------------
+A) ROUTING & LAYOUT REFACTORING
+---------------------------------
+• Add two layouts:
+  - src/layouts/PreGameLayout.tsx → header + bg only (NO bottom tab bar or stats strip).
+  - src/layouts/GameLayout.tsx (reuse what you have now) → normal header + bottom tab bar + stats strip.
+
+• Use PreGameLayout for: /, /new, /customize, /load, /settings when NO active save slot.
+  Use GameLayout for: /home, /league, /team, /social, /settings when an active slot exists.
+
+• Logic: if localStorage.hd:activeSlot is null, any attempt to access a game route redirects to “/”.
+  If visiting /settings and hd:activeSlot is null → render with PreGameLayout.
+
+--------------------------------
+B) CHARACTER CREATOR (NEW ROUTE)
+--------------------------------
+• New route: **/customize** (PreGameLayout).
+• Character Creator UI (pixel-friendly, simple):
+  - Live preview: circular portrait 96–128px (image-rendering: pixelated).
+  - Controls:
+    ▸ Skin Tone: light | tan | brown | dark
+    ▸ Hair Style: short | fade | afro | braids | buzz | curly
+    ▸ Hair Color: black | brown | dark-blonde | red
+    ▸ Facial Hair: none | goatee | stubble (only for older looks; still OK in HS)
+    ▸ Headband: off | on (choose band color from team/accent)
+  - Buttons: [Back] (to /new)  [Save Appearance] (stores & returns to /new)
+
+• Data shape persisted in localStorage:
+  key: **hd:appearance**
+  value example:
+  {
+    skinTone: "brown",
+    hairStyle: "afro",
+    hairColor: "black",
+    facialHair: "none",
+    headband: { on: true, color: "#7A5BFF" }
+  }
+
+• Rendering approach:
+  - Use simple layered PNGs in /public/assets/creator/: 
+      base_<skin>.png, hair_<style>_<color>.png, facial_<type>.png, headband_<color>.png
+  - Compose via absolutely-stacked <img> layers inside the preview container.
+  - Fallback: if assets not present, render a single SVG with flat colors.
+
+• /new changes:
+  - Replace the grid of avatars with:
+      [AvatarPreview] showing hd:appearance (or a default),
+      a secondary button **Customize** → /customize.
+  - Keep First/Last, Position, Archetype, Team, Height, Units, etc.
+  - Primary CTA becomes **Next: Player Builder** → /builder.
+  - Do NOT start career here anymore.
+
+• /builder changes:
+  - At the top of the “Player Info” card, add a small inline AvatarPreview using hd:appearance.
+  - Keep your points/OVR logic (max 65 at creation). 
+  - Bottom CTA is now **Start Career** → creates/updates slot then go to /home.
+
+--------------------------------------------
+C) ARCHETYPES & POSITION GUARDRAILS (KEEP)
+--------------------------------------------
+• Maintain archetypes but filter by position on /new:
+  const POSITION_ARCHETYPES = {
+    PG: ["Pass First", "Shot Creator", "3&D", "Slasher"],
+    SG: ["Shot Creator", "3&D", "Slasher"],
+    SF: ["3&D", "Slasher", "Shot Creator", "Stretch Big"],
+    PF: ["Stretch Big", "Rim Protector", "3&D", "Slasher"],
+    C:  ["Rim Protector", "Stretch Big"]
+  };
+• If the current archetype becomes invalid after changing position, reset to the first valid one.
+• Keep height (ft/in & cm) with the units toggle already in settings; height still influences attribute caps.
+
+----------------------------------
+D) HOME HEADER & QUICK ACTION ROW
+----------------------------------
+• In the sticky header, replace the **+1w** chip with a pixel-styled button **»**.
+• Clicking **»** opens a modal:
+  - Sim options:
+    (1) Sim N weeks — numeric input with limits (1–20)
+    (2) Sim to end of season
+    (3) Cancel
+  - Respect safe-areas; modal scroll-lock; no layout overlap.
+
+• Quick buttons row under the Hero card should be:
+  [Standings] → /league?tab=standings
+  [Schedule]  → /league?tab=schedule
+  [Dash]      → open a simple placeholder page /dash with tiles (Shop, Business, Properties, Gym, etc.)
+  [News]      → /news (placeholder list)
+  (Remove Team and Social here; they remain in the bottom tab bar.)
+
+• Ensure Inbox does NOT appear on the main menu anymore. Inbox is reachable inside the game 
+  (e.g., via /social or add /inbox to the bottom tab bar if you already have it; choose one but avoid duplicates).
+
+--------------------------------
+E) SETTINGS FLOW (MAIN MENU FIX)
+--------------------------------
+• If hd:activeSlot is null and the user opens /settings from the main menu:
+  - Render with **PreGameLayout** (no bottom tab bar or stats strip).
+  - Provide only global options (theme, sound, units). 
+  - Add a footer link “Back to Main Menu”.
+
+• If hd:activeSlot is NOT null (i.e., in-game):
+  - Render with **GameLayout** (keep bottom nav).
+
+--------------------------------
+F) UI POLISH & SAFETY RULES
+--------------------------------
+• Everywhere: respect safe-area insets and prevent overlaps.
+• AvatarPreview appears on:
+  - /new (large)
+  - /builder (small inline)
+  - /home “Next Game” card (tiny circle)
+  - save slot list on /load (tiny circle)
+• Keep background & palette as is. Ensure images use `image-rendering: pixelated` when scaled.
+
+-----------------------
+G) ACCEPTANCE CHECKLIST
+-----------------------
+- /new shows a single avatar with **Customize**; no more grid of many faces.
+- /customize saves **hd:appearance** and returns to /new.
+- /builder shows the saved avatar face in “Player Info”.
+- Creation flow: Main Menu → /new → /customize → /builder → Start Career → /home.
+- /settings from main menu shows NO bottom nav and does NOT enter the game shell.
+- Home quick row = Standings, Schedule, Dash, News (no Team/Social duplicates).
+- Header chip is **»**; modal allows sim N weeks or to season end.
+- No overlapping UI; pre-game vs in-game layouts behave correctly.
+- Version bump app footer to **Version 0.2**.
+
+-------------------
+H) FILES TO CREATE
+-------------------
+- src/layouts/PreGameLayout.tsx
+- src/components/AvatarPreview.tsx
+- src/routes/Customize.tsx
+- public/assets/creator/ (layer PNGs or a minimal SVG fallback)
+- src/constants/positionArchetypes.ts (mapping above)
+- src/routes/Dash.tsx and src/routes/News.tsx (simple placeholders)
+
+------------------
+I) QUICK TEST PLAN
+------------------
+1) From main menu open Settings → confirm NO bottom nav. Go back.
+2) Start New → see single avatar + Customize. Change a few traits, Save Appearance.
+3) Proceed to Builder → face shows; distribute points; Start Career → lands on Home.
+4) On Home, confirm quick buttons are Standings/Schedule/Dash/News; press **»** and test the sim modal.
+5) Ensure Inbox no longer exists on the main menu; accessible only in-game.
+6) Reload the app → avatar, theme, units, and active slot persist.
+
+When done, print: “PATCH v0.2 applied successfully” and list the files you created/edited.

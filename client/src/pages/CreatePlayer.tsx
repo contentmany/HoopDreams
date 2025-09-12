@@ -10,30 +10,30 @@ import { Badge } from "@/components/ui/badge";
 import GameHeader from "@/components/GameHeader";
 import { teams, settings } from "@/utils/localStorage";
 import { 
-  archetypesByPosition, 
   heightRanges, 
   inchesToFeetInches, 
   inchesToCm, 
   cmToInches,
   feetInchesToInches
 } from "@/utils/gameConfig";
+import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
+import AvatarPreview from "@/components/AvatarPreview";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
+  onNavigate?: (path: string) => void;
 }
 
-export default function CreatePlayer({ onCreatePlayer }: CreatePlayerProps) {
+export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlayerProps) {
   const [playerData, setPlayerData] = useState({
     firstName: "",
     lastName: "",
     position: "",
     archetype: "",
     teamId: "",
-    avatarId: 1,
     heightInches: 74, // Default to 6'2"
   });
 
-  const [selectedAvatarId, setSelectedAvatarId] = useState(1);
   const [useMetric, setUseMetric] = useState(false);
   const [heightFeet, setHeightFeet] = useState(6);
   const [heightInches, setHeightInches] = useState(2);
@@ -101,8 +101,21 @@ export default function CreatePlayer({ onCreatePlayer }: CreatePlayerProps) {
 
   const getAvailableArchetypes = () => {
     if (!playerData.position) return [];
-    return archetypesByPosition[playerData.position as keyof typeof archetypesByPosition] || [];
+    return getArchetypesForPosition(playerData.position as any);
   };
+
+  // Reset archetype when position changes if it becomes invalid
+  useEffect(() => {
+    if (playerData.position && playerData.archetype) {
+      if (!isValidArchetypeForPosition(playerData.position as any, playerData.archetype)) {
+        const availableArchetypes = getArchetypesForPosition(playerData.position as any);
+        setPlayerData(prev => ({ 
+          ...prev, 
+          archetype: availableArchetypes.length > 0 ? availableArchetypes[0] : ""
+        }));
+      }
+    }
+  }, [playerData.position]);
 
   const handleSubmit = () => {
     if (!playerData.firstName || !playerData.lastName || !playerData.position || !playerData.archetype || !playerData.teamId) {
@@ -121,7 +134,6 @@ export default function CreatePlayer({ onCreatePlayer }: CreatePlayerProps) {
       position: playerData.position,
       archetype: playerData.archetype,
       teamId: playerData.teamId,
-      avatarId: selectedAvatarId,
       heightInches: playerData.heightInches,
       heightCm: inchesToCm(playerData.heightInches),
     };
@@ -285,42 +297,30 @@ export default function CreatePlayer({ onCreatePlayer }: CreatePlayerProps) {
               )}
             </div>
             
-            <div className="space-y-2">
-              <Label>Avatar</Label>
-              <div className="flex items-center gap-3 flex-wrap">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((id) => (
-                  <button
-                    key={id}
-                    onClick={() => setSelectedAvatarId(id)}
-                    className={`p-2 rounded-lg border-2 transition-colors hover-elevate ${
-                      selectedAvatarId === id 
-                        ? 'border-primary bg-primary/10' 
-                        : 'border-border hover:border-muted-foreground'
-                    }`}
-                    data-testid={`avatar-${id}`}
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage 
-                        src="/assets/avatars/avatars-collection.png" 
-                        alt={`Avatar ${id}`}
-                        className="pixel-art"
-                      />
-                      <AvatarFallback className="font-pixel text-xs">
-                        {id}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
-                ))}
+            <div className="space-y-3">
+              <Label>Appearance</Label>
+              <div className="flex items-center gap-4">
+                <AvatarPreview size="large" className="w-20 h-20" />
+                <Button
+                  variant="outline"
+                  onClick={() => onNavigate?.('/customize')}
+                  data-testid="button-customize"
+                >
+                  Customize
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Customize your player's appearance
+              </p>
             </div>
             
             <Button 
               className="w-full" 
               size="lg" 
               onClick={handleSubmit}
-              data-testid="button-start-career"
+              data-testid="button-next-player-builder"
             >
-              Start Career
+              Next: Player Builder
             </Button>
           </CardContent>
         </Card>

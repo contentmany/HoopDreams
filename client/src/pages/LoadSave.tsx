@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import AvatarPreview from "@/components/AvatarPreview";
 import { Plus, Trash2 } from "lucide-react";
 import GameHeader from "@/components/GameHeader";
 
@@ -55,16 +56,11 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
                 {slot.playerName ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage 
-                          src="/assets/avatars/avatars-collection.png" 
-                          alt={slot.playerName}
-                          className="pixel-art"
-                        />
-                        <AvatarFallback className="font-pixel text-xs">
-                          {slot.playerName.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
+                      <AvatarPreview 
+                        size="medium" 
+                        className="w-12 h-12"
+                        slotId={slot.id}
+                      />
                       
                       <div>
                         <h3 className="font-semibold" data-testid={`text-player-name-${slot.id}`}>

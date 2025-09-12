@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Minus, HelpCircle, RotateCcw } from "lucide-react";
 import GameHeader from "@/components/GameHeader";
+import AvatarPreview from "@/components/AvatarPreview";
 import { 
   getAttributeCaps, 
   calculateOVR, 
@@ -235,17 +236,20 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
                 <CardTitle className="text-lg">Player Info</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <h3 className="font-semibold">{playerInfo.nameFirst} {playerInfo.nameLast}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">{playerInfo.position}</Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {playerInfo.heightInches ? inchesToFeetInches(playerInfo.heightInches) : 'N/A'}
-                    </Badge>
+                <div className="flex items-center gap-3">
+                  <AvatarPreview size="medium" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{playerInfo.nameFirst} {playerInfo.nameLast}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline">{playerInfo.position}</Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        {playerInfo.heightInches ? inchesToFeetInches(playerInfo.heightInches) : 'N/A'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {playerInfo.archetype}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {playerInfo.archetype}
-                  </p>
                 </div>
                 
                 <div className="text-center py-4">
@@ -377,9 +381,9 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
                 className="flex-1"
                 onClick={handleSaveBuild}
                 disabled={getOVR() > 65}
-                data-testid="button-save-build"
+                data-testid="button-start-career"
               >
-                Save Build
+                Start Career
               </Button>
             </div>
             
