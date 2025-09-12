@@ -68,11 +68,11 @@ function Router() {
       </Route>
       
       <Route path="/customize">
-        <Customize onNavigate={handleNavigate} />
+        <Customize />
       </Route>
       <Route path="/builder">
         <PreGameLayout title="Player Builder">
-          <PlayerBuilder onSaveBuild={() => setLocation('/home')} />
+          <PlayerBuilder />
         </PreGameLayout>
       </Route>
       <Route path="/load">

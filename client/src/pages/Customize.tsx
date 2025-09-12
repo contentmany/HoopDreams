@@ -7,6 +7,7 @@ import { useLocation } from 'wouter';
 import { CharacterFull } from '@/components/character/CharacterFull';
 import { CharacterLook, DEFAULT_CHARACTER_LOOK, SKIN_OPTIONS, HAIR_OPTIONS, BROW_OPTIONS, EYE_OPTIONS, NOSE_OPTIONS, MOUTH_OPTIONS, ACCESSORY_OPTIONS, TEAM_COLORS } from '@/types/character';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
+import { player as playerStorage } from '@/utils/localStorage';
 
 interface PlayerName {
   firstName: string;
@@ -19,7 +20,22 @@ export default function Customize() {
   const [playerName, setPlayerName] = useState<PlayerName>({ firstName: '', lastName: '' });
 
   useEffect(() => {
-    // Load existing player data if available
+    // Check if there's an active player first (loaded from save)
+    const currentPlayer = playerStorage.get();
+    if (currentPlayer && currentPlayer.look) {
+      // Load from active saved player
+      setLook({
+        ...DEFAULT_CHARACTER_LOOK,
+        ...currentPlayer.look
+      });
+      setPlayerName({
+        firstName: currentPlayer.nameFirst || '',
+        lastName: currentPlayer.nameLast || ''
+      });
+      return;
+    }
+
+    // Load existing draft player data if available
     const draft = getDraftPlayer();
     if (draft) {
       // Migrate legacy appearance to new look structure if needed
@@ -67,6 +83,15 @@ export default function Customize() {
   const updateLook = (updates: Partial<CharacterLook>) => {
     const newLook = { ...look, ...updates };
     setLook(newLook);
+    
+    // If there's an active player, update their look as well
+    const currentPlayer = playerStorage.get();
+    if (currentPlayer) {
+      playerStorage.set({
+        ...currentPlayer,
+        look: newLook
+      });
+    }
     
     // Always save to draft player and global storage
     const draft = getDraftPlayer() || {

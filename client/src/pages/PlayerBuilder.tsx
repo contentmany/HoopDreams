@@ -144,8 +144,8 @@ export default function PlayerBuilder() {
     saveSlots.save(1, finalPlayer as Player);
     activeSlot.set(1);
 
-    // Navigate to dashboard
-    setLocation('/dashboard');
+    // Navigate to dashboard (home route)
+    setLocation('/home');
   };
 
   const handleBack = () => {
