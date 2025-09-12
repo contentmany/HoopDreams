@@ -11,10 +11,10 @@ const tabs = [
 ];
 
 export default function BottomTabBar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-card-border" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-card-border" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}>
       <div className="flex items-center justify-around px-2 py-2">
         {tabs.map((tab) => {
           const isActive = location === tab.path || (location.startsWith(tab.path) && tab.path !== "/home");
@@ -28,7 +28,7 @@ export default function BottomTabBar() {
               className={`flex flex-col items-center gap-1 h-auto py-2 px-3 min-h-12 ${
                 isActive ? "text-primary" : "text-muted-foreground"
               }`}
-              onClick={() => window.history.pushState({}, '', tab.path)}
+              onClick={() => setLocation(tab.path)}
               data-testid={`tab-${tab.label.toLowerCase()}`}
             >
               <Icon className="w-4 h-4" />

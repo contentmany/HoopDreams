@@ -129,6 +129,28 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     console.log('Week advanced:', weekEvents);
   };
 
+  const handleSimWeeks = (weeks: number) => {
+    if (!currentPlayer) return;
+
+    let currentPlayerState = currentPlayer;
+    
+    for (let i = 0; i < weeks; i++) {
+      const { player: updatedPlayer, seasonData: newSeasonData } = advanceWeek(currentPlayerState);
+      currentPlayerState = updatedPlayer;
+      
+      // Update the season data state if this is the last iteration
+      if (i === weeks - 1) {
+        setSeasonData(newSeasonData);
+      }
+    }
+    
+    // Save final player state
+    playerStorage.set(currentPlayerState);
+    setCurrentPlayer(currentPlayerState);
+    
+    console.log(`Simulated ${weeks} weeks`);
+  };
+
   const handleScouting = () => {
     console.log('Scouting functionality coming soon!');
   };
@@ -174,11 +196,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <GameHeader 
         year={seasonData.currentYear}
         week={seasonData.currentWeek}
+        maxWeeks={20}
         showAdvanceWeek={true}
         onAdvanceWeek={handleAdvanceWeek}
+        onSimWeeks={handleSimWeeks}
       />
       
-      <main className="pb-32 px-4 pt-4 space-y-6">
+      <main className="px-4 pt-4 space-y-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8rem)' }}>
         {seasonData.upcomingGame && !seasonData.isSeasonComplete ? (
           <GameCard 
             opponent={seasonData.upcomingGame.opponent.name}

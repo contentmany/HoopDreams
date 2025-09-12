@@ -13,7 +13,7 @@ interface StatsStripProps {
 
 export default function StatsStrip({ stats }: StatsStripProps) {
   return (
-    <div className="bg-card border-t border-card-border p-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 4rem)' }}>
+    <div className="fixed left-0 right-0 bg-card border-t border-card-border p-3 z-30" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 4rem)' }}>
       <div className="grid grid-cols-2 gap-3">
         {stats.map((stat, index) => (
           <div key={stat.label} className="space-y-1">

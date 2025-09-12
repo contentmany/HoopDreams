@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import RouteGuard from "@/components/RouteGuard";
+import { activeSlot } from "@/utils/localStorage";
 
 // Game Pages
 import MainMenu from "@/pages/MainMenu";
@@ -14,6 +16,8 @@ import LoadSave from "@/pages/LoadSave";
 import Settings from "@/pages/Settings";
 import League from "@/pages/League";
 import Badges from "@/pages/Badges";
+import Dash from "@/pages/Dash";
+import News from "@/pages/News";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -28,7 +32,9 @@ function Router() {
         <MainMenu onNavigate={handleNavigate} />
       </Route>
       <Route path="/home">
-        <Dashboard onNavigate={handleNavigate} />
+        <RouteGuard requireActiveSave>
+          <Dashboard onNavigate={handleNavigate} />
+        </RouteGuard>
       </Route>
       <Route path="/new">
         <CreatePlayer onCreatePlayer={(data) => {
@@ -51,7 +57,7 @@ function Router() {
       </Route>
       <Route path="/settings">
         {() => {
-          const currentSlot = require('@/utils/localStorage').activeSlot.get();
+          const currentSlot = activeSlot.get();
           const noSaveMode = currentSlot === null;
           return (
             <Settings 
@@ -63,42 +69,64 @@ function Router() {
         }}
       </Route>
       <Route path="/league">
-        {(params) => {
+        {() => {
           const urlParams = new URLSearchParams(window.location.search);
           const tab = urlParams.get('tab') || 'standings';
-          return <League defaultTab={tab} />;
+          return (
+            <RouteGuard requireActiveSave>
+              <League defaultTab={tab} />
+            </RouteGuard>
+          );
         }}
       </Route>
       <Route path="/badges">
         <Badges />
       </Route>
       
-      {/* Placeholder routes - todo: implement these pages */}
+      {/* Protected routes - require active save */}
       <Route path="/team">
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-pixel mb-4">Team</h1>
-            <p className="text-muted-foreground">Coming Soon</p>
+        <RouteGuard requireActiveSave>
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-pixel mb-4">Team</h1>
+              <p className="text-muted-foreground">Coming Soon</p>
+            </div>
           </div>
-        </div>
+        </RouteGuard>
       </Route>
       
       <Route path="/social">
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-pixel mb-4">Social</h1>
-            <p className="text-muted-foreground">Coming Soon</p>
+        <RouteGuard requireActiveSave>
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-pixel mb-4">Social</h1>
+              <p className="text-muted-foreground">Coming Soon</p>
+            </div>
           </div>
-        </div>
+        </RouteGuard>
       </Route>
       
       <Route path="/inbox">
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-pixel mb-4">Inbox</h1>
-            <p className="text-muted-foreground">Coming Soon</p>
+        <RouteGuard requireActiveSave>
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-pixel mb-4">Inbox</h1>
+              <p className="text-muted-foreground">Coming Soon</p>
+            </div>
           </div>
-        </div>
+        </RouteGuard>
+      </Route>
+      
+      <Route path="/news">
+        <RouteGuard requireActiveSave>
+          <News onNavigate={handleNavigate} />
+        </RouteGuard>
+      </Route>
+      
+      <Route path="/dash">
+        <RouteGuard requireActiveSave>
+          <Dash onNavigate={handleNavigate} />
+        </RouteGuard>
       </Route>
       
       <Route path="/roster-editor">
