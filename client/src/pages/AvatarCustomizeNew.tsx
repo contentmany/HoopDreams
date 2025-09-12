@@ -13,179 +13,25 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize the avatar system after component mounts
+    // Load CSS and JS modules
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/css/avatar.css';
+    document.head.appendChild(link);
+
+    // Load and initialize procedural avatar system
     const script = document.createElement('script');
     script.type = 'module';
-    script.textContent = `
-const ASSETS = '/avatars/heads/';       // served from /public/avatars/heads
-const MASKS  = '/avatars/masks/';       // served from /public/avatars/masks
-
-const cfg = {
-  base:      ['skin_F1.png','skin_F2.png','skin_F3.png','skin_F4.png'],
-  eyes:      ['eyes_01.png','eyes_02.png','eyes_03.png','eyes_04.png','eyes_05.png','eyes_06.png'],
-  brows:     ['brows_01.png','brows_02.png','brows_03.png','brows_04.png','brows_05.png','brows_06.png'],
-  nose:      ['nose_01.png','nose_02.png','nose_03.png','nose_04.png'],
-  mouth:     ['mouth_01.png','mouth_02.png','mouth_03.png','mouth_04.png','mouth_05.png','mouth_06.png'],
-  beard:     ['beard_00.png','beard_01.png','beard_02.png','beard_03.png','beard_04.png','beard_05.png','beard_06.png'],
-  hair:      ['hair_00.png','hair_01.png','hair_02.png','hair_03.png','hair_04.png','hair_05.png','hair_06.png','hair_07.png','hair_08.png','hair_09.png','hair_10.png','hair_11.png','hair_12.png'],
-  accessory: ['none_00.png','headband_01.png','beanie_01.png','durag_01.png'],
-  masks: {
-    'headband_01.png':'headband_mask.png',
-    'beanie_01.png':'beanie_mask.png',
-    'durag_01.png':'durag_mask.png'
-  }
-};
-
-// simple seeded RNG so NPCs stay the same each session
-function sfc32(a,b,c,d){return function(){a|=0;b|=0;c|=0;d|=0;var t=(a+b|0)+d|0;d=d+1|0;a=b^b>>>9;b=c+(c<<3)|0;c=(c<<21|c>>>11)+t|0;return (t>>>0)/4294967296}}
-function xmur3(str){for(var h=1779033703^str.length,i=0;i<str.length;i++)h=Math.imul(h^str.charCodeAt(i),3432918353),h=h<<13|h>>>19;return function(){h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h^h>>>16)>>>0}}
-function rngFromSeed(seed){const n=xmur3(seed)();return sfc32(n, n^0x9E3779B1, n^0x85EBCA77, n^0xC2B2AE3D)}
-
-async function load(src){
-  return new Promise((res,rej)=>{
-    const img=new Image(); img.crossOrigin='anonymous'; 
-    img.onload=()=>res(img); 
-    img.onerror=()=>{
-      console.warn('Missing avatar asset:', src);
-      // Create a placeholder colored rectangle
-      const canvas = document.createElement('canvas');
-      canvas.width = 128; canvas.height = 128;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#555';
-      ctx.fillRect(0, 0, 128, 128);
-      const placeholderImg = new Image();
-      placeholderImg.src = canvas.toDataURL();
-      res(placeholderImg);
-    }; 
-    img.src = src;
-  });
-}
-
-async function preload(list, folder){ return Object.fromEntries(await Promise.all(list.map(async f=>[f, await load(folder+f)]))) }
-
-function pick(r, arr){ return arr[Math.floor(r()*arr.length)] }
-
-// optional team tint for accessories
-function tintLayer(ctx, maskImg, color){
-  if(!maskImg) return;
-  ctx.save();
-  ctx.drawImage(maskImg,0,0,ctx.canvas.width,ctx.canvas.height);
-  ctx.globalCompositeOperation='source-in';
-  ctx.fillStyle=color;
-  ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
-  ctx.restore();
-}
-
-// draw stack in strict order
-async function composeAvatar(canvas, parts, assets, masks, teamColor){
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0,0,W,H);
-  // base bg (subtle) so transparency shows cleanly
-  ctx.fillStyle = '#2a2320'; ctx.fillRect(0,0,W,H);
-
-  const order = ['base','eyes','brows','nose','mouth','beard','hair','accessory'];
-  for(const layer of order){
-    const file = parts[layer];
-    if(!file) continue;
-    if(layer==='accessory' && ['headband_01.png','beanie_01.png','durag_01.png'].includes(file)){
-      // first tint via mask, then draw the actual linework on top
-      const maskName = cfg.masks[file];
-      tintLayer(ctx, masks[maskName], teamColor || '#ff6a00'); // default accent if no team
-      ctx.drawImage(assets[layer][file],0,0,W,H);
-    } else if (assets[layer] && assets[layer][file]) {
-      ctx.drawImage(assets[layer][file],0,0,W,H);
-    }
-  }
-}
-
-function randomParts(seed){
-  const r = rngFromSeed(seed || String(Math.random()));
-  // sensible probabilities
-  const parts = {
-    base:  pick(r,cfg.base),
-    eyes:  pick(r,cfg.eyes),
-    brows: pick(r,cfg.brows),
-    nose:  pick(r,cfg.nose),
-    mouth: pick(r,cfg.mouth),
-    beard: r() < 0.45 ? pick(r,cfg.beard) : 'beard_00.png',
-    hair:  pick(r,cfg.hair),  // includes hair_00 (bald)
-    accessory: (()=>{
-      const x=r();
-      if(x<0.10) return 'headband_01.png';
-      if(x<0.15) return 'beanie_01.png';
-      if(x<0.20) return 'durag_01.png';
-      return 'none_00.png';
-    })()
-  };
-  return parts;
-}
-
-(async function main(){
-  const canvas = document.getElementById('avatarCanvas');
-  if (!canvas) {
-    console.error('Avatar canvas not found');
-    return;
-  }
-  
-  // scale logic for high-DPI without blur
-  const scale = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width  = 128*scale; canvas.height = 128*scale;
-  canvas.style.width='128px'; canvas.style.height='128px';
-  const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = true;
-
-  // PRELOAD
-  try{
-    const assets = {
-      base:      await preload(cfg.base,      ASSETS+'base/'),
-      eyes:      await preload(cfg.eyes,      ASSETS+'eyes/'),
-      brows:     await preload(cfg.brows,     ASSETS+'brows/'),
-      nose:      await preload(cfg.nose,      ASSETS+'nose/'),
-      mouth:     await preload(cfg.mouth,     ASSETS+'mouth/'),
-      beard:     await preload(cfg.beard,     ASSETS+'beard/'),
-      hair:      await preload(cfg.hair,      ASSETS+'hair/'),
-      accessory: await preload(cfg.accessory, ASSETS+'accessory/')
-    };
-    const masks = {
-      'headband_mask.png': await load(MASKS+'headband_mask.png'),
-      'beanie_mask.png':   await load(MASKS+'beanie_mask.png'),
-      'durag_mask.png':    await load(MASKS+'durag_mask.png'),
-    };
-
-    // initial face
-    const teamColor = '#7A5BFF';               // team purple from design
-    const seed = 'player-preview';             // stable preview
-    let parts = randomParts(seed);
-    await composeAvatar(canvas, parts, assets, masks, teamColor);
-
-    // hook randomize button (for quick check)
-    document.getElementById('btnRandom')?.addEventListener('click', async ()=>{
-      parts = randomParts(String(Math.random()));
-      await composeAvatar(canvas, parts, assets, masks, teamColor);
-    });
-
-    // expose for other pages (home/roster)
-    window.__avatar = { composeAvatar, randomParts, assets, masks };
-
-  }catch(err){
-    console.error('[Avatar]', err);
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#2a2320'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('Loading avatar system...', 10, 64);
-  }
-})();
+    script.innerHTML = `
+      import { mountCustomize } from '/js/avatar-hooks.js'; 
+      mountCustomize();
     `;
     document.head.appendChild(script);
+
     setLoading(false);
   }, []);
 
   const handleSave = () => {
-    // Save current avatar configuration
-    try {
-      localStorage.setItem('hd:playerAppearance', JSON.stringify({}));
-    } catch (error) {
-      console.error('Failed to save appearance:', error);
-    }
     onNavigate?.('/builder');
     setLocation('/builder');
   };
@@ -219,33 +65,80 @@ function randomParts(seed){
           </CardContent>
         </Card>
 
-        {/* Avatar Preview */}
+        {/* Avatar Customization */}
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Preview</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center space-y-4">
+              <div className="flex justify-center">
                 <div className="avatar-wrap">
                   <canvas 
                     id="avatarCanvas" 
                     width="128" 
                     height="128" 
                     aria-label="avatar preview"
-                    style={{
-                      width: '128px',
-                      height: '128px',
-                      imageRendering: 'auto',
-                      borderRadius: '12px',
-                      background: '#2a2320'
-                    }}
                   />
-                  <div className="avatar-actions mt-4">
-                    <Button id="btnRandom" data-testid="button-randomize">
-                      Randomize
-                    </Button>
+                  <div className="controls">
+                    <label>Skin:
+                      <select id="skin" data-testid="select-skin">
+                        <option value="F1">F1</option>
+                        <option value="F2">F2</option>
+                        <option value="F3" selected>F3</option>
+                        <option value="F4">F4</option>
+                      </select>
+                    </label>
+                    <label>Hair:
+                      <select id="hair" data-testid="select-hair">
+                        <option>bald</option>
+                        <option>buzz</option>
+                        <option selected>short</option>
+                        <option>afro</option>
+                        <option>curls</option>
+                        <option>braids</option>
+                        <option>waves</option>
+                        <option>locs</option>
+                        <option>beanie</option>
+                        <option>durag</option>
+                        <option>headband</option>
+                      </select>
+                    </label>
+                    <label>Hair Color:
+                      <select id="hairColor" data-testid="select-hair-color">
+                        <option value="#2b2018" selected>#2b2018</option>
+                        <option value="#3a2f25">#3a2f25</option>
+                        <option value="#4b382e">#4b382e</option>
+                        <option value="#754c24">#754c24</option>
+                        <option value="#111111">#111111</option>
+                      </select>
+                    </label>
+                    <label>Eyes:
+                      <select id="eyeColor" data-testid="select-eye-color">
+                        <option value="#3a2f25" selected>#3a2f25</option>
+                        <option value="#1f2d57">#1f2d57</option>
+                        <option value="#0a6a4f">#0a6a4f</option>
+                        <option value="#5b3a2e">#5b3a2e</option>
+                      </select>
+                    </label>
+                    <label>Facial Hair:
+                      <select id="facial" data-testid="select-facial">
+                        <option selected>none</option>
+                        <option>goatee</option>
+                        <option>mustache</option>
+                        <option>full</option>
+                      </select>
+                    </label>
+                    <button id="btnRandom" data-testid="button-random">Randomize</button>
                   </div>
+                  <button 
+                    id="avatarSave" 
+                    className="btn btn-primary" 
+                    data-next="/builder"
+                    data-testid="button-save"
+                  >
+                    Save & Continue
+                  </button>
                 </div>
               </div>
             </CardContent>
@@ -257,24 +150,23 @@ function randomParts(seed){
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium mb-2">Avatar System</h4>
+                <h4 className="font-medium mb-2">Procedural Avatars</h4>
                 <p className="text-sm text-muted-foreground">
-                  This head-only avatar system uses layered PNG assets for crisp rendering at any size.
+                  This system draws smooth head-only avatars using canvas rendering. No image files needed!
                 </p>
               </div>
               
               <div>
-                <h4 className="font-medium mb-2">Asset Requirements</h4>
+                <h4 className="font-medium mb-2">Features</h4>
                 <p className="text-sm text-muted-foreground">
-                  Upload transparent PNG files to /public/avatars/heads/ folders:
-                  base, eyes, brows, nose, mouth, beard, hair, accessory
+                  Customize skin tone, hair styles, eye color, facial hair, and accessories. Perfect for basketball courts.
                 </p>
               </div>
 
               <div>
-                <h4 className="font-medium mb-2">Layer Order</h4>
+                <h4 className="font-medium mb-2">Rendering</h4>
                 <p className="text-sm text-muted-foreground">
-                  Renders in order: skin → eyes → brows → nose → mouth → facial hair → hair → accessory
+                  Crisp at any size (128/96/64/40px) with proper layering: skin → eyes → brows → facial features → hair.
                 </p>
               </div>
             </CardContent>
@@ -293,14 +185,9 @@ function randomParts(seed){
           >
             Back
           </Button>
-          <Button 
-            onClick={handleSave}
-            data-testid="button-save"
-          >
-            Save & Continue
-          </Button>
         </div>
       </div>
+
     </div>
   );
 }

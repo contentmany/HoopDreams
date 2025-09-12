@@ -7,9 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
-import AssetAvatar from '@/components/AssetAvatar';
-import { AvatarData, DEFAULT_AVATAR } from '@/types/avatar';
-import { avatarStorage, copyAvatarToPlayer } from '@/utils/avatarStorage';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
 import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
 
@@ -33,7 +30,7 @@ const DEFAULT_BUILDER_ATTRIBUTES: BuilderAttributes = {
 
 export default function PlayerBuilder() {
   const [, setLocation] = useLocation();
-  const [avatarData, setAvatarData] = useState<AvatarData>(DEFAULT_AVATAR);
+  // Avatar handled by procedural system
   const [playerName, setPlayerName] = useState({ firstName: '', lastName: '' });
   const [position, setPosition] = useState('PG');
   const [archetype, setArchetype] = useState('Balanced');
@@ -42,9 +39,28 @@ export default function PlayerBuilder() {
   const [availablePoints, setAvailablePoints] = useState(20);
 
   useEffect(() => {
-    // Load avatar data
-    const currentAvatar = avatarStorage.get();
-    setAvatarData(currentAvatar);
+    // Load procedural avatar system
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/css/avatar.css';
+    if (!document.querySelector('link[href="/css/avatar.css"]')) {
+      document.head.appendChild(link);
+    }
+    
+    // Initialize player avatar
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.innerHTML = `
+      import { renderAvatar, dnaFromSeed } from '/js/proc-avatar.js';
+      setTimeout(() => {
+        const canvas = document.getElementById('avatarBuilder');
+        if (canvas) {
+          canvas.width = 128; canvas.height = 128;
+          renderAvatar(canvas, dnaFromSeed('builder-player'));
+        }
+      }, 100);
+    `;
+    document.head.appendChild(script);
     
     // Load draft player data
     const draft = getDraftPlayer();
@@ -108,8 +124,7 @@ export default function PlayerBuilder() {
       stamina: attributes.physicals
     };
 
-    // Copy avatar to player storage
-    copyAvatarToPlayer();
+    // Avatar will be handled by procedural system
 
     // Create final player object
     const finalPlayer: Partial<Player> = {
@@ -190,10 +205,7 @@ export default function PlayerBuilder() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-center">
-                <AssetAvatar 
-                  seed={`builder-${Date.now()}`} 
-                  size="s192" 
-                />
+                <canvas id="avatarBuilder" className="avatar128" style={{borderRadius: '12px'}}></canvas>
               </div>
               
               <div className="text-center space-y-1">

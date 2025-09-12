@@ -12,9 +12,6 @@ import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localSto
 import { simulateGame, type GameResult, type OpponentTeam } from "@/utils/gameSimulation";
 import { initializeSeason, updateSeasonAfterGame, advanceWeek, type SeasonData } from "@/utils/seasonManager";
 import type { Player } from "@/utils/localStorage";
-import AssetAvatar from "@/components/AssetAvatar";
-import { playerAvatarStorage } from "@/utils/avatarStorage";
-import { DEFAULT_AVATAR } from "@/types/avatar";
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;
@@ -23,7 +20,36 @@ interface DashboardProps {
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
-  const [avatarData, setAvatarData] = useState(() => playerAvatarStorage.get() || DEFAULT_AVATAR);
+  // Avatar handled by procedural system
+  
+  // Load procedural avatar system
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/css/avatar.css';
+    if (!document.querySelector('link[href="/css/avatar.css"]')) {
+      document.head.appendChild(link);
+    }
+    
+    // Initialize player avatar
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.innerHTML = `
+      import { attachImgCanvas } from '/js/avatar-hooks.js';
+      setTimeout(() => {
+        document.querySelectorAll('canvas.avatar64').forEach(c => {
+          if (c.dataset.seed) {
+            const canvas = c;
+            canvas.width = 64; canvas.height = 64;
+            import('/js/proc-avatar.js').then(({renderAvatar, dnaFromSeed}) => {
+              renderAvatar(canvas, dnaFromSeed(c.dataset.seed));
+            });
+          }
+        });
+      }, 100);
+    `;
+    document.head.appendChild(script);
+  }, []);
   const [gameResultsModal, setGameResultsModal] = useState<{
     isOpen: boolean;
     result?: GameResult;
@@ -202,7 +228,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <main className="space-y-6">
         {/* Player Info Card */}
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-          <AssetAvatar size="s64" seed={`player-${currentPlayer?.nameFirst || 'default'}-${currentPlayer?.nameLast || 'player'}`} />
+          <canvas className="avatar64" data-seed={`player-${currentPlayer?.nameFirst || 'default'}-${currentPlayer?.nameLast || 'player'}`} style={{borderRadius: '8px'}}></canvas>
           <div className="flex-1">
             <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
             <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>

@@ -15,7 +15,6 @@ import {
   feetInchesToInches
 } from "@/utils/gameConfig";
 import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
-import AssetAvatar from "@/components/AssetAvatar";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
@@ -38,6 +37,32 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
   const [avatarSeed, setAvatarSeed] = useState(() => `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+  
+  // Load procedural avatar system
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/css/avatar.css';
+    if (!document.querySelector('link[href="/css/avatar.css"]')) {
+      document.head.appendChild(link);
+    }
+    
+    // Initialize player avatar
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.innerHTML = `
+      import { renderAvatar, dnaFromSeed } from '/js/proc-avatar.js';
+      setTimeout(() => {
+        document.querySelectorAll('canvas.avatar64').forEach(c => {
+          if (c.dataset.seed) {
+            c.width = 64; c.height = 64;
+            renderAvatar(c, dnaFromSeed(c.dataset.seed));
+          }
+        });
+      }, 100);
+    `;
+    document.head.appendChild(script);
+  }, [avatarSeed]);
   
   const teamsList = teams.get();
   const currentSettings = settings.get();
@@ -311,10 +336,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <AssetAvatar 
-                  size="s64" 
-                  seed={avatarSeed}
-                />
+                <canvas className="avatar64" data-seed={avatarSeed} style={{borderRadius: '8px'}}></canvas>
                 <div className="flex-1">
                   <Button
                     variant="outline"
