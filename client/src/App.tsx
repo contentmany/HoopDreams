@@ -50,10 +50,17 @@ function Router() {
         />
       </Route>
       <Route path="/settings">
-        <Settings 
-          onNavigateToLoad={() => setLocation('/load')}
-          onResetGame={() => setLocation('/')}
-        />
+        {() => {
+          const currentSlot = require('@/utils/localStorage').activeSlot.get();
+          const noSaveMode = currentSlot === null;
+          return (
+            <Settings 
+              onNavigateToLoad={() => setLocation('/load')}
+              onResetGame={() => setLocation('/')}
+              noSaveMode={noSaveMode}
+            />
+          );
+        }}
       </Route>
       <Route path="/league">
         {(params) => {

@@ -17,9 +17,10 @@ import { difficultySettings } from "@/utils/gameConfig";
 interface SettingsProps {
   onNavigateToLoad?: () => void;
   onResetGame?: () => void;
+  noSaveMode?: boolean;
 }
 
-export default function Settings({ onNavigateToLoad, onResetGame }: SettingsProps) {
+export default function Settings({ onNavigateToLoad, onResetGame, noSaveMode = false }: SettingsProps) {
   const [currentSettings, setCurrentSettings] = useState<SettingsType>(settings.get());
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -110,11 +111,11 @@ export default function Settings({ onNavigateToLoad, onResetGame }: SettingsProp
   ];
 
   const currentSlot = activeSlot.get();
-  const hasActiveSave = currentSlot !== null;
+  const hasActiveSave = currentSlot !== null && !noSaveMode;
 
   return (
     <div className="min-h-screen bg-background">
-      <GameHeader />
+      {!noSaveMode && <GameHeader />}
       
       <main className="px-4 pt-4 pb-20 max-w-2xl mx-auto space-y-6">
         <div className="mb-6">
@@ -198,7 +199,8 @@ export default function Settings({ onNavigateToLoad, onResetGame }: SettingsProp
           </CardContent>
         </Card>
 
-        {/* Gameplay */}
+        {/* Gameplay - Hidden in no-save mode */}
+        {!noSaveMode && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -297,8 +299,10 @@ export default function Settings({ onNavigateToLoad, onResetGame }: SettingsProp
             </div>
           </CardContent>
         </Card>
+        )}
 
-        {/* Save Management */}
+        {/* Save Management - Hidden in no-save mode */}
+        {!noSaveMode && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -345,6 +349,7 @@ export default function Settings({ onNavigateToLoad, onResetGame }: SettingsProp
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Reset */}
         <Card>
@@ -385,9 +390,24 @@ export default function Settings({ onNavigateToLoad, onResetGame }: SettingsProp
             </Card>
           </div>
         )}
+        {/* Back to Main Menu in no-save mode */}
+        {noSaveMode && (
+          <Card>
+            <CardContent className="pt-6">
+              <Button 
+                variant="outline" 
+                onClick={onResetGame}
+                className="w-full"
+                data-testid="button-back-to-menu"
+              >
+                Back to Main Menu
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </main>
       
-      <BottomTabBar />
+      {!noSaveMode && <BottomTabBar />}
     </div>
   );
 }

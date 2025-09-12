@@ -275,3 +275,36 @@ export const inbox = {
     inbox.set(messages);
   },
 };
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  body: string;
+  dateISO: string;
+  read: boolean;
+}
+
+export const news = {
+  get: (): NewsArticle[] => {
+    const stored = localStorage.getItem('hd:news');
+    return stored ? JSON.parse(stored) : [];
+  },
+  
+  set: (articles: NewsArticle[]): void => {
+    localStorage.setItem('hd:news', JSON.stringify(articles));
+  },
+  
+  markRead: (articleId: string): void => {
+    const articles = news.get();
+    const article = articles.find(a => a.id === articleId);
+    if (article) {
+      article.read = true;
+      news.set(articles);
+    }
+  },
+  
+  markAllRead: (): void => {
+    const articles = news.get().map(a => ({ ...a, read: true }));
+    news.set(articles);
+  },
+};
