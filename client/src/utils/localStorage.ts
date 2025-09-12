@@ -1,4 +1,5 @@
 // Hoop Dreams Local Storage utilities
+import { type Appearance } from '@/types/appearance';
 
 export interface Team {
   id: string;
@@ -65,7 +66,7 @@ export interface Player {
   heightCm: number;
   teamId: string;
   teamName?: string;
-  avatarId: number;
+  appearance: Appearance;
   year: number;
   week: number;
   age: number;
