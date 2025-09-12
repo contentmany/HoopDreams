@@ -1,0 +1,70 @@
+HOOP DREAMS — UI PATCH v2 (NO REBUILD)
+
+Modify the current project in place. Keep all visuals/colors/pixel bg. No console errors. Mobile-first.
+
+GOALS
+1) Clean Home quick tiles: add Dash + News; keep Inbox in-game only.
+2) Replace +1w with pixel “>>” Sim control + modal.
+3) Fix Settings-from-Main-Menu so it never auto-starts a game.
+4) Ensure stats strip never overlaps bottom tabs (safe-area aware).
+
+CHANGES
+
+MAIN MENU
+- Show only: Play, Load / Continue, Roster Editor, Settings.
+- REMOVE Inbox from Main Menu (Inbox is in-game only).
+
+SETTINGS BEHAVIOR (BUG FIX)
+- If user opens Settings from Main Menu AND no active save:
+  - Open a no-save Settings screen (reuse /settings with noSaveMode=true OR create /menu-settings).
+  - Edit only hd:settings (theme, sound). Do NOT touch save slots or hd:activeSlot.
+  - On exit, return to Main Menu. Do NOT redirect to /home.
+- “Manage Saves” from this screen goes to /load without auto-continue.
+
+ROUTE GUARDS (REQUIRE ACTIVE SAVE)
+- Guard these routes: /home, /league, /team, /social, /inbox, /news, /dash
+- If hd:activeSlot === null → redirect to /load (or /new) and show toast: “Create or load a player to continue.”
+
+HOME QUICK TILES (MIDDLE ROW)
+- EXACT set: Standings → /league?tab=standings
+             Schedule → /league?tab=schedule
+             Dash     → /dash
+             News     → /news
+- REMOVE Team and Social from this row (they exist in bottom tabs).
+
+NEW DASH PAGE (PLACEHOLDER HUB)
+- Route: /dash
+- Grid cards: Business, Shop, Gym, Talents, Hobbies, Properties, Subscriptions, Vacations, Social Media, Preferences.
+- Each opens a “Coming soon” modal. Include a “Back to Home” button.
+
+NEWS PAGE
+- Route: /news
+- List 6–10 seeded headlines (title, snippet, time) with unread dots.
+- “Mark all read” button. News is separate from Inbox.
+
+HEADER SIM CONTROL (REPLACE +1w)
+- REMOVE all +1w buttons.
+- Add pixel “>>” button top-right in header.
+- Tapping opens Sim Modal with:
+    • Sim next week
+    • Sim N weeks (input 1–8)
+    • Sim to end of season
+    • Cancel
+- On confirm: advance weeks via existing progression; show toast “Simmed X week(s).”
+
+STATS STRIP SAFETY
+- Stats strip (Energy, Mood, Clout, Chemistry, Health, Reputation) must always be fully visible.
+- Add bottom padding to scroll area equal to stats strip height + safe-area inset, so nothing overlaps the bottom tab bar.
+
+DATA (NON-BREAKING)
+- Optional new key: hd:news = [{ id, title, body, dateISO, read }].
+
+ACCEPTANCE CHECKLIST
+- Main Menu = Play / Load / Roster Editor / Settings only (no Inbox).
+- Settings from Main Menu stays in no-save mode; never drops user into game; returns to Main Menu.
+- Guarded routes block access without active save and redirect to Load/New with toast.
+- Home quick row = Standings, Schedule, Dash, News (no Team/Social duplicates).
+- /dash exists with placeholder grid; /news exists with unread dots + “Mark all read”.
+- Header uses “>>” Sim modal; sim options work and show confirmation toast.
+- Stats strip is always readable; zero overlaps; safe-area respected.
+- No console errors.
