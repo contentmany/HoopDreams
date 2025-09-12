@@ -7,13 +7,20 @@ const pick=(r,a)=>a[Math.floor(r()*a.length)];
 const SKIN={F1:'#f1c9a5',F2:'#d9a06b',F3:'#a8693a',F4:'#6b3b1f'};
 const darken=(hex,k=.82)=>{const n=parseInt(hex.slice(1),16),r=n>>16,g=n>>8&255,b=n&255;const d=v=>Math.round(v*k);return `#${(d(r)<<16|d(g)<<8|d(b)).toString(16).padStart(6,'0')}`};
 
-function setup(canvas,px){const scale=Math.min(2,window.devicePixelRatio||1);canvas.width=px*scale;canvas.height=px*scale;canvas.style.width=px+'px';canvas.style.height=px+'px';const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.scale(scale,scale);return ctx}
+function setup(canvas,px){const deviceScale=Math.min(2,window.devicePixelRatio||1);const targetScale=px/128; // Scale from logical 128-unit space to target size
+canvas.width=px*deviceScale;canvas.height=px*deviceScale;canvas.style.width=px+'px';canvas.style.height=px+'px';const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.scale(deviceScale*targetScale,deviceScale*targetScale);return ctx}
 function E(ctx,x,y,rx,ry){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.closePath()}
 function R(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 
 function drawFace(ctx,d){
-  ctx.clearRect(0,0,128,128);
+  // Get canvas actual size for clearing
+  const canvasWidth = ctx.canvas.width / (ctx.getTransform().a || 1);
+  const canvasHeight = ctx.canvas.height / (ctx.getTransform().d || 1);
+  ctx.clearRect(0,0,canvasWidth,canvasHeight);
   ctx.fillStyle='#2a2320'; ctx.fillRect(0,0,128,128); // padded bg
+
+  // Create deterministic RNG from DNA for consistent rendering
+  const rng = rngFromSeed(JSON.stringify(d));
 
   // geometry anchors (keeps everything attached)
   const CX=64, CY=66, HEAD_RX=30, HEAD_RY=36, PADY=6; // PADY lowers everything a touch so hair never crops
