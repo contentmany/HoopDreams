@@ -50,6 +50,12 @@ export interface Milestones {
   deepThrees: number;
 }
 
+export interface Injury {
+  type: string;
+  weeksRemaining: number;
+  description: string;
+}
+
 export interface Player {
   nameFirst: string;
   nameLast: string;
@@ -58,6 +64,7 @@ export interface Player {
   heightInches: number;
   heightCm: number;
   teamId: string;
+  teamName?: string;
   avatarId: number;
   year: number;
   week: number;
@@ -73,6 +80,8 @@ export interface Player {
   health: number;
   reputation: number;
   seasonCapUsed: number;
+  injury?: Injury;
+  seasonData?: any; // Will be properly typed when seasonManager is imported
 }
 
 export interface SaveSlot {

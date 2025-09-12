@@ -188,14 +188,20 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
       }
     }
 
-    // Save to slot and set as active
-    saveSlots.save(slotToUse, finalPlayer);
+    // Set active slot FIRST, then save player
     activeSlot.set(slotToUse);
+    saveSlots.save(slotToUse, finalPlayer);
+    
+    console.log('Player build saved to slot', slotToUse, ':', finalPlayer);
+    console.log('Active slot set to:', slotToUse);
+    
+    // Verify the save worked
+    const savedPlayer = playerStorage.get();
+    console.log('Verification - player loaded back:', savedPlayer);
     
     // Clean up temp data
     localStorage.removeItem('hd:tempPlayer');
 
-    console.log('Player build saved to slot', slotToUse, ':', finalPlayer);
     onSaveBuild?.();
   };
 
