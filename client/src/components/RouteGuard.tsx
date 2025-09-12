@@ -16,12 +16,15 @@ export default function RouteGuard({ children, requireActiveSave = false }: Rout
     if (requireActiveSave) {
       const currentSlot = activeSlot.get();
       if (currentSlot === null) {
+        // Show toast first, then redirect after a brief delay
         toast({
           title: "Save Required",
           description: "Create or load a player to continue.",
           variant: "destructive",
         });
-        setLocation('/load');
+        setTimeout(() => {
+          setLocation('/load');
+        }, 100);
       }
     }
   }, [requireActiveSave, setLocation, toast]);
