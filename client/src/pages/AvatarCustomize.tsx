@@ -54,7 +54,7 @@ export default function AvatarCustomize({ onNavigate }: AvatarCustomizeProps) {
   };
 
   const handleSave = () => {
-    onNavigate?.('/new');
+    onNavigate?.('/builder');
   };
 
   const handleBack = () => {
