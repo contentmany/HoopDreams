@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Minus, HelpCircle, RotateCcw } from "lucide-react";
-import AvatarPreview from "@/components/AvatarPreview";
+import CharacterPreview from "@/components/CharacterPreview";
+import { getDraftPlayer, getActivePlayer } from "@/utils/character";
+import { DEFAULT_APPEARANCE } from "@/types/appearance";
 import { 
   getAttributeCaps, 
   calculateOVR, 
@@ -234,7 +236,10 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <AvatarPreview size="medium" />
+                  <CharacterPreview 
+                    size="sm" 
+                    appearance={getDraftPlayer()?.appearance || getActivePlayer()?.appearance || DEFAULT_APPEARANCE}
+                  />
                   <div className="flex-1">
                     <h3 className="font-semibold">{playerInfo.nameFirst} {playerInfo.nameLast}</h3>
                     <div className="flex items-center gap-2 mt-1">

@@ -16,7 +16,9 @@ import {
   feetInchesToInches
 } from "@/utils/gameConfig";
 import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
-import AvatarPreview from "@/components/AvatarPreview";
+import CharacterPreview from "@/components/CharacterPreview";
+import { getDraftPlayer } from "@/utils/character";
+import { DEFAULT_APPEARANCE } from "@/types/appearance";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
@@ -306,18 +308,24 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <AvatarPreview size="large" className="w-20 h-20" />
-                <Button
-                  variant="outline"
-                  onClick={() => onNavigate?.('/customize')}
-                  data-testid="button-customize"
-                >
-                  Customize
-                </Button>
+                <CharacterPreview 
+                  size="sm" 
+                  appearance={getDraftPlayer()?.appearance || DEFAULT_APPEARANCE}
+                  className="w-16 h-20" 
+                />
+                <div className="flex-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => onNavigate?.('/customize')}
+                    data-testid="button-customize"
+                  >
+                    Customize
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Customize your player's appearance
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Customize your player's appearance
-              </p>
             </div>
             
             <Button 

@@ -1,239 +1,299 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ChevronLeft } from "lucide-react";
-import AvatarPreview, { type AppearanceData } from "@/components/AvatarPreview";
-import PreGameLayout from "@/layouts/PreGameLayout";
-
-const SKIN_TONES = ['light', 'tan', 'brown', 'dark'] as const;
-const HAIR_STYLES = ['short', 'fade', 'afro', 'braids', 'buzz', 'curly'] as const;
-const HAIR_COLORS = ['black', 'brown', 'dark-blonde', 'red'] as const;
-const FACIAL_HAIR_OPTIONS = ['none', 'goatee', 'stubble'] as const;
-const HEADBAND_COLORS = ['#7A5BFF', '#38E1C6', '#FF6B35', '#4CAF50', '#E91E63', '#FF9800'];
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChevronLeft, ChevronRight, Shuffle, RotateCcw } from "lucide-react";
+import { useLocation } from "wouter";
+import CharacterPreview from "@/components/CharacterPreview";
+import { 
+  type Appearance, 
+  DEFAULT_APPEARANCE, 
+  HAIR_STYLE_NAMES, 
+  EYE_STYLE_NAMES,
+  HEADBAND_NAMES,
+  JERSEY_NAMES
+} from "@/types/appearance";
+import { getDraftPlayer, saveDraftPlayer, generateRandomAppearance } from "@/utils/character";
 
 interface CustomizeProps {
   onNavigate?: (path: string) => void;
 }
 
 export default function Customize({ onNavigate }: CustomizeProps) {
-  const [appearance, setAppearance] = useState<AppearanceData>({
-    skinTone: 'tan',
-    hairStyle: 'short',
-    hairColor: 'black',
-    facialHair: 'none',
-    headband: { on: false, color: '#7A5BFF' }
-  });
+  const [, setLocation] = useLocation();
+  const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE);
+  const [playerName, setPlayerName] = useState({ firstName: '', lastName: '' });
 
   useEffect(() => {
-    // Load existing appearance data
-    const stored = localStorage.getItem('hd:appearance');
-    if (stored) {
-      try {
-        setAppearance(JSON.parse(stored));
-      } catch (e) {
-        console.warn('Failed to parse stored appearance data:', e);
+    // Load existing player data if available
+    const draft = getDraftPlayer();
+    if (draft) {
+      setAppearance(draft.appearance || DEFAULT_APPEARANCE);
+      setPlayerName({
+        firstName: draft.nameFirst || draft.firstName || '',
+        lastName: draft.nameLast || draft.lastName || ''
+      });
+    } else {
+      // Load from global appearance storage if no draft
+      const stored = localStorage.getItem('hd:appearance');
+      if (stored) {
+        try {
+          setAppearance(JSON.parse(stored));
+        } catch (e) {
+          console.warn('Failed to parse appearance data:', e);
+        }
       }
     }
   }, []);
 
-  const updateAppearance = (updates: Partial<AppearanceData>) => {
-    setAppearance(prev => ({ ...prev, ...updates }));
+  const updateAppearance = (updates: Partial<Appearance>) => {
+    const newAppearance = { ...appearance, ...updates };
+    setAppearance(newAppearance);
+    
+    // Save to draft player and global storage
+    const draft = getDraftPlayer();
+    saveDraftPlayer({
+      ...draft,
+      nameFirst: playerName.firstName,
+      nameLast: playerName.lastName,
+      appearance: newAppearance
+    });
+    localStorage.setItem('hd:appearance', JSON.stringify(newAppearance));
   };
 
-  const saveAppearance = () => {
-    localStorage.setItem('hd:appearance', JSON.stringify(appearance));
-    onNavigate?.('/new');
+  const updateName = (field: 'firstName' | 'lastName', value: string) => {
+    const newName = { ...playerName, [field]: value };
+    setPlayerName(newName);
+    
+    // Save to draft player
+    const draft = getDraftPlayer();
+    saveDraftPlayer({
+      ...draft,
+      nameFirst: newName.firstName,
+      nameLast: newName.lastName,
+      appearance
+    });
   };
+
+  const handleRandomize = () => {
+    updateAppearance(generateRandomAppearance());
+  };
+
+  const handleReset = () => {
+    updateAppearance(DEFAULT_APPEARANCE);
+  };
+
+  const adjustValue = (key: keyof Appearance, delta: number, max: number) => {
+    const current = appearance[key] as number;
+    const newValue = Math.max(1, Math.min(max, current + delta));
+    updateAppearance({ [key]: newValue });
+  };
+
+  const cycleHairColor = (delta: number) => {
+    const colors = ['black', 'dark-brown', 'brown', 'blonde', 'red', 'grey'];
+    const currentIndex = colors.indexOf(appearance.hairColor);
+    const newIndex = (currentIndex + delta + colors.length) % colors.length;
+    updateAppearance({ hairColor: colors[newIndex] as any });
+  };
+
+  const ControlRow = ({ 
+    label, 
+    value, 
+    onPrevious, 
+    onNext, 
+    displayValue 
+  }: { 
+    label: string; 
+    value: any; 
+    onPrevious: () => void; 
+    onNext: () => void; 
+    displayValue: string; 
+  }) => (
+    <div className="flex items-center justify-between py-2">
+      <Label className="text-sm font-medium">{label}</Label>
+      <div className="flex items-center gap-3">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={onPrevious}
+          className="h-8 w-8"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <div className="w-20 text-center text-sm font-medium">
+          {displayValue}
+        </div>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={onNext}
+          className="h-8 w-8"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
-    <PreGameLayout title="Character Creator">
-      <div className="px-4 py-6 max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onNavigate?.('/new')}
-            data-testid="button-back"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <h1 className="text-xl font-pixel">Character Creator</h1>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header 
+        className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-card-border px-4 py-3" 
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
+      >
+        <div className="flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-lg font-pixel text-primary">Character Creator</h1>
+            <p className="text-xs text-muted-foreground">Basketball Life Simulator</p>
+          </div>
         </div>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Preview */}
+      <main className="px-4 pt-4 pb-8">
+        <div className="max-w-md mx-auto space-y-6">
+          
+          {/* Large Character Preview */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-center">Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-              <AvatarPreview
-                size="large"
-                appearance={appearance}
-                className="w-32 h-32"
+            <CardContent className="flex items-center justify-center py-8">
+              <CharacterPreview 
+                size="lg" 
+                appearance={appearance} 
+                teamColor="#7A5BFF"
+                className="mx-auto"
               />
             </CardContent>
           </Card>
 
-          {/* Controls */}
-          <div className="space-y-4">
-            {/* Skin Tone */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Skin Tone</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {SKIN_TONES.map(tone => (
-                  <Button
-                    key={tone}
-                    variant={appearance.skinTone === tone ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateAppearance({ skinTone: tone })}
-                    className="capitalize"
-                    data-testid={`skin-${tone}`}
-                  >
-                    {tone}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
+          {/* Player Name */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Player Name</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={playerName.firstName}
+                  onChange={(e) => updateName('firstName', e.target.value)}
+                  placeholder="Enter first name"
+                  data-testid="input-first-name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={playerName.lastName}
+                  onChange={(e) => updateName('lastName', e.target.value)}
+                  placeholder="Enter last name"
+                  data-testid="input-last-name"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Hair Style */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Hair Style</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {HAIR_STYLES.map(style => (
-                  <Button
-                    key={style}
-                    variant={appearance.hairStyle === style ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateAppearance({ hairStyle: style })}
-                    className="capitalize"
-                    data-testid={`hair-style-${style}`}
-                  >
-                    {style}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
+          {/* Appearance Customization */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Appearance</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              
+              <ControlRow
+                label="Skin Tone"
+                value={appearance.skinTone}
+                onPrevious={() => adjustValue('skinTone', -1, 6)}
+                onNext={() => adjustValue('skinTone', 1, 6)}
+                displayValue={`${appearance.skinTone}/6`}
+              />
 
-            {/* Hair Color */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Hair Color</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {HAIR_COLORS.map(color => (
-                  <Button
-                    key={color}
-                    variant={appearance.hairColor === color ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateAppearance({ hairColor: color })}
-                    className="capitalize"
-                    data-testid={`hair-color-${color}`}
-                  >
-                    {color.replace('-', ' ')}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
+              <ControlRow
+                label="Hair Style"
+                value={appearance.hairStyle}
+                onPrevious={() => adjustValue('hairStyle', -1, 10)}
+                onNext={() => adjustValue('hairStyle', 1, 10)}
+                displayValue={HAIR_STYLE_NAMES[appearance.hairStyle as keyof typeof HAIR_STYLE_NAMES]}
+              />
 
-            {/* Facial Hair */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Facial Hair</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {FACIAL_HAIR_OPTIONS.map(option => (
-                  <Button
-                    key={option}
-                    variant={appearance.facialHair === option ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateAppearance({ facialHair: option })}
-                    className="capitalize"
-                    data-testid={`facial-hair-${option}`}
-                  >
-                    {option}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
+              <ControlRow
+                label="Hair Color"
+                value={appearance.hairColor}
+                onPrevious={() => cycleHairColor(-1)}
+                onNext={() => cycleHairColor(1)}
+                displayValue={appearance.hairColor.replace('-', ' ')}
+              />
 
-            {/* Headband */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Headband</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Button
-                    variant={!appearance.headband.on ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateAppearance({ 
-                      headband: { ...appearance.headband, on: false } 
-                    })}
-                    data-testid="headband-off"
-                  >
-                    Off
-                  </Button>
-                  <Button
-                    variant={appearance.headband.on ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateAppearance({ 
-                      headband: { ...appearance.headband, on: true } 
-                    })}
-                    data-testid="headband-on"
-                  >
-                    On
-                  </Button>
-                </div>
-                
-                {appearance.headband.on && (
-                  <div className="flex flex-wrap gap-2">
-                    {HEADBAND_COLORS.map(color => (
-                      <button
-                        key={color}
-                        className={`w-8 h-8 rounded border-2 ${
-                          appearance.headband.color === color 
-                            ? 'border-primary' 
-                            : 'border-muted-foreground/20'
-                        }`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => updateAppearance({ 
-                          headband: { ...appearance.headband, color } 
-                        })}
-                        data-testid={`headband-color-${color}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              <ControlRow
+                label="Eyes"
+                value={appearance.eyes}
+                onPrevious={() => adjustValue('eyes', -1, 3)}
+                onNext={() => adjustValue('eyes', 1, 3)}
+                displayValue={EYE_STYLE_NAMES[appearance.eyes as keyof typeof EYE_STYLE_NAMES]}
+              />
+
+              <ControlRow
+                label="Headband"
+                value={appearance.headband}
+                onPrevious={() => adjustValue('headband', -1, 4)}
+                onNext={() => adjustValue('headband', 1, 4)}
+                displayValue={HEADBAND_NAMES[appearance.headband as keyof typeof HEADBAND_NAMES]}
+              />
+
+              <ControlRow
+                label="Jersey"
+                value={appearance.jersey}
+                onPrevious={() => adjustValue('jersey', -1, 4)}
+                onNext={() => adjustValue('jersey', 1, 4)}
+                displayValue={JERSEY_NAMES[appearance.jersey as keyof typeof JERSEY_NAMES]}
+              />
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={handleRandomize}
+                  className="flex-1"
+                  data-testid="button-randomize"
+                >
+                  <Shuffle className="w-4 h-4 mr-2" />
+                  Randomize
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleReset}
+                  className="flex-1"
+                  data-testid="button-reset"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation('/')}
+              className="flex-1"
+              data-testid="button-main-menu"
+            >
+              Main Menu
+            </Button>
+            <Button 
+              onClick={() => setLocation('/builder')}
+              className="flex-1"
+              data-testid="button-continue-builder"
+            >
+              Continue to Builder
+            </Button>
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 mt-8">
-          <Button
-            variant="outline"
-            onClick={() => onNavigate?.('/new')}
-            data-testid="button-cancel"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={saveAppearance}
-            data-testid="button-save-appearance"
-          >
-            Save Appearance
-          </Button>
-        </div>
-      </div>
-    </PreGameLayout>
+      </main>
+    </div>
   );
 }
