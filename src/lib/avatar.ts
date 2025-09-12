@@ -1,239 +1,172 @@
-import { hexToRgb } from './color';
+/* =========================================================
+   FILE: src/lib/avatar.ts  (compose head-only avatar)
+   - expects transparent PNG layers in /avatars
+   - supports team-tinted headbands/beanies/durags (mask PNGs)
+   ========================================================= */
+import {loadImage} from './image';
+import {makeRng} from './prng';
+import {darken, pickContrast} from './color';
 
-export interface AvatarParts {
-  tone: string;
-  expr: string;
-  eyes: {
-    shape: string;
-    color: string;
-  };
-  brows: string;
-  mouth: string;
-  beard?: string;
-  hair: string;
-  accessory?: string;
+export type TeamColors = { primaryColor: string; secondaryColor?: string; };
+export type AvatarParts = {
+  tone: string;                   // e.g. "f2", "f3"
+  eyes: { shape: string; color: string; };
+  brows: string;                   // e.g. "soft_arc"
+  mouth: string;                   // e.g. "neutral"
+  beard?: string;                  // e.g. "goatee_dark" or "none"
+  hair: string;                    // e.g. "taper_waves" or "bald"
+  accessory?: string;              // "headband_colorable_narrow" | ...
+  colors?: { accessory?: string }; // hex for tintable masks
+};
+
+const BASE = '/avatars';
+
+// map a part name to its PNG URL (adjust if your structure differs)
+export function partUrl(kind: string, name: string) {
+  if (!name || name === 'none') return '';
+  const folder = ({
+    tone:'base', eyes:'eyes', brows:'brows', mouth:'mouth',
+    beard:'beards', hair:'hair', accessory:'accessories', masks:'masks'
+  } as any)[kind] || kind;
+  return `${BASE}/${folder}/${name}.png`;
 }
 
-interface AvatarManifest {
-  skinTones: [string, string][];
-  eyes: {
-    shapes: string[];
-    colors: string[];
-  };
-  brows: string[];
-  mouths: string[];
-  hair: string[];
-  beard: string[];
-  accessories: string[];
-}
-
-let manifest: AvatarManifest | null = null;
-const imageCache = new Map<string, HTMLImageElement>();
-
-// Mulberry32 seedable PRNG
-function mulberry32(seed: number) {
-  return function() {
-    let t = seed += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-}
-
-export async function loadAvatarAssets(): Promise<void> {
-  if (manifest) return;
-  
-  try {
-    const response = await fetch('/avatars/manifest.json');
-    manifest = await response.json();
-  } catch (error) {
-    console.error('Failed to load avatar manifest:', error);
-    throw error;
-  }
-}
-
-async function loadImage(url: string): Promise<HTMLImageElement> {
-  if (imageCache.has(url)) {
-    return imageCache.get(url)!;
-  }
-  
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      imageCache.set(url, img);
-      resolve(img);
-    };
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
-  });
-}
-
-export async function tintMask(maskUrl: string, hex: string, size = 512): Promise<HTMLCanvasElement> {
+// Tint a white mask with a hex color and return an offscreen canvas
+export async function tintMask(maskUrl: string, hex: string, size=512) {
   const img = await loadImage(maskUrl);
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  
-  // Draw the solid color
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d')!;
   ctx.fillStyle = hex;
-  ctx.fillRect(0, 0, size, size);
-  
-  // Keep only where mask is opaque
+  ctx.fillRect(0,0,size,size);
   ctx.globalCompositeOperation = 'destination-in';
   ctx.drawImage(img, 0, 0, size, size);
   ctx.globalCompositeOperation = 'source-over';
-  
-  return canvas;
+  return c;
 }
 
-export async function composeAvatar(parts: AvatarParts, teamColor?: string, size = 512): Promise<string> {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  
-  // Layer order: base → eyes → brows → mouth → beard → hair → accessory
-  const layers: Array<{ url: string; tint?: string }> = [];
-  
-  // Base head
-  layers.push({ url: `/avatars/base/head_base_${parts.tone}_${parts.expr}.svg` });
-  
-  // Eyes
-  layers.push({ url: `/avatars/eyes/eyes_${parts.eyes.shape}_${parts.eyes.color}.svg` });
-  
-  // Brows
-  layers.push({ url: `/avatars/brows/brows_${parts.brows}.svg` });
-  
-  // Mouth
-  layers.push({ url: `/avatars/mouth/mouth_${parts.mouth}.svg` });
-  
-  // Beard
-  if (parts.beard && parts.beard !== 'none') {
-    layers.push({ url: `/avatars/beard/beard_${parts.beard}.svg` });
-  }
-  
-  // Hair
-  if (parts.hair !== 'bald') {
-    layers.push({ url: `/avatars/hair/hair_${parts.hair}.svg` });
-  }
-  
-  // Accessories
-  if (parts.accessory && parts.accessory !== 'none') {
-    if (parts.accessory.includes('colorable')) {
-      // Handle team-color tinting
-      const tintColor = teamColor || '#7A5BFF'; // Use passed teamColor or default
-      layers.push({ url: `/avatars/masks/${parts.accessory.replace('_colorable', '_mask')}.svg`, tint: tintColor });
-    } else {
-      layers.push({ url: `/avatars/accessory/accessory_${parts.accessory}.svg` });
-    }
-  }
-  
-  // Draw all layers
-  for (const layer of layers) {
-    try {
-      if (layer.tint) {
-        // Tint the mask
-        const tintedCanvas = await tintMask(layer.url, layer.tint, size);
-        ctx.drawImage(tintedCanvas, 0, 0, size, size);
-      } else {
-        // Regular image
-        const img = await loadImage(layer.url);
-        ctx.drawImage(img, 0, 0, size, size);
-      }
-    } catch (error) {
-      console.warn(`Failed to load layer: ${layer.url}`, error);
-      // Continue with other layers
-    }
-  }
-  
-  return canvas.toDataURL('image/png');
+function isTintableAccessory(a?: string) {
+  return !!a && (a.startsWith('headband_colorable') || a.startsWith('beanie_colorable') || a.startsWith('durag_colorable'));
 }
 
-export async function randomAvatar(seed?: string, teamColor?: string): Promise<{ parts: AvatarParts; dataUrl: string }> {
-  await loadAvatarAssets();
-  if (!manifest) throw new Error('Manifest not loaded');
-  
-  const seedNum = seed ? hashString(seed) : Math.floor(Math.random() * 1000000);
-  const rng = mulberry32(seedNum);
-  
-  // Pick skin tone with even weights
-  const toneIndex = Math.floor(rng() * manifest.skinTones.length);
-  const tone = manifest.skinTones[toneIndex][0];
-  
-  // Expression (mostly neutral)
-  const expr = rng() < 0.8 ? 'neutral' : 'soft_smile';
-  
-  // Eyes
-  const eyeShape = manifest.eyes.shapes[Math.floor(rng() * manifest.eyes.shapes.length)];
-  const eyeColor = manifest.eyes.colors[Math.floor(rng() * manifest.eyes.colors.length)];
-  
-  // Other features
-  const brows = manifest.brows[Math.floor(rng() * manifest.brows.length)];
-  const mouth = manifest.mouths[Math.floor(rng() * manifest.mouths.length)];
-  
-  // Hair (bald is rare - 5%)
-  let hair: string;
-  if (rng() < 0.05) {
-    hair = 'bald';
-  } else {
-    const nonBaldHair = manifest.hair.filter(h => h !== 'bald');
-    hair = nonBaldHair[Math.floor(rng() * nonBaldHair.length)];
+// Compose layers into a <canvas> and return it
+export async function composeAvatar(parts: AvatarParts, teamColor?: string, size=192) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d')!;
+  const draw = async (url: string) => { if (!url) return; const img = await loadImage(url); ctx.drawImage(img, 0, 0, size, size); };
+
+  // 1) base head (by tone)
+  await draw(partUrl('tone', `head_base_${parts.tone}_neutral`));
+
+  // 2) features
+  await draw(partUrl('eyes', `eyes_${parts.eyes.shape}_${parts.eyes.color}`));
+  await draw(partUrl('brows', `brows_${parts.brows}`));
+  await draw(partUrl('mouth', `mouth_${parts.mouth}`));
+  if (parts.beard && parts.beard !== 'none') await draw(partUrl('beard', `beard_${parts.beard}`));
+
+  // 3) hair (skip if covered by colorable beanie/durag)
+  const accessoryCoversHair = !!parts.accessory && (parts.accessory.includes('beanie_colorable') || parts.accessory.includes('durag_colorable'));
+  if (!accessoryCoversHair && parts.hair && parts.hair !== 'bald') {
+    await draw(partUrl('hair', `hair_${parts.hair}`));
   }
-  
-  // Beard (30% chance)
-  const beard = rng() < 0.3 ? 
-    manifest.beard[Math.floor(rng() * manifest.beard.length)] : 'none';
-  
-  // Accessories with rules
-  let accessory = 'none';
-  if (rng() < 0.2) { // 20% chance of accessory
-    const availableAccessories = manifest.accessories.filter(acc => {
-      if (acc === 'none') return false;
-      
-      // If hair is headgear, no additional accessories
-      if (['beanie_black', 'durag_black'].includes(hair)) return false;
-      
-      // Headband accessories work with certain hairstyles
-      if (acc.includes('headband') || acc.includes('colorable')) {
-        const compatibleHair = ['box_braids', 'cornrows_back', 'cornrows_straight', 
-                               'long_locs', 'curls_tight', 'curls_loose', 'waves', 'low_cut'];
-        return compatibleHair.includes(hair);
-      }
-      
-      return true;
-    });
-    
-    if (availableAccessories.length > 0) {
-      accessory = availableAccessories[Math.floor(rng() * availableAccessories.length)];
+
+  // 4) accessory
+  if (isTintableAccessory(parts.accessory)) {
+    // default color from team if not supplied
+    const want = parts.colors?.accessory
+      || teamColor
+      || '#ED6A22';
+    const maskName =
+      parts.accessory!.includes('durag') ? 'durag_mask' :
+      parts.accessory!.includes('beanie') ? 'beanie_mask' :
+      parts.accessory!.includes('wide') ? 'headband_wide_mask' : 'headband_mask';
+
+    // special shading for beanie/durag
+    const tint = parts.accessory!.includes('beanie') || parts.accessory!.includes('durag')
+      ? darken(want, 18)
+      : want;
+
+    const maskCanvas = await tintMask(partUrl('masks', maskName), tint, size);
+    ctx.drawImage(maskCanvas, 0, 0);
+
+    // optional thin contrast line for headbands
+    if (parts.accessory!.includes('headband')) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = pickContrast(tint);
+      ctx.lineWidth = Math.max(1, Math.round(size/192)); // scale
+      // simple line hint (center band)
+      ctx.beginPath();
+      ctx.moveTo(size*0.18, size*0.29);
+      ctx.lineTo(size*0.82, size*0.29);
+      ctx.stroke();
     }
+  } else if (parts.accessory && parts.accessory !== 'none') {
+    await draw(partUrl('accessory', parts.accessory));
   }
-  
-  const parts: AvatarParts = {
-    tone,
-    expr,
-    eyes: { shape: eyeShape, color: eyeColor },
-    brows,
-    mouth,
-    beard,
-    hair,
-    accessory
+
+  return c.toDataURL('image/png');
+}
+
+// Convenience: returns an <img> element you can drop into UI
+export async function renderAvatar(parts: AvatarParts, px=64, teamColor?: string) {
+  const dataUrl = await composeAvatar(parts, teamColor, px);
+  const img = new Image();
+  img.width = px; img.height = px;
+  img.decoding = 'async';
+  img.src = dataUrl;
+  img.alt = 'avatar';
+  img.style.display = 'block';
+  return img;
+}
+
+// Randomizer with stable seed + team-color accessories
+export function randomAvatar(seed='npc-1', teamColor?: string): Promise<{ parts: AvatarParts; dataUrl: string }> {
+  const rnd = makeRng(seed);
+  const pick = <T>(arr:T[], w?:number[])=>{
+    if (!w) return arr[Math.floor(rnd()*arr.length)];
+    const sum = w.reduce((a,b)=>a+b,0);
+    let t=rnd()*sum;
+    for (let i=0;i<arr.length;i++){ t-=w[i]; if (t<=0) return arr[i]; }
+    return arr[arr.length-1];
   };
-  
-  const dataUrl = await composeAvatar(parts, teamColor);
-  
-  return { parts, dataUrl };
+
+  const tones = ['f1','f2','f3','f4','f5'];
+  const eyes  = ['almond','round','wide'];
+  const brows = ['soft_arc','straight','thick'];
+  const mouths= ['neutral','soft_smile','smirk'];
+  const beards= ['none','stubble','goatee_dark','full_beard_short'];
+  const hairs  = [
+    'bald','low_cut','caesar','taper_waves','short_waves_deep','taper_curl',
+    'twists_medium','twists_long','locs_high_bun','locs_taper','afro_medium_round','afro_high_round',
+    'cornrows_straight','cornrows_curve','fade_low','fade_mid','fade_high','drop_fade','burst_fade'
+  ];
+  const accessories = ['none','headband_colorable_narrow','headband_colorable_wide','beanie_colorable','durag_colorable'];
+
+  let accessory = pick(accessories, [65,15,10,5,5]);
+  let hair = pick(hairs);
+  if (accessory.includes('beanie') || accessory.includes('durag')) hair = 'bald';
+  if (accessory.includes('headband') && ['locs_high_bun','top_knot'].includes(hair)) {
+    hair = 'low_cut';
+  }
+
+  const accessorHex = teamColor;
+
+  const parts: AvatarParts = {
+    tone: pick(tones),
+    eyes: { shape: pick(eyes), color: 'dark_brown' },
+    brows: pick(brows),
+    mouth: pick(mouths),
+    beard: pick(beards, [60,15,15,10]),
+    hair,
+    accessory,
+    colors: accessorHex ? { accessory: accessorHex } : {}
+  };
+
+  return composeAvatar(parts, teamColor).then(dataUrl => ({ parts, dataUrl }));
 }
 
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash);
+// Legacy support - load assets function (no-op since we don't pre-load)
+export async function loadAvatarAssets() {
+  return Promise.resolve();
 }

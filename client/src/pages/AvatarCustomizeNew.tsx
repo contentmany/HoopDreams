@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Shuffle, RotateCcw } from 'lucide-react';
 import { useLocation } from 'wouter';
 import AssetAvatar from '@/components/AssetAvatar';
-import { loadAvatarAssets, randomAvatar, getManifest, AvatarParts } from '@/lib/avatar';
+import { loadAvatarAssets, randomAvatar, AvatarParts } from '@/lib/avatar';
 
 interface AvatarCustomizeNewProps {
   onNavigate?: (path: string) => void;
@@ -18,23 +18,29 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
   
   const [avatarParts, setAvatarParts] = useState<AvatarParts>({
     tone: 'f2',
-    expr: 'neutral', 
-    eyes: { shape: 'round', color: 'brown' },
+    eyes: { shape: 'round', color: 'dark_brown' },
     brows: 'straight',
     mouth: 'neutral',
     beard: 'none',
-    hair: 'short',
+    hair: 'low_cut',
     accessory: 'none'
   });
   
-  const [manifest, setManifest] = useState<any>(null);
+  // Avatar options from improved system
+  const manifest = {
+    skinTones: [['f1', '#F4C29A'], ['f2', '#E1A06E'], ['f3', '#C77D4C'], ['f4', '#A45B36'], ['f5', '#7A422A']],
+    eyes: {
+      shapes: ['almond', 'round', 'wide'],
+      colors: ['dark_brown']
+    },
+    hair: ['bald', 'low_cut', 'caesar', 'taper_waves', 'short_waves_deep', 'taper_curl', 'twists_medium', 'twists_long', 'locs_high_bun', 'locs_taper', 'afro_medium_round', 'afro_high_round', 'cornrows_straight', 'cornrows_curve', 'fade_low', 'fade_mid', 'fade_high', 'drop_fade', 'burst_fade']
+  };
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function initializeCustomizer() {
       try {
-        const manifestData = await getManifest();
-        setManifest(manifestData);
+        await loadAvatarAssets();
         
         // Try to load saved appearance
         try {
@@ -106,7 +112,7 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
     setLocation('/builder');
   };
 
-  if (loading || !manifest) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background p-4 pb-20">
         <div className="max-w-4xl mx-auto space-y-6">

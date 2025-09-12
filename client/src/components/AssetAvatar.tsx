@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { composeAvatar, randomAvatar, loadAvatarAssets, AvatarParts } from '@/lib/avatar';
+import { useState, useEffect, useMemo } from 'react';
+import { composeAvatar, randomAvatar, AvatarParts, TeamColors } from '@/lib/avatar';
 
 interface AssetAvatarProps {
   parts?: AvatarParts;
@@ -22,21 +22,25 @@ export default function AssetAvatar({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoize parts generation to prevent unnecessary re-renders
+  const memoizedParts = useMemo(() => {
+    if (parts) return parts;
+    return null; // Will be generated in effect
+  }, [parts]);
+
   useEffect(() => {
     async function generateAvatar() {
       try {
         setLoading(true);
         setError(null);
         
-        await loadAvatarAssets();
-        
         let avatarParts: AvatarParts;
         let composedUrl: string;
         
-        if (parts) {
+        if (memoizedParts) {
           // Use provided parts
-          avatarParts = parts;
-          composedUrl = await composeAvatar(avatarParts, teamColor);
+          avatarParts = memoizedParts;
+          composedUrl = await composeAvatar(avatarParts, teamColor, getSizePixels(size));
         } else if (seed) {
           // Generate from seed
           const generated = await randomAvatar(seed, teamColor);
@@ -59,13 +63,16 @@ export default function AssetAvatar({
     }
     
     generateAvatar();
-  }, [parts, seed, teamColor]);
+  }, [memoizedParts, seed, teamColor, size]);
 
-  const sizeMap = {
-    's192': 192,
-    's64': 64, 
-    's40': 40,
-    's24': 24
+  const getSizePixels = (sizeClass: string): number => {
+    const sizeMap = {
+      's192': 192,
+      's64': 64, 
+      's40': 40,
+      's24': 24
+    };
+    return sizeMap[sizeClass as keyof typeof sizeMap] || 64;
   };
 
   if (loading) {
@@ -79,7 +86,7 @@ export default function AssetAvatar({
   if (error || !dataUrl) {
     return (
       <div className={`avatar ${size} ${className}`} data-testid={testId}>
-        <div className="w-full h-full bg-muted/20 flex items-center justify-center text-xs text-muted-foreground">
+        <div className="w-full h-full bg-muted/20 flex items-center justify-center text-muted-foreground text-xs">
           ?
         </div>
       </div>
@@ -90,9 +97,9 @@ export default function AssetAvatar({
     <div className={`avatar ${size} ${className}`} data-testid={testId}>
       <img 
         src={dataUrl} 
-        alt="Avatar" 
-        width={sizeMap[size]}
-        height={sizeMap[size]}
+        alt="avatar" 
+        className="w-full h-full object-contain"
+        loading="lazy"
       />
     </div>
   );
