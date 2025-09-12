@@ -1,0 +1,60 @@
+TASK: AVATAR OVERHAUL — SMALL FULL-BODY 2D PIXEL CHARACTER (NO OTHER FEATURES)
+
+Goal
+- Replace current oversized/cropped avatar with a compact, full-body 2D pixel character that shows consistently on /new, /customize, /builder, /home.
+- Style = pixel art but with CLEAR facial features (eyes, brows, nose, mouth). Crisp, readable, not blurry.
+
+Art & Rendering
+- Base sprite canvas: 64×96 px (full body, transparent PNG).
+- Parts folder: /public/assets/sprites/{body,head,hair,facial_hair,eyes,brows,nose,mouth,headband,jersey,shorts,socks,shoes,accessories}/
+- Layer order: body → head → hair → facial_hair → eyes → brows → nose → mouth → headband → jersey → shorts → socks → shoes → accessories.
+- Rendering: image-rendering: pixelated (nearest-neighbor). Never stretch; always object-fit: contain.
+
+Avatar Component
+- Create <Avatar stageSize="xs|sm|md|lg" /> that composes the layers and centers them in a fixed “stage” box with 1px border + subtle shadow. No overflow.
+- Stage sizes (must be exact, width×height, px):
+  - xs = 72×96 (lists/slots)
+  - sm = 96×128 (Create Player /new)
+  - md = 112×148 (Character Creator /customize and Player Builder /builder)
+  - lg = 128×168 (Home hero /home)
+- Team color: jersey/shorts default to player team primary; ensure text/outline auto-contrast.
+
+Where to show it
+1) /new (Create Player)
+   - In “Appearance”, show <Avatar stageSize="sm" /> and a “Customize” button → navigates to /customize.
+   - Remove any large illustration; keep this compact avatar only.
+
+2) /customize (Character Creator)
+   - Top “Preview” uses <Avatar stageSize="md" />.
+   - Controls (live-update): skinTone, hairStyle, hairColor, eyes, brows, nose, mouth, facialHair, headband.on + headband.color, jerseyColor, shortsColor, shoesColor.
+   - “Save” persists and returns to /new.
+
+3) /builder (Player Builder)
+   - Card header “Character Preview” shows <Avatar stageSize="md" /> (read-only mirror of saved avatar).
+
+4) /home (Dashboard)
+   - “Next Game” hero shows <Avatar stageSize="lg" /> on the left of the card. Must not push content off or crop; respect safe-area.
+
+Data & Persistence (localStorage)
+- Keep hd:avatar for the editor; when starting a career, copy it into hd:player.avatar snapshot.
+- hd:avatar shape:
+  { skinTone, hairStyle, hairColor, eyes, brows, nose, mouth, facialHair,
+    headband: { on, color }, jerseyColor, shortsColor, shoesColor }
+- If no customization done, RANDOMIZE a valid avatar at /new when starting (diverse skin/hair; 10% headband using team primary).
+
+Randomization Rules
+- Skin tones: ≥6 options. Hair styles: Short, Fade, Afro, Braids, Buzz, Curly, Bald.
+- Avoid unreadable combos (keep facial features visible vs skin/hair colors).
+
+CSS Requirements
+- .avatarStage: fixed width/height (per size above), object-fit: contain, border: 1px solid rgba(255,255,255,0.06), border-radius: 12px, box-shadow: 0 4px 12px rgba(0,0,0,.25).
+- img layers: position: absolute; image-rendering: pixelated; width/height: auto; max-width/height: 100%.
+
+Acceptance Checklist (must pass)
+- Avatar is always full-body, centered, never cropped/blurry, and matches sizes: xs 72×96, sm 96×128, md 112×148, lg 128×168.
+- Face is clearly readable (eyes/brows/nose/mouth visible) at all sizes.
+- Same look across /new, /customize, /builder, /home; saving updates all previews immediately.
+- Jersey/shorts reflect team color with proper text/outline contrast.
+- No duplicate headers added; no UI shifts; no console errors.
+
+LIMIT SCOPE: Change avatar system only. Do not alter gameplay, badges, tabs, or other pages beyond the placements above.
