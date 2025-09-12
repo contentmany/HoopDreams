@@ -1,0 +1,40 @@
+{
+  "skinTones": [
+    ["f1", "#F4C29A"],
+    ["f2", "#E1A06E"], 
+    ["f3", "#C77D4C"],
+    ["f4", "#A45B36"],
+    ["f5", "#7A422A"],
+    ["f6", "#4F2E22"]
+  ],
+  "eyes": {
+    "shapes": ["round", "oval", "almond", "wide", "downturned", "upturned", "mono", "heavy"],
+    "colors": ["brown", "dark_brown", "hazel", "green", "gray", "amber"]
+  },
+  "brows": ["straight", "soft_arc", "hard_arc", "thick", "thin", "angled"],
+  "mouths": ["neutral", "smile_soft", "smile_wide", "serious", "open_small", "smirk"],
+  "hair": [
+    "bald", "low_cut", "caesar", "taper_fade", "hi_top", "curls_tight", "curls_loose", "waves",
+    "mini_twists", "box_braids", "cornrows_back", "cornrows_straight", "short_locs",
+    "medium_locs", "long_locs", "bun", "beanie_black", "durag_black",
+    "headband_plain_white", "headband_wide_white",
+    "fade_low", "fade_mid", "fade_high", "drop_fade", "burst_fade",
+    "fauxhawk", "frohawk", "mohawk_soft", "shag_short",
+    "undercut_curly_top", "taper_curl", "taper_waves",
+    "short_waves_deep", "twists_medium", "twists_long",
+    "locs_high_bun", "locs_taper", "afro_medium_round",
+    "afro_high_round", "top_knot"
+  ],
+  "beard": [
+    "none", "goatee_dark", "goatee_med", "goatee_light",
+    "anchor_dark", "anchor_med", "anchor_light",
+    "boxed_beard_dark", "boxed_beard_med", "boxed_beard_light",
+    "chin_strip_dark", "chin_strip_med", "chin_strip_light",
+    "stubble_dark", "stubble_med", "stubble_light"
+  ],
+  "accessories": [
+    "none", "headband_white", "headband_red", "ear_bandage_left", "nose_strip",
+    "headband_colorable_narrow", "headband_colorable_wide", 
+    "beanie_colorable", "durag_colorable"
+  ]
+}

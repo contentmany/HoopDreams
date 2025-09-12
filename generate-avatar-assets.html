@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avatar Asset Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        canvas { border: 1px solid #ccc; margin: 5px; }
+        .asset-group { margin: 20px 0; }
+        .asset-preview { display: flex; flex-wrap: wrap; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .progress { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Avatar Asset Generator for Hoop Dreams</h1>
+    <p>This tool generates basic placeholder PNG assets for the avatar system.</p>
+    
+    <div class="progress" id="progress">Ready to generate assets...</div>
+    
+    <button onclick="generateAllAssets()">Generate All Assets</button>
+    <button onclick="downloadAll()">Download All Assets</button>
+    
+    <div class="asset-group">
+        <h3>Base Heads</h3>
+        <div class="asset-preview" id="base-heads"></div>
+    </div>
+    
+    <div class="asset-group">
+        <h3>Hair</h3>
+        <div class="asset-preview" id="hair"></div>
+    </div>
+    
+    <div class="asset-group">
+        <h3>Eyes</h3>
+        <div class="asset-preview" id="eyes"></div>
+    </div>
+    
+    <div class="asset-group">
+        <h3>Brows</h3>
+        <div class="asset-preview" id="brows"></div>
+    </div>
+    
+    <div class="asset-group">
+        <h3>Mouth</h3>
+        <div class="asset-preview" id="mouth"></div>
+    </div>
+    
+    <div class="asset-group">
+        <h3>Masks</h3>
+        <div class="asset-preview" id="masks"></div>
+    </div>
+
+    <script>
+        const CANVAS_SIZE = 512;
+        const PADDING = 32;
+        const generatedAssets = new Map();
+        
+        // Skin tone colors from manifest
+        const skinTones = {
+            'f1': '#F4C29A',
+            'f2': '#E1A06E',
+            'f3': '#C77D4C',
+            'f4': '#A45B36',
+            'f5': '#7A422A',
+            'f6': '#4F2E22'
+        };
+        
+        const eyeColors = {
+            'brown': '#8B4513',
+            'dark_brown': '#654321',
+            'hazel': '#8E7618',
+            'green': '#228B22',
+            'gray': '#808080',
+            'amber': '#FFBF00'
+        };
+        
+        function createCanvas() {
+            const canvas = document.createElement('canvas');
+            canvas.width = CANVAS_SIZE;
+            canvas.height = CANVAS_SIZE;
+            return canvas;
+        }
+        
+        function updateProgress(message) {
+            document.getElementById('progress').textContent = message;
+        }
+        
+        // Generate base heads
+        function generateBaseHeads() {
+            const container = document.getElementById('base-heads');
+            
+            Object.entries(skinTones).forEach(([tone, color]) => {
+                const canvas = createCanvas();
+                const ctx = canvas.getContext('2d');
+                
+                // Draw oval head shape
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(CANVAS_SIZE/2, CANVAS_SIZE/2, 
+                           (CANVAS_SIZE-PADDING*2)/2.5, 
+                           (CANVAS_SIZE-PADDING*2)/2.2, 
+                           0, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Add subtle shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.beginPath();
+                ctx.ellipse(CANVAS_SIZE/2+5, CANVAS_SIZE/2+5, 
+                           (CANVAS_SIZE-PADDING*2)/2.5, 
+                           (CANVAS_SIZE-PADDING*2)/2.2, 
+                           0, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                canvas.title = `head_base_${tone}_neutral.png`;
+                container.appendChild(canvas);
+                generatedAssets.set(`base/head_base_${tone}_neutral.png`, canvas.toDataURL());
+            });
+        }
+        
+        // Generate hair styles
+        function generateHair() {
+            const container = document.getElementById('hair');
+            
+            const hairStyles = [
+                {
+                    name: 'bald',
+                    draw: (ctx) => {
+                        // Empty - just transparent
+                    }
+                },
+                {
+                    name: 'short',
+                    draw: (ctx) => {
+                        ctx.fillStyle = '#2B1B17';
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2, CANVAS_SIZE/2-80, 120, 0.2 * Math.PI, 0.8 * Math.PI);
+                        ctx.lineTo(CANVAS_SIZE/2-80, CANVAS_SIZE/2-20);
+                        ctx.lineTo(CANVAS_SIZE/2+80, CANVAS_SIZE/2-20);
+                        ctx.fill();
+                    }
+                },
+                {
+                    name: 'fade',
+                    draw: (ctx) => {
+                        ctx.fillStyle = '#2B1B17';
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2, CANVAS_SIZE/2-85, 100, 0.3 * Math.PI, 0.7 * Math.PI);
+                        ctx.lineTo(CANVAS_SIZE/2-70, CANVAS_SIZE/2-30);
+                        ctx.lineTo(CANVAS_SIZE/2+70, CANVAS_SIZE/2-30);
+                        ctx.fill();
+                    }
+                },
+                {
+                    name: 'waves',
+                    draw: (ctx) => {
+                        ctx.fillStyle = '#2B1B17';
+                        ctx.beginPath();
+                        // Wavy top
+                        ctx.moveTo(CANVAS_SIZE/2-100, CANVAS_SIZE/2-40);
+                        ctx.quadraticCurveTo(CANVAS_SIZE/2-50, CANVAS_SIZE/2-90, CANVAS_SIZE/2, CANVAS_SIZE/2-80);
+                        ctx.quadraticCurveTo(CANVAS_SIZE/2+50, CANVAS_SIZE/2-70, CANVAS_SIZE/2+100, CANVAS_SIZE/2-40);
+                        ctx.lineTo(CANVAS_SIZE/2+80, CANVAS_SIZE/2-20);
+                        ctx.lineTo(CANVAS_SIZE/2-80, CANVAS_SIZE/2-20);
+                        ctx.fill();
+                    }
+                },
+                {
+                    name: 'low_cut',
+                    draw: (ctx) => {
+                        ctx.fillStyle = '#2B1B17';
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2, CANVAS_SIZE/2-90, 90, 0.4 * Math.PI, 0.6 * Math.PI);
+                        ctx.lineTo(CANVAS_SIZE/2-60, CANVAS_SIZE/2-35);
+                        ctx.lineTo(CANVAS_SIZE/2+60, CANVAS_SIZE/2-35);
+                        ctx.fill();
+                    }
+                }
+            ];
+            
+            hairStyles.forEach(style => {
+                const canvas = createCanvas();
+                const ctx = canvas.getContext('2d');
+                style.draw(ctx);
+                
+                canvas.title = `hair_${style.name}.png`;
+                container.appendChild(canvas);
+                generatedAssets.set(`hair/hair_${style.name}.png`, canvas.toDataURL());
+            });
+        }
+        
+        // Generate eyes
+        function generateEyes() {
+            const container = document.getElementById('eyes');
+            
+            const eyeStyles = [
+                {
+                    shape: 'round',
+                    color: 'brown',
+                    draw: (ctx, color) => {
+                        // White of eyes
+                        ctx.fillStyle = 'white';
+                        ctx.beginPath();
+                        ctx.ellipse(CANVAS_SIZE/2-40, CANVAS_SIZE/2, 25, 20, 0, 0, 2 * Math.PI);
+                        ctx.ellipse(CANVAS_SIZE/2+40, CANVAS_SIZE/2, 25, 20, 0, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        // Iris
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2-40, CANVAS_SIZE/2, 15, 0, 2 * Math.PI);
+                        ctx.arc(CANVAS_SIZE/2+40, CANVAS_SIZE/2, 15, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        // Pupils
+                        ctx.fillStyle = 'black';
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2-40, CANVAS_SIZE/2, 8, 0, 2 * Math.PI);
+                        ctx.arc(CANVAS_SIZE/2+40, CANVAS_SIZE/2, 8, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                },
+                {
+                    shape: 'almond',
+                    color: 'green',
+                    draw: (ctx, color) => {
+                        // Almond shaped eyes
+                        ctx.fillStyle = 'white';
+                        ctx.beginPath();
+                        ctx.ellipse(CANVAS_SIZE/2-40, CANVAS_SIZE/2, 30, 15, 0, 0, 2 * Math.PI);
+                        ctx.ellipse(CANVAS_SIZE/2+40, CANVAS_SIZE/2, 30, 15, 0, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2-40, CANVAS_SIZE/2, 12, 0, 2 * Math.PI);
+                        ctx.arc(CANVAS_SIZE/2+40, CANVAS_SIZE/2, 12, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = 'black';
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2-40, CANVAS_SIZE/2, 6, 0, 2 * Math.PI);
+                        ctx.arc(CANVAS_SIZE/2+40, CANVAS_SIZE/2, 6, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            ];
+            
+            eyeStyles.forEach(style => {
+                const canvas = createCanvas();
+                const ctx = canvas.getContext('2d');
+                style.draw(ctx, eyeColors[style.color]);
+                
+                canvas.title = `eyes_${style.shape}_${style.color}.png`;
+                container.appendChild(canvas);
+                generatedAssets.set(`eyes/eyes_${style.shape}_${style.color}.png`, canvas.toDataURL());
+            });
+        }
+        
+        // Generate brows
+        function generateBrows() {
+            const container = document.getElementById('brows');
+            
+            const browStyles = [
+                {
+                    name: 'straight',
+                    draw: (ctx) => {
+                        ctx.strokeStyle = '#2B1B17';
+                        ctx.lineWidth = 8;
+                        ctx.beginPath();
+                        ctx.moveTo(CANVAS_SIZE/2-70, CANVAS_SIZE/2-40);
+                        ctx.lineTo(CANVAS_SIZE/2-20, CANVAS_SIZE/2-45);
+                        ctx.moveTo(CANVAS_SIZE/2+20, CANVAS_SIZE/2-45);
+                        ctx.lineTo(CANVAS_SIZE/2+70, CANVAS_SIZE/2-40);
+                        ctx.stroke();
+                    }
+                },
+                {
+                    name: 'soft_arc',
+                    draw: (ctx) => {
+                        ctx.strokeStyle = '#2B1B17';
+                        ctx.lineWidth = 8;
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2-45, CANVAS_SIZE/2-30, 30, 1.2 * Math.PI, 1.8 * Math.PI);
+                        ctx.arc(CANVAS_SIZE/2+45, CANVAS_SIZE/2-30, 30, 1.2 * Math.PI, 1.8 * Math.PI);
+                        ctx.stroke();
+                    }
+                }
+            ];
+            
+            browStyles.forEach(style => {
+                const canvas = createCanvas();
+                const ctx = canvas.getContext('2d');
+                style.draw(ctx);
+                
+                canvas.title = `brows_${style.name}.png`;
+                container.appendChild(canvas);
+                generatedAssets.set(`brows/brows_${style.name}.png`, canvas.toDataURL());
+            });
+        }
+        
+        // Generate mouths
+        function generateMouths() {
+            const container = document.getElementById('mouth');
+            
+            const mouthStyles = [
+                {
+                    name: 'neutral',
+                    draw: (ctx) => {
+                        ctx.strokeStyle = '#8B4513';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(CANVAS_SIZE/2-25, CANVAS_SIZE/2+50);
+                        ctx.lineTo(CANVAS_SIZE/2+25, CANVAS_SIZE/2+50);
+                        ctx.stroke();
+                    }
+                },
+                {
+                    name: 'smile_soft',
+                    draw: (ctx) => {
+                        ctx.strokeStyle = '#8B4513';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2, CANVAS_SIZE/2+30, 30, 0.2 * Math.PI, 0.8 * Math.PI);
+                        ctx.stroke();
+                    }
+                }
+            ];
+            
+            mouthStyles.forEach(style => {
+                const canvas = createCanvas();
+                const ctx = canvas.getContext('2d');
+                style.draw(ctx);
+                
+                canvas.title = `mouth_${style.name}.png`;
+                container.appendChild(canvas);
+                generatedAssets.set(`mouth/mouth_${style.name}.png`, canvas.toDataURL());
+            });
+        }
+        
+        // Generate mask files (white shapes for tinting)
+        function generateMasks() {
+            const container = document.getElementById('masks');
+            
+            const maskStyles = [
+                {
+                    name: 'headband_narrow_mask',
+                    draw: (ctx) => {
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(CANVAS_SIZE/2-120, CANVAS_SIZE/2-100, 240, 25);
+                        // Make it curve around the head
+                        ctx.beginPath();
+                        ctx.arc(CANVAS_SIZE/2, CANVAS_SIZE/2-100, 120, Math.PI, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                },
+                {
+                    name: 'beanie_mask',
+                    draw: (ctx) => {
+                        ctx.fillStyle = 'white';
+                        ctx.beginPath();
+                        // Beanie shape
+                        ctx.arc(CANVAS_SIZE/2, CANVAS_SIZE/2-60, 130, Math.PI, 2 * Math.PI);
+                        ctx.lineTo(CANVAS_SIZE/2-130, CANVAS_SIZE/2-30);
+                        ctx.lineTo(CANVAS_SIZE/2+130, CANVAS_SIZE/2-30);
+                        ctx.fill();
+                    }
+                }
+            ];
+            
+            maskStyles.forEach(style => {
+                const canvas = createCanvas();
+                const ctx = canvas.getContext('2d');
+                style.draw(ctx);
+                
+                canvas.title = `${style.name}.png`;
+                container.appendChild(canvas);
+                generatedAssets.set(`masks/${style.name}.png`, canvas.toDataURL());
+            });
+        }
+        
+        function generateAllAssets() {
+            updateProgress('Generating base heads...');
+            generateBaseHeads();
+            
+            updateProgress('Generating hair styles...');
+            generateHair();
+            
+            updateProgress('Generating eyes...');
+            generateEyes();
+            
+            updateProgress('Generating brows...');
+            generateBrows();
+            
+            updateProgress('Generating mouths...');
+            generateMouths();
+            
+            updateProgress('Generating masks...');
+            generateMasks();
+            
+            updateProgress(`Generated ${generatedAssets.size} assets! Click "Download All Assets" to save them.`);
+        }
+        
+        function downloadAll() {
+            if (generatedAssets.size === 0) {
+                alert('Please generate assets first!');
+                return;
+            }
+            
+            let downloadCount = 0;
+            const totalAssets = generatedAssets.size;
+            
+            generatedAssets.forEach((dataUrl, filename) => {
+                const link = document.createElement('a');
+                link.download = filename.replace('/', '_'); // Replace folder separator for filename
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                downloadCount++;
+                updateProgress(`Downloaded ${downloadCount}/${totalAssets} assets...`);
+            });
+            
+            updateProgress(`All ${totalAssets} assets downloaded! Please organize them into the correct folders in public/avatars/`);
+        }
+        
+        // Generate assets automatically on load
+        window.addEventListener('load', () => {
+            setTimeout(generateAllAssets, 1000);
+        });
+    </script>
+</body>
+</html>

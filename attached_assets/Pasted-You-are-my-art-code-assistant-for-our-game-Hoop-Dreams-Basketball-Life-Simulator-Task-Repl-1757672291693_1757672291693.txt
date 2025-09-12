@@ -1,0 +1,127 @@
+You are my art + code assistant for our game **Hoop Dreams – Basketball Life Simulator**.
+Task: Replace the current avatar system with **head-only** avatars (clean 2D, almost non-pixel). No full bodies. All assets must be **transparent PNGs** with **identical alignment** for layering.
+
+========================
+A) STYLE + ASSET PACK
+========================
+I will upload one reference head image from our style guide. Use image-to-image with:
+- strength/denoise: 0.25 (±0.05), CFG: 6, steps: 36, sampler: DPM++ 2M Karras (or closest)
+- canvas: **512×512 px**, transparent PNG, head fills ~80% height, centered, 24–32 px padding
+- Clean 2D look (smooth gradients, soft 1–2 px outline). Not pixelated, not 3D.
+
+Negative prompt: pixel noisy, gritty shading, heavy lines, body, text, watermark, misalignment.
+
+Create these folders and assets:
+
+/public/avatars/base           (base heads)
+/public/avatars/hair           (hair overlays ONLY)
+/public/avatars/eyes           (eyes by shape+color)
+/public/avatars/brows
+/public/avatars/mouth
+/public/avatars/beard
+/public/avatars/accessory
+/public/avatars/thumbs         (128×128 thumbs)
+/public/avatars/manifest.json  (catalog)
+
+1) BASE HEADS (transparent PNGs):
+- 6 skin tones (palette):
+  f1:#F4C29A f2:#E1A06E f3:#C77D4C f4:#A45B36 f5:#7A422A f6:#4F2E22
+- For each tone, 2 expressions: neutral, soft_smile
+- Filenames: head_base_<tone>_<expr>.png  e.g., head_base_f3_neutral.png
+
+2) HAIR PACK (20 overlays, **no face**):
+bald, low_cut, caesar, taper_fade, hi_top, curls_tight, curls_loose, waves,
+mini_twists, box_braids, cornrows_back, cornrows_straight, short_locs,
+medium_locs, long_locs, bun, beanie_black, durag_black,
+headband_plain_white, headband_wide_white
+- Filenames: hair_<name>.png (hair_bald.png is an empty overlay but still export)
+
+3) FEATURES (transparent overlays):
+EYES — shapes:[round, oval, almond, wide, downturned, upturned, mono, heavy]
+       colors:[brown, dark_brown, hazel, green, gray, amber]
+       → eyes_<shape>_<color>.png
+BROWS — [straight, soft_arc, hard_arc, thick, thin, angled]
+       → brows_<shape>.png
+MOUTHS — [neutral, smile_soft, smile_wide, serious, open_small, smirk]
+       → mouth_<shape>.png
+FACIAL HAIR — [goatee, anchor, boxed_beard, chin_strip, stubble] × shades:[dark, med, light]
+       → beard_<style>_<shade>.png
+ACCESSORIES — headband_white, headband_red, ear_bandage_left, nose_strip
+       → accessory_<name>.png
+
+Layer order (back→front): BASE → eyes → brows → mouth → beard → hair → accessory
+
+Create /public/avatars/manifest.json exactly like:
+{
+  "skinTones":[["f1","#F4C29A"],["f2","#E1A06E"],["f3","#C77D4C"],["f4","#A45B36"],["f5","#7A422A"],["f6","#4F2E22"]],
+  "eyes":{"shapes":["round","oval","almond","wide","downturned","upturned","mono","heavy"],"colors":["brown","dark_brown","hazel","green","gray","amber"]},
+  "brows":["straight","soft_arc","hard_arc","thick","thin","angled"],
+  "mouths":["neutral","smile_soft","smile_wide","serious","open_small","smirk"],
+  "hair":["bald","low_cut","caesar","taper_fade","hi_top","curls_tight","curls_loose","waves","mini_twists","box_braids","cornrows_back","cornrows_straight","short_locs","medium_locs","long_locs","bun","beanie_black","durag_black","headband_plain_white","headband_wide_white"],
+  "beard":["none","goatee_dark","goatee_med","goatee_light","anchor_dark","anchor_med","anchor_light","boxed_beard_dark","boxed_beard_med","boxed_beard_light","chin_strip_dark","chin_strip_med","chin_strip_light","stubble_dark","stubble_med","stubble_light"],
+  "accessories":["none","headband_white","headband_red","ear_bandage_left","nose_strip"]
+}
+
+Also generate 128×128 thumbs for each **base head** in /public/avatars/thumbs.
+
+========================
+B) CODE: COMPOSER + RANDOMIZER
+========================
+Create **/src/lib/avatar.ts**:
+
+- `loadAvatarAssets()` — preload PNGs listed in manifest.json.
+- `composeAvatar(parts)` — draw layers on a 512×512 canvas in the order above and return a PNG dataURL.
+- `randomAvatar(seed?: string)` — seedable PRNG (Mulberry32):
+    • pick skin tone with even weights
+    • pick eyes(shape+color), brows, mouth
+    • hair weighted so “bald” is rare (5%) and common cuts more likely
+    • rules:
+        - if hair in [beanie_black,durag_black] → accessories=none
+        - if accessory=headband_* → allow hair in [box_braids,cornrows_back,cornrows_straight,long_locs,curls_tight,curls_loose,waves,low_cut]
+        - if hair=bald → any beard allowed
+  Return `{parts, dataUrl}`.
+
+Export `type AvatarParts = { tone:string, expr:string, eyes:{shape:string,color:string}, brows:string, mouth:string, beard?:string, hair:string, accessory?:string }`.
+
+========================
+C) UI PLACEMENT (pages in our app)
+========================
+Use the same composed image everywhere with object-fit: contain. Never overlap text.
+
+SIZES:
+- /customize (Character Creator preview): **192×192**
+- /builder (Player Builder card): **192×192**
+- /home (“Next Game” header and card left icon): **64×64**
+- roster/social list items: **40×40**
+- small chips: **24×24**
+
+Add CSS:
+.avatar { display:inline-block; background:#1e1a17; border-radius:8px; overflow:hidden; }
+.avatar.s192{width:192px;height:192px}
+.avatar.s64{width:64px;height:64px}
+.avatar.s40{width:40px;height:40px}
+.avatar.s24{width:24px;height:24px}
+.avatar img{width:100%;height:100%;object-fit:contain;image-rendering:auto}
+
+WIRING:
+- /customize: show dropdowns for all parts (tone, hair, eyes shape+color, brows, mouth, beard, accessory). On change → composeAvatar → preview in `.avatar.s192`. Save result to `player.appearance` (JSON).
+- /new (Create Player): show a **64×64** preview in the “Appearance” section + “Customize” button → route `/customize`.
+- /builder: render `.avatar.s192` above attributes using saved `player.appearance`.
+- /home: render `.avatar.s64` next to player name and in the Next Game card.
+- roster/social lists: render `.avatar.s40` at the row start. Ensure spacing so text never overlaps.
+
+Persist `player.appearance` to localStorage and server model (if present). Use `randomAvatar("npc-"+id)` to assign stable faces to NPCs when teams load.
+
+========================
+D) DELIVERABLES
+========================
+1) All PNG assets + manifest.json in /public/avatars/...
+2) /src/lib/avatar.ts with composer + randomizer
+3) Updated /customize, /new, /builder, /home, roster/social to show the avatar at the sizes above
+4) 3 sample NPC objects logged with deterministic seeds
+5) Thumbnails grid screenshot to confirm alignment
+
+Do everything now and confirm with:
+- manifest.json contents
+- a sample `player.appearance` JSON
+- screenshots of each page area with the avatar visible.
