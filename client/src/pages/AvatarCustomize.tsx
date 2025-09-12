@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Shuffle, RotateCcw } from 'lucide-react';
 import { useLocation } from 'wouter';
-import { Avatar } from '@/components/Avatar';
+import PlayerSprite from '@/components/PlayerSprite';
 import { AvatarData, DEFAULT_AVATAR, SKIN_TONE_OPTIONS, HAIR_STYLE_OPTIONS, EYE_OPTIONS, BROW_OPTIONS, NOSE_OPTIONS, MOUTH_OPTIONS, FACIAL_HAIR_OPTIONS } from '@/types/avatar';
 import { avatarStorage } from '@/utils/avatarStorage';
 
@@ -84,7 +84,7 @@ export default function AvatarCustomize({ onNavigate }: AvatarCustomizeProps) {
             <CardTitle>Preview</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <Avatar stageSize="md" avatarData={avatarData} />
+            <PlayerSprite variant="full" />
           </CardContent>
         </Card>
 

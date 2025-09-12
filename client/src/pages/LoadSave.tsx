@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CharacterPreview } from "@/components/character/CharacterPreview";
-import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
+import PlayerSprite from "@/components/PlayerSprite";
 import { Plus, Trash2 } from "lucide-react";
 import { saveSlots, activeSlot, type SaveSlot } from "@/utils/localStorage";
 
@@ -59,11 +58,7 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
                 {slot.player ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <CharacterPreview 
-                        size="sm" 
-                        look={slot.player.look || DEFAULT_CHARACTER_LOOK}
-                        className="w-12 h-15"
-                      />
+                      <PlayerSprite variant="mini" />
                       
                       <div>
                         <h3 className="font-semibold" data-testid={`text-player-name-${slot.id}`}>

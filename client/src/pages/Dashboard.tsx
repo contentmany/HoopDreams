@@ -12,7 +12,7 @@ import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localSto
 import { simulateGame, type GameResult, type OpponentTeam } from "@/utils/gameSimulation";
 import { initializeSeason, updateSeasonAfterGame, advanceWeek, type SeasonData } from "@/utils/seasonManager";
 import type { Player } from "@/utils/localStorage";
-import { Avatar } from "@/components/Avatar";
+import PlayerSprite from "@/components/PlayerSprite";
 import { playerAvatarStorage } from "@/utils/avatarStorage";
 import { DEFAULT_AVATAR } from "@/types/avatar";
 
@@ -202,10 +202,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <main className="space-y-6">
         {/* Player Info Card */}
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-          <Avatar 
-            stageSize="xs" 
-            avatarData={avatarData}
-          />
+          <PlayerSprite variant="face" />
           <div className="flex-1">
             <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
             <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>
@@ -218,7 +215,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             gameType={seasonData.upcomingGame.gameType}
             location={seasonData.upcomingGame.location}
             energyCost={3}
-            avatarData={avatarData}
             onPlayGame={handlePlayGame}
             onScouting={handleScouting}
           />

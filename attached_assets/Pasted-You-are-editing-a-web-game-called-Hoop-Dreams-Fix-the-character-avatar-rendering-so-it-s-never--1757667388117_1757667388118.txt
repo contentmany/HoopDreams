@@ -1,0 +1,150 @@
+You are editing a web game called “Hoop Dreams”. Fix the character (avatar) rendering so it’s never huge or tiny, stays pixel-crisp, and does not overlap text. Use the reference full-body PNG I’ll upload as:
+public/assets/sprites/generic_player.png
+(transparent background).
+
+GOALS
+1) Three consistent display sizes:
+   • FULL: 128×192 px (full body) for /customize and /builder preview.
+   • FACE: 56×56 px (head/shoulders crop) for Home “Your Player” card and “Next Game” card.
+   • MINI: 24×24 px (small head) for lists like Social/Teammates/Leaderboards.
+
+2) Crisp pixel look (no blur) at all sizes.
+
+3) Default to the generic_player.png until the user customizes. After customization, read the saved sprite URL from localStorage at key player.appearance.spriteUrl (fallback to generic).
+
+4) Never overlap UI: avatars must be fixed-size boxes that don’t grow with text. Images must scale inside the box, centered, and clipped when showing only the face.
+
+IMPLEMENTATION
+A) Add a reusable component PlayerSprite with a “variant” prop: "full" | "face" | "mini".
+B) Use an <img> (not canvas) with CSS to preserve crisp pixels and to crop for the face variant.
+C) Replace all current placeholder boxes/jersey art with <PlayerSprite> in the places listed below.
+
+CODE (TypeScript React; adjust imports to your setup)
+Create file: src/components/PlayerSprite.tsx
+----------------------------------------------------------------
+import React from "react";
+
+type Variant = "full" | "face" | "mini";
+
+function getSpriteUrl(): string {
+  try {
+    const saved = JSON.parse(localStorage.getItem("player") || "{}");
+    return saved?.appearance?.spriteUrl || "/assets/sprites/generic_player.png";
+  } catch {
+    return "/assets/sprites/generic_player.png";
+  }
+}
+
+export default function PlayerSprite({ variant = "face", alt = "Player" }: { variant?: Variant; alt?: string }) {
+  const src = getSpriteUrl();
+  const base = "hd-sprite-img";
+
+  if (variant === "full") {
+    return (
+      <div className="hd-sprite hd-sprite--full">
+        <img className={base} src={src} alt={alt} />
+      </div>
+    );
+  }
+  if (variant === "mini") {
+    return (
+      <div className="hd-sprite hd-sprite--mini">
+        <img className={base + " hd-sprite--head"} src={src} alt={alt} />
+      </div>
+    );
+  }
+  // face (default)
+  return (
+    <div className="hd-sprite hd-sprite--face">
+      <img className={base + " hd-sprite--head"} src={src} alt={alt} />
+    </div>
+  );
+}
+----------------------------------------------------------------
+
+Add CSS (global or module) to enforce exact sizes and crisp pixels:
+Create/append: src/styles/sprites.css
+----------------------------------------------------------------
+/* Pixel-crisp scaling */
+.hd-sprite-img, .hd-sprite img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges; /* browser fallback */
+}
+
+/* Base container – prevents overlap */
+.hd-sprite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  overflow: hidden;
+  flex: 0 0 auto;           /* never stretch */
+}
+
+/* Full body preview (exact box) */
+.hd-sprite--full {
+  width: 128px;             /* 2× base grid; change only in multiples of 16 */
+  height: 192px;
+}
+
+/* Face chip (card/header) */
+.hd-sprite--face {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Mini icon (lists) */
+.hd-sprite--mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Image fits container without distortion */
+.hd-sprite-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;      /* show whole body in FULL */
+  object-position: center top;
+}
+
+/* For head/shoulder crops, zoom and pin to upper area */
+.hd-sprite--head {
+  object-fit: cover;        /* fill the small box */
+  object-position: center 28%; /* 28% down catches the face cleanly */
+}
+----------------------------------------------------------------
+
+Wire the CSS:
+- Import "src/styles/sprites.css" once in your app root (e.g., src/main.tsx or App.tsx).
+
+REPLACEMENTS
+1) /customize and /builder “Character Preview”:
+   - Remove the big empty placeholder.
+   - Insert: <PlayerSprite variant="full" />
+   - Keep the preview container at min-height 200–220px so it breathes, but the image box stays 128×192 exactly.
+
+2) Home top card (“Your Player”) and “Next Game” card:
+   - Replace the left placeholder box with: <PlayerSprite variant="face" />
+   - Ensure its container never exceeds 56×56 and has margin-right: 12px.
+
+3) Social/Team lists (row items):
+   - Use: <PlayerSprite variant="mini" />
+   - Keep list item height around 44–48px.
+
+4) Badge/Shop/roster tiles (if any need heads):
+   - Use variant="face".
+
+ACCEPTANCE CRITERIA
+- On /customize and /builder the avatar is full-body, centered, exactly 128×192, and never overlaps text.
+- On Home and Next Game cards the avatar is a clean 56×56 head/shoulders chip (face centered, no zoom blur).
+- On lists the avatar is a 24×24 mini chip.
+- All variants stay sharp (no blurring) thanks to image-rendering: pixelated/crisp-edges.
+- If the player hasn’t customized, generic_player.png shows. After customization, save the chosen sprite to localStorage at player.appearance.spriteUrl and the UI updates instantly.
+
+NOTES
+- The uploaded reference PNG must be transparent and roughly full-body, upright. The face crop uses the top 1/3 of the image; keep the head near the top center in the art.
+- Only scale in multiples of 8 or 16 px if you later change sizes to preserve pixel crispness.

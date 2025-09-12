@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
-import { Avatar } from '@/components/Avatar';
+import PlayerSprite from '@/components/PlayerSprite';
 import { AvatarData, DEFAULT_AVATAR } from '@/types/avatar';
 import { avatarStorage, copyAvatarToPlayer } from '@/utils/avatarStorage';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
@@ -190,10 +190,7 @@ export default function PlayerBuilder() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-center">
-                <Avatar 
-                  stageSize="md" 
-                  avatarData={avatarData}
-                />
+                <PlayerSprite variant="full" />
               </div>
               
               <div className="text-center space-y-1">

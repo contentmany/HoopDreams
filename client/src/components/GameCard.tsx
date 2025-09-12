@@ -2,15 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin } from "lucide-react";
-import { Avatar } from "@/components/Avatar";
-import { AvatarData } from "@/types/avatar";
+import PlayerSprite from "@/components/PlayerSprite";
 
 interface GameCardProps {
   opponent: string;
   gameType: string;
   location?: string;
   energyCost: number;
-  avatarData?: AvatarData;
   onPlayGame?: () => void;
   onScouting?: () => void;
 }
@@ -20,7 +18,6 @@ export default function GameCard({
   gameType = "Regular Season",
   location = "Home",
   energyCost = 3,
-  avatarData,
   onPlayGame,
   onScouting
 }: GameCardProps) {
@@ -38,11 +35,9 @@ export default function GameCard({
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4 py-4">
           {/* Avatar on the left */}
-          {avatarData && (
-            <div className="flex-shrink-0">
-              <Avatar stageSize="lg" avatarData={avatarData} />
-            </div>
-          )}
+          <div className="flex-shrink-0">
+            <PlayerSprite variant="face" />
+          </div>
           
           {/* Game info on the right */}
           <div className="flex-1 text-center">
