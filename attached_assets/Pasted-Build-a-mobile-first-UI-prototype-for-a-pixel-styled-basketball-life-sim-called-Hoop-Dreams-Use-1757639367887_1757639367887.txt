@@ -1,0 +1,34 @@
+Build a mobile-first UI prototype for a pixel-styled basketball life-sim called “Hoop Dreams”.  
+Use Vite + React + TypeScript. No backend yet. Focus only on layout, routes, and zero overlap with safe-areas.  
+
+## ART DIRECTION
+- Pixel-art arena background at /public/assets/bg/arena-pixel.jpg.  
+- Dark gradient overlay on top (#000 88% → 40%) so text always readable.  
+- Pixel avatars (6–8 heads) at /public/assets/avatars/*.png.  
+- Cards and inputs opaque with 1px borders, light shadows.  
+- Accent colors: #7A5BFF (court purple), #38E1C6 (electric teal). Auto-contrast for text.  
+- image-rendering: pixelated for avatars + bg.  
+
+## ROUTES (each as its own page, no modals)
+- / (MainMenu): Full bg + title “Hoop Dreams”. Big buttons: Play (/new), Load/Continue (/load), Roster Editor (/roster-editor), Inbox (/inbox), Settings (/settings). Footer chip “Version 0.1”.  
+- /new (Create Player): Card with fields (First/Last name, Position PG/SG/SF/PF/C, Archetype, Team dropdown, Avatar picker). “Start Career” button (disabled for now).  
+- /load (Load/Continue): 5 slots UI. Used slot = avatar + name + team + year/week + Continue/Delete. Empty = “New Game”.  
+- /home (Dashboard): Sticky compact header (title left, era/year/week center, +1w button right). Body = “Next Game” card (VS badge + Play Game/Scouting buttons → just alert placeholders). Row of 4 shortcut buttons: Standings (/league?tab=standings), Schedule (/league?tab=schedule), Team (/team), Social (/social). League Snapshot card with tabs (Standings, Schedule) using dummy data. Stats Strip (Energy, Mood, Clout, Chemistry, Health, Reputation) ABOVE the bottom tab bar. Bottom Tab Bar: Home, League, Team, Social, Settings.  
+- /league: Tabs Standings | Schedule. Dummy table + list.  
+- /team: Player card + 10 fake teammates (name + OVR). Buttons: Practice, Coach Talk (placeholders).  
+- /social: Followers/Clout counters, fake post timeline, “Post Update” adds dummy post.  
+- /settings: Team color picker (updates CSS vars), sound toggle (store in memory), Manage Saves (/load), Reset Game (confirm).  
+- /inbox: List with unread dots, 4–6 seeded messages. Tap = open view. “Mark all read”.  
+- /roster-editor: Manage 8–12 dummy teams (name + color). Add/Edit/Delete. “Reset defaults”.  
+
+## RULES
+- No console errors.  
+- Header shrinks on scroll; +1w never overlaps content.  
+- Bottom tab bar never covers content; stats strip pushes content.  
+- All navigation buttons instantly load their route.  
+- Performance ≥ 90 Lighthouse mobile.  
+
+Deliverables:  
+- Full React project with these routes/components.  
+- Placeholder assets in /public.  
+- Dev server running, print the preview URL.
