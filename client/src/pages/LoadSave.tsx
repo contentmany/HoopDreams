@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import AvatarPreview from "@/components/AvatarPreview";
 import { Plus, Trash2 } from "lucide-react";
-import GameHeader from "@/components/GameHeader";
 
 interface SaveSlot {
   id: number;
@@ -41,9 +40,7 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <GameHeader />
-      
+    <div>
       <main className="px-4 pt-4 pb-8">
         <Card>
           <CardHeader>

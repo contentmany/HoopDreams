@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import GameHeader from "@/components/GameHeader";
 import { teams, settings } from "@/utils/localStorage";
 import { 
   heightRanges, 
@@ -118,6 +117,15 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   }, [playerData.position]);
 
   const handleSubmit = () => {
+    console.log('Validating player data:', playerData);
+    console.log('Validation checks:', {
+      firstName: !!playerData.firstName,
+      lastName: !!playerData.lastName,
+      position: !!playerData.position,
+      archetype: !!playerData.archetype,
+      teamId: !!playerData.teamId
+    });
+    
     if (!playerData.firstName || !playerData.lastName || !playerData.position || !playerData.archetype || !playerData.teamId) {
       alert('Please fill in all fields');
       return;
@@ -146,9 +154,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <GameHeader />
-      
+    <div>
       <main className="px-4 pt-4 pb-8">
         <Card>
           <CardHeader>

@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Minus, HelpCircle, RotateCcw } from "lucide-react";
-import GameHeader from "@/components/GameHeader";
 import AvatarPreview from "@/components/AvatarPreview";
 import { 
   getAttributeCaps, 
@@ -224,9 +223,7 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <GameHeader />
-      
+    <div>
       <main className="px-4 pt-4 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Player Info & OVR */}

@@ -1,0 +1,72 @@
+You are my engineer. Keep the current route flow. Only fix the CHARACTER system.
+
+GOAL
+- Replace the avatar "grid of faces" and the circular head preview with a single, full-body **pixel character** built from layered sprites (skin + hair + eyes + headband + jersey).
+- The new character appears live on /customize, /new (small preview), and /builder (small preview in Player Info).
+
+ASSETS (create simple placeholders if not present)
+- /public/assets/char/skin/skin-1.png ... skin-6.png  (6 tones)
+- /public/assets/char/hair/hair-1.png ... hair-10.png (short, fade, afro, braids, buzz, curly, twists, locs, shag, bald)
+- /public/assets/char/eyes/eyes-1.png ... eyes-3.png  (default, sharp, soft)
+- /public/assets/char/headband/hb-1.png ... hb-4.png (off, white, black, team)
+- /public/assets/char/jersey/jersey-1.png ... jersey-4.png (neutral, teamA, teamB, white)
+Sprite target 96×128 or 128×160. Ensure `image-rendering: pixelated;` everywhere these render.
+
+FILES TO ADD/EDIT
+1) src/features/character/CharacterPreview.tsx
+   - Props: { size?: 'sm'|'lg'; appearance: Appearance; teamColor?: string }
+   - Renders layered <img> in a fixed canvas box (no circular mask).
+   - Add CSS: container uses `image-rendering: pixelated;` and centers sprite.
+
+2) src/types/appearance.ts
+   export type Appearance = {
+     skinTone: number;   // 1..6
+     hairStyle: number;  // 1..10
+     hairColor: 'black'|'dark-brown'|'brown'|'blonde'|'red'|'grey';
+     eyes: number;       // 1..3
+     headband: number;   // 1..4  (1 = off)
+     jersey: number;     // 1..4
+   };
+
+3) src/state/player.ts  (or equivalent store/utils)
+   - Extend draft player with `appearance: Appearance`.
+   - localStorage key remains **hd:player**; appearance nested inside.
+   - Helper: `getDraftPlayer()`, `saveDraftPlayer(partial)`, `getActivePlayer()`.
+
+4) /customize page: REPLACE UI with pixel creator
+   - Left/top: large **CharacterPreview** (size="lg").
+   - Right/below: Rows with big ◀ ▶ arrows to cycle options:
+     • Skin Tone (1–6)
+     • Hair Style (1–10)
+     • Hair Color (list above)
+     • Headband (Off/White/Black/Team)
+     • Eyes (1–3)
+     • Jersey (Neutral/Team A/Team B/White)
+   - Above arrows, keep First Name + Last Name inputs (bind to draft).
+   - Small actions: **Randomize** (appearance only) and **Reset**.
+   - Bottom buttons:
+     • Main Menu → '/'
+     • Continue to Builder → '/builder'
+   - Persist every change immediately into `hd:player.appearance`.
+
+5) /new page:
+   - REMOVE any avatar grid.
+   - Show a small **CharacterPreview** if `hd:player.appearance` exists; else a silhouette.
+   - Keep your existing Position/Archetype/Height/Team fields.
+   - Keep the button that sends the user to **/customize** to edit look.
+
+6) /builder page:
+   - At the top of Player Info, show **CharacterPreview size="sm"** using the saved appearance.
+   - No other flow changes.
+
+7) Styling
+   - Ensure NO circular image masks are applied to the preview (remove any `border-radius:50%` around character images).
+   - Add `.pixel { image-rendering: pixelated; }` and apply to all layers.
+   - No bottom nav on /customize or /new.
+
+ACCEPTANCE CHECKLIST
+- /customize shows a full-body pixel character (not a face in a circle) and updates live with arrows.
+- Name fields + appearance persist to `hd:player`.
+- /new shows the small preview and **no** avatar grid.
+- /builder shows the small preview in Player Info.
+- All character images are crisp (pixelated), no overlaps, and no bottom nav on pre-game routes.

@@ -1,0 +1,36 @@
+You are my engineer. BUG: On /dash (and a few other pages) the title “Hoop Dreams” renders TWICE at the top. Root cause: both the global app header and a page-level header are being rendered. Fix this so there is EXACTLY ONE sticky app header across all in-game routes.
+
+OBJECTIVE
+- Keep ONE global sticky header (brand + year/week chip area).
+- Remove any page-level duplicate brand/title bars.
+- Page content should start with its own section title (e.g., “Life Dashboard”) under the single header.
+- Maintain safe-area padding and no overlaps.
+
+IMPLEMENTATION
+1) Locate the global header component (likely src/components/Header.tsx or AppHeader/StickyHeader) and the shell that renders it (App.tsx / Layout.tsx / PageShell.tsx).
+   - This is the ONLY place the header should render.
+
+2) Search for places where a second header/brand is rendered:
+   - src/pages/Dash.tsx (Life Dashboard)
+   - src/pages/Home.tsx, League.tsx, Team.tsx, Social.tsx, Settings.tsx
+   - Remove any `<Header/>`, `<TopBar/>`, or duplicated “Hoop Dreams” text from these pages.
+   - Keep only a content-level heading like `<PageTitle>Life Dashboard</PageTitle>` INSIDE the scroll area.
+
+3) Add a simple layout switch to avoid future duplication:
+   - Create src/layout/Screen.tsx with prop `chrome: 'game' | 'plain'`.
+     • 'game' → renders <AppHeader/> + bottom tab bar + safe-area paddings.
+     • 'plain' → NO header and NO bottom tabs (used by '/', '/new', '/load', '/customize', pre-game settings).
+   - Wrap routes:
+     • In-game: /home, /league, /team, /social, /settings (in-game), /dash, /inbox → <Screen chrome="game">
+     • Pre-game: /, /new, /load, /customize, /settings (pre-game) → <Screen chrome="plain">
+
+4) Padding & overlap:
+   - Remove any page-level `padding-top` that was compensating for the extra header.
+   - Ensure the main content container uses `padding-top: var(--app-header-height)` ONLY when chrome="game".
+   - Keep bottom safe-area so stats strip/tab bar never overlap content.
+
+ACCEPTANCE CHECKLIST
+- On /dash the brand “Hoop Dreams” shows ONCE (single sticky header), then “Life Dashboard” as the page title below it.
+- /home, /league, /team, /social, /settings (in-game), /inbox also show the brand ONCE.
+- Pre-game routes ('/', '/new', '/load', '/customize', pre-game settings) show NO bottom tabs and NO app header.
+- No layout overlaps; scroll performance unchanged; no console errors.
