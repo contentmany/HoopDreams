@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
-import { CharacterFull } from '@/components/character/CharacterFull';
-import { CharacterLook, DEFAULT_CHARACTER_LOOK } from '@/types/character';
+import { Avatar } from '@/components/Avatar';
+import { AvatarData, DEFAULT_AVATAR } from '@/types/avatar';
+import { avatarStorage, copyAvatarToPlayer } from '@/utils/avatarStorage';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
 import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
 
@@ -32,7 +33,7 @@ const DEFAULT_BUILDER_ATTRIBUTES: BuilderAttributes = {
 
 export default function PlayerBuilder() {
   const [, setLocation] = useLocation();
-  const [look, setLook] = useState<CharacterLook>(DEFAULT_CHARACTER_LOOK);
+  const [avatarData, setAvatarData] = useState<AvatarData>(DEFAULT_AVATAR);
   const [playerName, setPlayerName] = useState({ firstName: '', lastName: '' });
   const [position, setPosition] = useState('PG');
   const [archetype, setArchetype] = useState('Balanced');
@@ -41,12 +42,13 @@ export default function PlayerBuilder() {
   const [availablePoints, setAvailablePoints] = useState(20);
 
   useEffect(() => {
+    // Load avatar data
+    const currentAvatar = avatarStorage.get();
+    setAvatarData(currentAvatar);
+    
     // Load draft player data
     const draft = getDraftPlayer();
     if (draft) {
-      if (draft.look) {
-        setLook(draft.look);
-      }
       setPlayerName({
         firstName: draft.nameFirst || draft.firstName || '',
         lastName: draft.nameLast || draft.lastName || ''
@@ -106,6 +108,9 @@ export default function PlayerBuilder() {
       stamina: attributes.physicals
     };
 
+    // Copy avatar to player storage
+    copyAvatarToPlayer();
+
     // Create final player object
     const finalPlayer: Partial<Player> = {
       nameFirst: playerName.firstName,
@@ -114,7 +119,6 @@ export default function PlayerBuilder() {
       archetype,
       heightInches: height.inches,
       heightCm: height.cm,
-      look: { ...look, teamNumber: 23 }, // Include character look with team number
       teamId: 'user-team', // Default team
       year: 1,
       week: 1,
@@ -186,14 +190,9 @@ export default function PlayerBuilder() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-center">
-                <CharacterFull 
-                  look={{
-                    ...look,
-                    teamNumber: 23 // Show default team number in preview
-                  }} 
-                  size="lg" 
-                  showTeamNumber={true}
-                  className="bg-gradient-to-b from-card via-card/90 to-card/50"
+                <Avatar 
+                  stageSize="md" 
+                  avatarData={avatarData}
                 />
               </div>
               

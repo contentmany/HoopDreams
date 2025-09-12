@@ -2,12 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin } from "lucide-react";
+import { Avatar } from "@/components/Avatar";
+import { AvatarData } from "@/types/avatar";
 
 interface GameCardProps {
   opponent: string;
   gameType: string;
   location?: string;
   energyCost: number;
+  avatarData?: AvatarData;
   onPlayGame?: () => void;
   onScouting?: () => void;
 }
@@ -17,6 +20,7 @@ export default function GameCard({
   gameType = "Regular Season",
   location = "Home",
   energyCost = 3,
+  avatarData,
   onPlayGame,
   onScouting
 }: GameCardProps) {
@@ -32,23 +36,33 @@ export default function GameCard({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="text-center py-4">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center pixel-art">
-              <span className="text-xs font-pixel">VS</span>
+        <div className="flex items-center gap-4 py-4">
+          {/* Avatar on the left */}
+          {avatarData && (
+            <div className="flex-shrink-0">
+              <Avatar stageSize="lg" avatarData={avatarData} />
             </div>
-          </div>
-          <h3 className="font-semibold text-lg" data-testid="text-opponent">
-            vs {opponent}
-          </h3>
-          <div className="flex items-center justify-center gap-4 mt-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              <span>{location}</span>
+          )}
+          
+          {/* Game info on the right */}
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center pixel-art">
+                <span className="text-xs font-pixel">VS</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{gameType}</span>
+            <h3 className="font-semibold text-lg" data-testid="text-opponent">
+              vs {opponent}
+            </h3>
+            <div className="flex items-center justify-center gap-4 mt-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                <span>{location}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{gameType}</span>
+              </div>
             </div>
           </div>
         </div>

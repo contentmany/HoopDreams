@@ -12,6 +12,9 @@ import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localSto
 import { simulateGame, type GameResult, type OpponentTeam } from "@/utils/gameSimulation";
 import { initializeSeason, updateSeasonAfterGame, advanceWeek, type SeasonData } from "@/utils/seasonManager";
 import type { Player } from "@/utils/localStorage";
+import { Avatar } from "@/components/Avatar";
+import { playerAvatarStorage } from "@/utils/avatarStorage";
+import { DEFAULT_AVATAR } from "@/types/avatar";
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;
@@ -20,6 +23,7 @@ interface DashboardProps {
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
+  const [avatarData, setAvatarData] = useState(() => playerAvatarStorage.get() || DEFAULT_AVATAR);
   const [gameResultsModal, setGameResultsModal] = useState<{
     isOpen: boolean;
     result?: GameResult;
@@ -198,9 +202,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <main className="space-y-6">
         {/* Player Info Card */}
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-          <CharacterPreview 
-            size="sm" 
-            look={currentPlayer?.look || DEFAULT_CHARACTER_LOOK}
+          <Avatar 
+            stageSize="xs" 
+            avatarData={avatarData}
           />
           <div className="flex-1">
             <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
@@ -214,6 +218,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             gameType={seasonData.upcomingGame.gameType}
             location={seasonData.upcomingGame.location}
             energyCost={3}
+            avatarData={avatarData}
             onPlayGame={handlePlayGame}
             onScouting={handleScouting}
           />
