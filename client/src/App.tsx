@@ -23,6 +23,7 @@ import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
 import Customize from "@/pages/Customize";
+import AvatarCustomize from "@/pages/AvatarCustomize";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -68,7 +69,7 @@ function Router() {
       </Route>
       
       <Route path="/customize">
-        <Customize />
+        <AvatarCustomize onNavigate={handleNavigate} />
       </Route>
       <Route path="/builder">
         <PreGameLayout title="Player Builder">

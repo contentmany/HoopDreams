@@ -55,7 +55,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
     if (!storedAvatar || JSON.stringify(storedAvatar) === JSON.stringify(avatarData)) {
       // Generate random avatar with team colors if available
       const selectedTeam = teamsList.find(t => t.id === playerData.teamId);
-      const teamColor = selectedTeam?.primaryColor || '#7a5bff';
+      const teamColor = selectedTeam?.color || '#7a5bff';
       const randomAvatar = generateRandomAvatar(teamColor);
       avatarStorage.set(randomAvatar);
       setAvatarData(randomAvatar);
