@@ -31,12 +31,15 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
       const requiredElements = [
         'avatarCanvas',
         'skin', 
-        'hair', 
+        'hairStyle', 
         'hairColor', 
         'eyeColor', 
+        'eyeShape',
+        'brows',
+        'mouth',
         'facial', 
-        'btnRandom',
-        'avatarSave'
+        'accessory',
+        'btnRandom'
       ];
       
       const missingElements = requiredElements.filter(id => !document.getElementById(id));
@@ -63,8 +66,11 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
         script.type = 'module';
         script.innerHTML = `
           try {
-            console.log('Loading avatar hooks...');
-            import('/js/avatar-hooks.js').then(({ mountCustomize }) => {
+            console.log('Loading avatar engine...');
+            import('/js/proc-avatar.js').then(() => {
+              console.log('Avatar engine loaded, loading hooks...');
+              return import('/js/avatar-hooks.js');
+            }).then(({ mountCustomize }) => {
               console.log('Avatar hooks loaded, attempting to mount...');
               mountCustomize();
               console.log('Avatar system initialized successfully');
@@ -72,7 +78,7 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
               // Dispatch custom event to notify React component
               window.dispatchEvent(new CustomEvent('avatarReady'));
             }).catch(error => {
-              console.error('Failed to load avatar hooks:', error);
+              console.error('Failed to load avatar system:', error);
               window.dispatchEvent(new CustomEvent('avatarError', { detail: error }));
             });
           } catch (error) {
@@ -242,112 +248,89 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
         </Card>
 
         {/* Avatar Customization */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-center">
-                <div className="avatar-wrap">
-                  <canvas 
-                    id="avatarCanvas" 
-                    width="128" 
-                    height="128" 
-                    aria-label="avatar preview"
-                  />
-                  <div className="controls">
-                    <label>Skin:
-                      <select id="skin" data-testid="select-skin" defaultValue="F3">
-                        <option value="F1">F1</option>
-                        <option value="F2">F2</option>
-                        <option value="F3">F3</option>
-                        <option value="F4">F4</option>
-                      </select>
-                    </label>
-                    <label>Hair:
-                      <select id="hair" data-testid="select-hair" defaultValue="short">
-                        <option value="bald">bald</option>
-                        <option value="buzz">buzz</option>
-                        <option value="short">short</option>
-                        <option value="afro">afro</option>
-                        <option value="curls">curls</option>
-                        <option value="braids">braids</option>
-                        <option value="waves">waves</option>
-                        <option value="locs">locs</option>
-                        <option value="beanie">beanie</option>
-                        <option value="durag">durag</option>
-                        <option value="headband">headband</option>
-                      </select>
-                    </label>
-                    <label>Hair Color:
-                      <select id="hairColor" data-testid="select-hair-color" defaultValue="#2b2018">
-                        <option value="#2b2018">#2b2018</option>
-                        <option value="#3a2f25">#3a2f25</option>
-                        <option value="#4b382e">#4b382e</option>
-                        <option value="#754c24">#754c24</option>
-                        <option value="#111111">#111111</option>
-                      </select>
-                    </label>
-                    <label>Eyes:
-                      <select id="eyeColor" data-testid="select-eye-color" defaultValue="#3a2f25">
-                        <option value="#3a2f25">#3a2f25</option>
-                        <option value="#1f2d57">#1f2d57</option>
-                        <option value="#0a6a4f">#0a6a4f</option>
-                        <option value="#5b3a2e">#5b3a2e</option>
-                      </select>
-                    </label>
-                    <label>Facial Hair:
-                      <select id="facial" data-testid="select-facial" defaultValue="none">
-                        <option value="none">none</option>
-                        <option value="goatee">goatee</option>
-                        <option value="mustache">mustache</option>
-                        <option value="full">full</option>
-                      </select>
-                    </label>
-                    <button id="btnRandom" data-testid="button-random">Randomize</button>
-                  </div>
-                  <button 
-                    id="avatarSave" 
-                    className="btn btn-primary" 
-                    data-next="/builder"
-                    data-testid="button-save"
-                  >
-                    Save & Continue
-                  </button>
+        <Card>
+          <CardHeader>
+            <CardTitle>Customize Appearance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center">
+              <div className="avatar-wrap">
+                <canvas id="avatarCanvas" className="avatar128" width="128" height="128" aria-label="avatar preview"></canvas>
+
+                <div className="controls">
+                  <label>Skin
+                    <select id="skin" data-testid="select-skin">
+                      <option value="F1">Fair</option>
+                      <option value="F2" selected>Tan</option>
+                      <option value="F3">Brown</option>
+                      <option value="F4">Deep</option>
+                    </select>
+                  </label>
+
+                  <label>Hair Style
+                    <select id="hairStyle" data-testid="select-hair-style">
+                      <option>bald</option><option>buzz</option><option selected>short</option>
+                      <option>afro</option><option>curls</option><option>waves</option>
+                      <option>braids</option><option>locs</option><option>highTop</option>
+                    </select>
+                  </label>
+
+                  <label>Hair Color
+                    <select id="hairColor" data-testid="select-hair-color">
+                      <option value="#2b2018">Deep Brown</option>
+                      <option value="#3a2f25">Dark Walnut</option>
+                      <option value="#4b382e">Chestnut</option>
+                      <option value="#754c24">Auburn</option>
+                      <option value="#111111">Jet Black</option>
+                    </select>
+                  </label>
+
+                  <label>Eye Color
+                    <select id="eyeColor" data-testid="select-eye-color">
+                      <option value="#3a2f25">Brown</option>
+                      <option value="#1f2d57">Navy</option>
+                      <option value="#0a6a4f">Green</option>
+                      <option value="#5b3a2e">Hazel</option>
+                    </select>
+                  </label>
+
+                  <label>Eye Shape
+                    <select id="eyeShape" data-testid="select-eye-shape">
+                      <option>round</option><option selected>almond</option><option>droopy</option><option>sharp</option>
+                    </select>
+                  </label>
+
+                  <label>Brows
+                    <select id="brows" data-testid="select-brows">
+                      <option value="true" selected>On</option>
+                      <option value="false">Off</option>
+                    </select>
+                  </label>
+
+                  <label>Mouth
+                    <select id="mouth" data-testid="select-mouth">
+                      <option>neutral</option><option selected>smile</option><option>grin</option><option>smirk</option><option>frown</option>
+                    </select>
+                  </label>
+
+                  <label>Facial Hair
+                    <select id="facial" data-testid="select-facial">
+                      <option>none</option><option>goatee</option><option>mustache</option><option>chinstrap</option><option>full</option>
+                    </select>
+                  </label>
+
+                  <label>Accessory
+                    <select id="accessory" data-testid="select-accessory">
+                      <option>none</option><option>headband</option><option>beanie</option><option>durag</option>
+                    </select>
+                  </label>
+
+                  <button id="btnRandom" data-testid="button-random">Randomize</button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Instructions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Procedural Avatars</h4>
-                <p className="text-sm text-muted-foreground">
-                  This system draws smooth head-only avatars using canvas rendering. No image files needed!
-                </p>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-2">Features</h4>
-                <p className="text-sm text-muted-foreground">
-                  Customize skin tone, hair styles, eye color, facial hair, and accessories. Perfect for basketball courts.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-2">Rendering</h4>
-                <p className="text-sm text-muted-foreground">
-                  Crisp at any size (128/96/64/40px) with proper layering: skin → eyes → brows → facial features → hair.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
         <div className="flex justify-between">
