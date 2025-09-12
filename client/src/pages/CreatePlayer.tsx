@@ -116,10 +116,18 @@ export default function CreatePlayer({ onCreatePlayer }: CreatePlayerProps) {
     }
     
     const finalData = {
-      ...playerData,
+      nameFirst: playerData.firstName,
+      nameLast: playerData.lastName,
+      position: playerData.position,
+      archetype: playerData.archetype,
+      teamId: playerData.teamId,
       avatarId: selectedAvatarId,
+      heightInches: playerData.heightInches,
       heightCm: inchesToCm(playerData.heightInches),
     };
+    
+    // Store temporary player data for builder
+    localStorage.setItem('hd:tempPlayer', JSON.stringify(finalData));
     
     console.log('Creating player:', finalData);
     onCreatePlayer?.(finalData);

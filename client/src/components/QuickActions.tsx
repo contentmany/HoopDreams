@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Trophy, Calendar, Users, MessageCircle } from "lucide-react";
+import { Trophy, Calendar, Users, MessageCircle, Award } from "lucide-react";
 
 interface QuickAction {
   icon: any;
@@ -12,8 +12,8 @@ interface QuickActionsProps {
 }
 
 const actions: QuickAction[] = [
-  { icon: Trophy, label: "Standings", path: "/league?tab=standings" },
-  { icon: Calendar, label: "Schedule", path: "/league?tab=schedule" },
+  { icon: Award, label: "Badges", path: "/badges" },
+  { icon: Trophy, label: "League", path: "/league?tab=standings" },
   { icon: Users, label: "Team", path: "/team" },
   { icon: MessageCircle, label: "Social", path: "/social" },
 ];

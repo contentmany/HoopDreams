@@ -13,6 +13,7 @@ import PlayerBuilder from "@/pages/PlayerBuilder";
 import LoadSave from "@/pages/LoadSave";
 import Settings from "@/pages/Settings";
 import League from "@/pages/League";
+import Badges from "@/pages/Badges";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -60,6 +61,9 @@ function Router() {
           const tab = urlParams.get('tab') || 'standings';
           return <League defaultTab={tab} />;
         }}
+      </Route>
+      <Route path="/badges">
+        <Badges />
       </Route>
       
       {/* Placeholder routes - todo: implement these pages */}

@@ -13,7 +13,7 @@ import {
   badges,
   inchesToFeetInches 
 } from "@/utils/gameConfig";
-import { settings, activeSlot, player as playerStorage, createDefaultAttributes } from "@/utils/localStorage";
+import { settings, activeSlot, player as playerStorage, createDefaultAttributes, saveSlots } from "@/utils/localStorage";
 import type { Attributes, Player } from "@/utils/localStorage";
 
 interface PlayerBuilderProps {
@@ -31,8 +31,20 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
   const maxPoints = difficulty.startingPoints;
 
   useEffect(() => {
-    // Load player data from localStorage
-    const currentPlayer = playerStorage.get();
+    // Load player data from localStorage or temp storage
+    let currentPlayer = playerStorage.get();
+    
+    // If no current player, try loading from temp storage (during creation)
+    if (!currentPlayer) {
+      const tempPlayerData = localStorage.getItem('hd:tempPlayer');
+      if (tempPlayerData) {
+        const tempPlayer = JSON.parse(tempPlayerData);
+        setPlayerInfo(tempPlayer);
+        setAttributeCaps(getAttributeCaps(tempPlayer.position, tempPlayer.heightInches));
+        return;
+      }
+    }
+    
     if (currentPlayer) {
       setPlayerInfo(currentPlayer);
       setAttributeCaps(getAttributeCaps(currentPlayer.position, currentPlayer.heightInches));
@@ -132,7 +144,14 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
     }
 
     const finalPlayer: Player = {
-      ...playerInfo as Player,
+      nameFirst: playerInfo.nameFirst,
+      nameLast: playerInfo.nameLast || '',
+      position: playerInfo.position || 'PG',
+      archetype: playerInfo.archetype || '',
+      heightInches: playerInfo.heightInches || 74,
+      heightCm: playerInfo.heightCm || 188,
+      teamId: playerInfo.teamId || '1',
+      avatarId: playerInfo.avatarId || 1,
       attributes,
       badgePoints: difficulty.startingBadgePoints,
       badges: [],
@@ -157,8 +176,25 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
       },
     };
 
-    playerStorage.set(finalPlayer);
-    console.log('Player build saved:', finalPlayer);
+    // Find first available save slot and set it as active
+    const slots = saveSlots.get();
+    let slotToUse = 1;
+    
+    for (let i = 0; i < slots.length; i++) {
+      if (!slots[i].player) {
+        slotToUse = i + 1;
+        break;
+      }
+    }
+
+    // Save to slot and set as active
+    saveSlots.save(slotToUse, finalPlayer);
+    activeSlot.set(slotToUse);
+    
+    // Clean up temp data
+    localStorage.removeItem('hd:tempPlayer');
+
+    console.log('Player build saved to slot', slotToUse, ':', finalPlayer);
     onSaveBuild?.();
   };
 
