@@ -1,0 +1,160 @@
+You are my engineer. Implement a compact, full-body 2D pixel avatar system that copies the visual style of
+/public/assets/avatars/reference/hooper_style.png (I will upload this) — smooth facial features, separated legs, jersey/shorts, no box background.
+
+GOALS
+- Small, full-body preview (not face-only), clear facial features, non-boxy silhouette.
+- Transparent PNG output, crisp pixels (no blur), compact on mobile.
+- Shown by default in Character Creator (/customize) and Player Builder (/builder).
+- Player can customize: skin tone, hair style + color, eye color, headband (optional), jersey color + number.
+- Use the reference image ONLY as a style guide. Generate the avatar procedurally as pixel art on a 24×32 grid.
+
+FOLDERS & FILES
+Create:
+  /src/game/avatar/AvatarPainter.ts
+  /src/game/avatar/presets.ts
+  /src/components/pixel/Sprite.tsx
+  /src/components/pixel/sprite.module.css
+  /src/components/preview/CharacterPreview.tsx
+  /src/styles/pixel.css
+Assets:
+  I will upload: /public/assets/avatars/reference/hooper_style.png  (style reference, transparent if possible)
+
+PIXEL SPECS (copy exactly)
+- Canvas grid: 24×32 px (width × height). Anchor at top-left.
+- Display scale for previews: 4× (→ 96×128 px final on screen).
+- Face proportions (relative to grid):
+  head box: x=5..18, y=2..12
+  eyes: 2 pixels each at (8,7) and (14,7)
+  brow: 1-pixel line at y=6 spanning eye width
+  nose: single pixel at (11,9)
+  mouth: 2 pixels at y=11 centered (10..11)
+- Torso: x=6..17, y=12..20
+- Arms: 2-pixel width, x=4..5 (left), x=18..19 (right), y=12..19
+- Shorts: x=6..17, y=20..24 with 1-px hem accent
+- Legs: left x=8..10, right x=13..15, y=24..31 (separated by a 2-px gap)
+- Shoes: 3-pixel wide blocks under each leg with white midsole accent
+These dimensions keep the look smooth like the reference and avoid the “box” silhouette.
+
+COLOR PALETTES
+Put these in /src/game/avatar/presets.ts:
+
+export const SKIN_TONES = ['#FAD7B5','#E5AC78','#C68642','#8D5524','#5C3A1E','#2E1B0E'];
+export const HAIR_COLORS = ['#1E1E1E','#3B2F2F','#6B4E2E','#C5A05A','#B23B2A','#1D2C5B'];
+export const EYE_COLORS  = ['#3B2F2F','#4E3B2E','#1F4D4F','#2E3A8C'];
+export const JERSEY_COLORS = ['#176B47','#22577A','#7A5BFF','#38E1C6','#C73E1D','#F9A826']; // include team accent colors
+export const ACCENT_COLORS = ['#F9C74F','#FFFFFF','#111111'];
+
+DEFAULT PRESET
+export const DEFAULT_AVATAR = {
+  skin: SKIN_TONES[3],
+  hairColor: HAIR_COLORS[0],
+  hairStyle: 'short', // 'short'|'fade'|'afro'|'braids'|'buzz'
+  eyes: EYE_COLORS[0],
+  headband: null as null | { color: string },
+  jersey: { base: JERSEY_COLORS[0], accent: ACCENT_COLORS[0], number: 1 },
+};
+
+AVATAR PAINTER (procedural pixel art on a canvas) — /src/game/avatar/AvatarPainter.ts
+// returns a dataURL (PNG, transparent) at 24×32 px, optionally upscaled by scale
+import { DEFAULT_AVATAR } from './presets';
+
+type AvatarConfig = typeof DEFAULT_AVATAR;
+export function paintAvatar(cfg: AvatarConfig = DEFAULT_AVATAR, scale = 1): HTMLCanvasElement {
+  const W = 24, H = 32;
+  const c = document.createElement('canvas');
+  c.width = W * scale; c.height = H * scale;
+  const g = c.getContext('2d', { willReadFrequently: true })!;
+  const px = (x:number,y:number,color:string)=>{ g.fillStyle=color; g.fillRect(x*scale,y*scale,1*scale,1*scale); };
+
+  // helper: draw box with outline
+  const box = (x0:number,y0:number,x1:number,y1:number,fill:string,outline='#2A1E18')=>{
+    for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) px(x,y,fill);
+    // outline 1px
+    for(let x=x0;x<=x1;x++){ px(x,y0,outline); px(x,y1,outline); }
+    for(let y=y0;y<=y1;y++){ px(x0,y,outline); px(x1,y,outline); }
+  };
+
+  // HEAD (rounded by shaving corners)
+  const s = cfg.skin;
+  box(5,2,18,12,s);
+  // shave corners for smooth look
+  [['5,2'],['18,2'],['5,12'],['18,12']].forEach(k=>{ const [x,y]=k.split(',').map(Number); px(x,y,'rgba(0,0,0,0)'); });
+
+  // HAIR by style (simple shapes; extend styles as needed)
+  const hc = cfg.hairColor;
+  // top hair cap
+  for(let y=2;y<=5;y++) for(let x=6;x<=17;x++) px(x,y,hc);
+  if(cfg.hairStyle==='fade'){ for(let x=6;x<=17;x++) px(x,6,shade(hc,0.7)); }
+  if(cfg.hairStyle==='afro'){ for(let y=1;y<=3;y++) for(let x=5;x<=18;x++) px(x,y,hc); }
+  if(cfg.hairStyle==='braids'){ for(let x=6;x<=17;x+=2) for(let y=2;y<=5;y++) px(x,y,shade(hc,0.85)); }
+  if(cfg.hairStyle==='buzz'){ for(let x=6;x<=17;x++) px(x,6,shade(hc,0.9)); }
+
+  // BROWS / EYES / NOSE / MOUTH
+  const eye = cfg.eyes;
+  px(8,7,eye); px(9,7,eye); px(14,7,eye); px(15,7,eye);
+  // brows
+  for(let x=8;x<=9;x++) px(x,6,shade(hc,0.6));
+  for(let x=14;x<=15;x++) px(x,6,shade(hc,0.6));
+  // nose + mouth
+  px(11,9,shade(s,0.7)); px(10,11,shade(s,0.7)); px(11,11,shade(s,0.7));
+
+  // HEADBAND (optional)
+  if(cfg.headband){ for(let x=6;x<=17;x++) { px(x,5,cfg.headband.color); px(x,6,cfg.headband.color);} }
+
+  // TORSO & JERSEY
+  const jb = cfg.jersey.base, ja = cfg.jersey.accent;
+  box(6,12,17,20,jb);
+  // neckline + sleeve trims
+  for(let x=8;x<=15;x++) px(x,12,ja);
+  px(6,13,ja); px(17,13,ja);
+
+  // SHORTS
+  box(6,20,17,24,jb);
+  for(let x=6;x<=17;x++) px(x,24,ja); // hem
+
+  // BELT/WAIST ACCENT
+  px(11,20,ja); px(12,20,ja);
+
+  // ARMS
+  box(4,12,5,19,s);
+  box(18,12,19,19,s);
+
+  // LEGS (separated)
+  box(8,24,10,31,s);
+  box(13,24,15,31,s);
+
+  // SHOES (with midsole)
+  box(7,31,11,31,ja);
+  box(12,31,16,31,ja);
+  px(7,31,'#FFFFFF'); px(12,31,'#FFFFFF'); px(11,31,'#FFFFFF'); px(16,31,'#FFFFFF');
+
+  // JERSEY NUMBER (simple white 1)
+  drawDigit(g, cfg.jersey.number, 11, 15, scale); // centered
+
+  return c;
+
+  function shade(hex:string,m:number){ const c=parseInt(hex.slice(1),16),r=(c>>16)&255,g=(c>>8)&255,b=c&255;
+    const rr=Math.round(r*m), gg=Math.round(g*m), bb=Math.round(b*m);
+    return `rgb(${rr},${gg},${bb})`;
+  }
+}
+
+// tiny 3×5 pixel font for jersey number (0–9)
+function drawDigit(g:CanvasRenderingContext2D, d:number, cx:number, y:number, scale:number){
+  const DIGITS: Record<number,string[]> = {
+    0:['111','101','101','101','111'],
+    1:['010','110','010','010','111'],
+    2:['111','001','111','100','111'],
+    3:['111','001','111','001','111'],
+    4:['101','101','111','001','001'],
+    5:['111','100','111','001','111'],
+    6:['111','100','111','101','111'],
+    7:['111','001','010','010','010'],
+    8:['111','101','111','101','111'],
+    9:['111','101','111','001','111'],
+  };
+  const pat = DIGITS[d%10]; const x0 = (cx-1);
+  for(let r=0;r<5;r++) for(let c=0;c<3;c++)
+    if(pat[r][c]==='1'){ g.fillStyle='#FFFFFF'; g.fillRect((x0+c)*scale,(y+r)*scale,1*scale,1*scale); }
+}
+export type { AvatarConfig };

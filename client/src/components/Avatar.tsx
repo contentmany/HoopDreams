@@ -38,6 +38,8 @@ export const Avatar = memo(({ stageSize, avatarData = DEFAULT_AVATAR, className 
         return avatarData.headband.on;
       case 'facial_hair':
         return avatarData.facialHair !== 'none';
+      case 'accessories':
+        return false; // Skip accessories layer for now
       default:
         return true;
     }
@@ -137,10 +139,14 @@ export const Avatar = memo(({ stageSize, avatarData = DEFAULT_AVATAR, className 
     }
   };
 
+  // Debug logging
+  console.log('Avatar rendering with data:', avatarData);
+  console.log('Stage size:', stageSize, 'Dimensions:', { width, height });
+
   return (
     <div 
       className={cn(
-        "avatarStage relative overflow-hidden",
+        "avatar-stage relative overflow-hidden",
         className
       )}
       style={{
@@ -148,22 +154,29 @@ export const Avatar = memo(({ stageSize, avatarData = DEFAULT_AVATAR, className 
         height: `${height}px`,
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '12px',
-        boxShadow: '0 4px 12px rgba(0,0,0,.25)'
+        boxShadow: '0 4px 12px rgba(0,0,0,.25)',
+        imageRendering: 'pixelated'
       }}
     >
       {LAYER_ORDER.map((layer) => {
-        if (!shouldShowLayer(layer)) return null;
+        if (!shouldShowLayer(layer)) {
+          console.log(`Skipping layer ${layer} - shouldShowLayer returned false`);
+          return null;
+        }
         
         const value = getLayerValue(layer);
         const assetPath = getAssetPath(layer, value);
+        console.log(`Rendering layer ${layer} with value ${value} at path ${assetPath}`);
         
         return (
           <img
             key={layer}
             src={assetPath}
-            alt=""
+            alt={`Avatar layer: ${layer}`}
             style={getLayerStyle(layer)}
+            onLoad={() => console.log(`Successfully loaded layer ${layer} from ${assetPath}`)}
             onError={(e) => {
+              console.error(`Failed to load layer ${layer} from ${assetPath}`);
               // Hide broken images gracefully
               (e.target as HTMLImageElement).style.display = 'none';
             }}

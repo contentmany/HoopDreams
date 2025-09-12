@@ -21,9 +21,9 @@ export const DEFAULT_AVATAR: AvatarData = {
   hairStyle: 'short',
   hairColor: '#4a3728',
   eyes: 'default',
-  brows: 'straight',
-  nose: 'medium',
-  mouth: 'neutral',
+  brows: 'default',
+  nose: 'default',
+  mouth: 'default',
   facialHair: 'none',
   headband: {
     on: false,
@@ -39,27 +39,27 @@ export const SKIN_TONE_OPTIONS = [
 ];
 
 export const HAIR_STYLE_OPTIONS = [
-  'short', 'fade', 'afro', 'braids', 'buzz', 'curly', 'bald'
+  'short', 'curly', 'afro', 'braids', 'buzz', 'fade', 'bald'
 ];
 
 export const EYE_OPTIONS = [
-  'default', 'narrow', 'wide', 'round'
+  'default'
 ];
 
 export const BROW_OPTIONS = [
-  'straight', 'arched', 'thick', 'thin'
+  'default'
 ];
 
 export const NOSE_OPTIONS = [
-  'small', 'medium', 'large', 'wide'
+  'default'
 ];
 
 export const MOUTH_OPTIONS = [
-  'neutral', 'smile', 'frown', 'smirk'
+  'default'
 ];
 
 export const FACIAL_HAIR_OPTIONS = [
-  'none', 'mustache', 'goatee', 'beard', 'stubble'
+  'none', 'default'
 ];
 
 export type AvatarStageSize = 'xs' | 'sm' | 'md' | 'lg';

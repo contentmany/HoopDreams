@@ -64,10 +64,10 @@ export const generateRandomAvatar = (teamPrimaryColor: string = '#7a5bff'): Avat
     skinTone: randomChoice(SKIN_TONE_OPTIONS),
     hairStyle: randomChoice(HAIR_STYLE_OPTIONS),
     hairColor: randomChoice(['#4a3728', '#2d1b14', '#8b6914', '#d4b852', '#c95429', '#000000']),
-    eyes: randomChoice(EYE_OPTIONS),
-    brows: randomChoice(BROW_OPTIONS),
-    nose: randomChoice(NOSE_OPTIONS),
-    mouth: randomChoice(MOUTH_OPTIONS),
+    eyes: 'default', // Only default available
+    brows: 'default', // Only default available
+    nose: 'default', // Only default available
+    mouth: 'default', // Only default available
     facialHair: randomChoice(FACIAL_HAIR_OPTIONS),
     headband: {
       on: Math.random() < 0.1, // 10% chance
