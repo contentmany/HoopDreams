@@ -1,0 +1,129 @@
+You are my engineer. Create a brand-new, mobile-first web game shell called **Hoop Dreams** (basketball life-sim). Step 1 only: scaffold + UI + placeholders, no deep gameplay yet. Use **Vite + React + TypeScript** and plain CSS modules OR Tailwind (your choice). Start a dev server when done.
+
+========================
+ART DIRECTION (PIXEL)
+========================
+- Overall: modern UI cards layered over a soft **pixel-art arena background**.
+- Background: /public/assets/bg/arena-pixel.jpg (or png). Apply a top-to-bottom dark gradient overlay so text always reads (#000 at 88% → 40%).
+- Avatars: tiny pixel heads (32x32 or 48x48) in /public/assets/avatars/*.png. Use 6–8 skin/hair combos, simple two-frame idle “blink” optional.
+- Icons: use emoji placeholders now; later we’ll swap to pixel icons. Keep icon+label under every tile.
+- Pixel crispness: set images to render crisp (image-rendering: pixelated when zoomed).
+- Palette: deep navy / charcoal base, accent “court purple” (#7A5BFF) and “electric teal” (#38E1C6). All accents pass contrast on dark.
+- No transparency on cards/inputs; subtle 1px borders; light, fast shadows only.
+
+========================
+NON-OVERLAP & SAFE-AREA
+========================
+- Use safe-area insets (env(safe-area-inset-*)).
+- No element may sit on top of others; when a sticky bar exists, page content gets extra padding so nothing is covered.
+- 60fps scroll on mobile. No console errors.
+
+========================
+ROUTES (each its own page)
+========================
+/ (MainMenu)
+  - Full-bleed pixel arena bg + dark overlay.
+  - Big centered pixel title: **Hoop Dreams**.
+  - Large buttons (stacked):
+      • Play  → /new
+      • Load / Continue  → /load
+      • Roster Editor  → /roster-editor
+      • Inbox  → /inbox
+      • Settings  → /settings
+  - Footer chip: “Version 0.1”.
+
+/new (Create Player)
+  - Card titled “Create Your Player”.
+  - Fields: First name, Last name, Position (PG/SG/SF/PF/C), Archetype (Pass First, Shot Creator, 3&D, Slasher, Stretch Big, Rim Protector), Team (dropdown), Avatar selector (pixel heads).
+  - Button: **Start Career** → saves to chosen slot and redirects to /home.
+
+/load (Load/Continue)
+  - Show 5 save slots. Each slot: avatar, player name, team, year/week.
+  - Buttons: Continue, Delete (confirm). Empty slots show **New Game** → /new.
+
+/home (Dashboard)
+  - Sticky compact header:
+      Left: “Hoop Dreams”
+      Center chips: Era (High School), Year (YYYY), Week (W##)
+      Right: **+1w** button (Advance Week) INSIDE header (top-right). It must never overlap body content.
+  - Hero card: **Next Game**
+      • Opponent badge (pixel circle with “VS” letters)
+      • Subtitle: “This week” + “Game Week” tag
+      • Buttons: “Play Game (–3 Energy)” (no gameplay; alert) and “Scouting” (placeholder)
+  - Quick row of 4 circular pixel buttons (icon + label): Standings → /league?tab=standings, Schedule → /league?tab=schedule, Team → /team, Social → /social
+  - **League Snapshot** card with 2 tabs:
+      • Standings: show 2–3 rows from a seeded list
+      • Schedule: next 3 fixtures
+      “View full” link goes to /league with the correct tab.
+  - **Stats Strip** (ALWAYS above the bottom tab bar, never overlapping): Energy 10/10, Mood 7/10, Clout 5/100, Chemistry 50/100, Health 100/100, Reputation 0/100.
+  - Bottom Tab Bar (sticky, safe-area aware): Home, League, Team, Social, Settings.
+
+/league
+  - Tabs: **Standings** | **Schedule** (remember URL param ?tab=)
+  - Standings table columns: Team, W–L, Streak. Seed 8–12 teams with colors pulled from roster editor or defaults.
+  - Schedule list: upcoming weeks (fake data ok).
+
+/team
+  - Player card (name, position, archetype, team chip with team color).
+  - Roster list: 10 teammates {name, OVR} (fake).
+  - Buttons (placeholders): Practice, Coach Talk (just to prove navigation).
+
+/social
+  - Social Media summary (Followers, Clout) + a simple timeline of fake posts.
+  - “Post Update” button appends a new post (date + short text).
+
+/settings
+  - Theme color picker (sets CSS variables; persist to localStorage).
+  - Sound on/off toggle (just store value).
+  - Manage saves → /load
+  - Danger: Reset Game (confirm).
+
+/inbox
+  - Basic inbox list with unread dots; tap → message view; “Mark all read”.
+  - Seed 4–6 messages (coach, parent, local paper, sponsor spam).
+
+/roster-editor
+  - Manage **8–12 high school teams** (name + primary color). Add/Delete/Edit. Persist to localStorage.
+  - “Reset to defaults” button. These teams populate the Team dropdown on /new and color accents across the app.
+
+========================
+DATA & PERSISTENCE
+========================
+Use localStorage keys:
+- hd:saveSlots -> array length 5 (slot objects or null)
+- hd:activeSlot -> number | null
+- hd:teams -> array of { id, name, color }
+- hd:settings -> { themeColor, soundOn }
+- hd:inbox -> array of { id, dateISO, title, body, read }
+- hd:player -> {
+    nameFirst, nameLast, position, archetype,
+    teamId, avatarId,
+    age: 14, year: 2026, week: 1,
+    energy: 10, mood: 7, clout: 5, chemistry: 50, health: 100, reputation: 0
+  }
+
+========================
+THEMING & ACCESSIBILITY
+========================
+- A simple Theme Manager sets CSS variables from the player’s team color (tabs, primary buttons, chips).
+- Auto-contrast text (switch to white/near-black as needed).
+- Fallback accent palette if no team color set.
+
+========================
+ACCEPTANCE CHECKLIST
+========================
+- No console errors; Lighthouse mobile performance ≥ 90.
+- Header shrinks on scroll; **+1w** button in header never overlaps content.
+- Bottom tab bar never covers content; stats strip sits above it and pushes content.
+- All tiles navigate to their own routes instantly.
+- Save/Load works end-to-end with 5 slots and delete confirmations.
+- Theme color persists and updates CSS variables live.
+- Background image is crisp; dark overlay ensures readability.
+
+========================
+ASSETS
+========================
+- Put placeholder bg at /public/assets/bg/arena-pixel.jpg (any royalty-free arena or pixel scene).
+- Put 6–8 pixel avatar heads at /public/assets/avatars/*.png (any simple placeholders ok).
+
+When done, run the dev server and print the local URL and main files created so I can preview.
