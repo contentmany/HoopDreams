@@ -15,8 +15,7 @@ import {
   feetInchesToInches
 } from "@/utils/gameConfig";
 import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
-import HeadAvatar from "@/components/HeadAvatar";
-import { randomAvatar } from "@/avatar";
+import AssetAvatar from "@/components/AssetAvatar";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
@@ -38,7 +37,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
-  const [avatarSeed, setAvatarSeed] = useState(() => Math.floor(Math.random() * 10000));
+  const [avatarSeed, setAvatarSeed] = useState(() => `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
   
   const teamsList = teams.get();
   const currentSettings = settings.get();
@@ -51,7 +50,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
 
   // Generate new avatar when team changes
   useEffect(() => {
-    setAvatarSeed(Math.floor(Math.random() * 10000));
+    setAvatarSeed(`player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
   }, [playerData.teamId]);
 
   // Update height when position changes
@@ -312,8 +311,8 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <HeadAvatar 
-                  variant="sm" 
+                <AssetAvatar 
+                  size="s64" 
                   seed={avatarSeed}
                 />
                 <div className="flex-1">

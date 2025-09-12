@@ -23,7 +23,7 @@ import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
 import Customize from "@/pages/Customize";
-import AvatarCustomize from "@/pages/AvatarCustomize";
+import AvatarCustomizeNew from "@/pages/AvatarCustomizeNew";
 import AvatarTest from "@/pages/AvatarTest";
 
 function Router() {
@@ -71,7 +71,7 @@ function Router() {
       
       <Route path="/customize">
         <PreGameLayout title="Customize Appearance">
-          <AvatarCustomize onNavigate={handleNavigate} />
+          <AvatarCustomizeNew onNavigate={handleNavigate} />
         </PreGameLayout>
       </Route>
       <Route path="/avatar-test">

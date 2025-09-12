@@ -7,8 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
-import HeadAvatar from '@/components/HeadAvatar';
-import { randomAvatar } from '@/avatar';
+import AssetAvatar from '@/components/AssetAvatar';
 import { AvatarData, DEFAULT_AVATAR } from '@/types/avatar';
 import { avatarStorage, copyAvatarToPlayer } from '@/utils/avatarStorage';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
@@ -191,9 +190,9 @@ export default function PlayerBuilder() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-center">
-                <HeadAvatar 
-                  seed={Date.now() % 10000} 
-                  variant="xl" 
+                <AssetAvatar 
+                  seed={`builder-${Date.now()}`} 
+                  size="s192" 
                 />
               </div>
               
