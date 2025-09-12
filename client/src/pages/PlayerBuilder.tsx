@@ -27,7 +27,7 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
   const [attributeCaps, setAttributeCaps] = useState<Partial<Attributes>>({});
 
   const currentSettings = settings.get();
-  const difficulty = difficultySettings[currentSettings.difficulty];
+  const difficulty = difficultySettings[currentSettings.difficulty] || difficultySettings.Normal;
   const maxPoints = difficulty.startingPoints;
 
   useEffect(() => {
@@ -86,6 +86,7 @@ export default function PlayerBuilder({ onSaveBuild }: PlayerBuilderProps) {
 
   const getOVR = () => {
     if (!playerInfo.position) return 0;
+    // Cap OVR at 65 for new players regardless of difficulty
     return Math.min(65, calculateOVR(attributes, playerInfo.position));
   };
 
