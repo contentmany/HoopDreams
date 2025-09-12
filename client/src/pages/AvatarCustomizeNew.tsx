@@ -65,26 +65,40 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
         const script = document.createElement('script');
         script.type = 'module';
         script.innerHTML = `
-          try {
-            console.log('Loading avatar engine...');
-            import('/js/proc-avatar.js').then(() => {
-              console.log('Avatar engine loaded, loading hooks...');
-              return import('/js/avatar-hooks.js');
-            }).then(({ mountCustomize }) => {
-              console.log('Avatar hooks loaded, attempting to mount...');
-              mountCustomize();
-              console.log('Avatar system initialized successfully');
+          (async () => {
+            try {
+              console.log('Loading avatar engine...');
               
-              // Dispatch custom event to notify React component
-              window.dispatchEvent(new CustomEvent('avatarReady'));
-            }).catch(error => {
+              // Load proc-avatar.js first to create window.AvatarKit
+              await import('/js/proc-avatar.js');
+              console.log('Avatar engine loaded, AvatarKit created');
+              
+              // Verify AvatarKit is available
+              if (!window.AvatarKit) {
+                throw new Error('AvatarKit not created properly');
+              }
+              
+              // Now load hooks which depend on AvatarKit
+              const { mountCustomize } = await import('/js/avatar-hooks.js');
+              console.log('Avatar hooks loaded, attempting to mount...');
+              
+              // Small delay to ensure DOM is fully ready
+              setTimeout(() => {
+                try {
+                  mountCustomize();
+                  console.log('Avatar system initialized successfully');
+                  window.dispatchEvent(new CustomEvent('avatarReady'));
+                } catch (mountError) {
+                  console.error('Mount error:', mountError);
+                  window.dispatchEvent(new CustomEvent('avatarError', { detail: mountError }));
+                }
+              }, 50);
+              
+            } catch (error) {
               console.error('Failed to load avatar system:', error);
               window.dispatchEvent(new CustomEvent('avatarError', { detail: error }));
-            });
-          } catch (error) {
-            console.error('Script execution error:', error);
-            window.dispatchEvent(new CustomEvent('avatarError', { detail: error }));
-          }
+            }
+          })();
         `;
         
         document.head.appendChild(script);

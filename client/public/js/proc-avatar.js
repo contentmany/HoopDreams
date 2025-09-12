@@ -113,4 +113,10 @@ function randomDNA(seed='seed'){const r=rngFromSeed(seed);return{
 }}
 
 function render(canvas,dna){const ctx=setup(canvas,parseInt(getComputedStyle(canvas).width));drawFace(ctx,dna)}
+
+// Export functions for module imports
+export function renderAvatar(canvas, dna) { return render(canvas, dna); }
+export function dnaFromSeed(seed) { return randomDNA(seed); }
+
+// Global API for window usage
 window.AvatarKit={render,randomDNA};
