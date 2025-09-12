@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { teams, settings } from "@/utils/localStorage";
@@ -16,9 +15,8 @@ import {
   feetInchesToInches
 } from "@/utils/gameConfig";
 import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
-import { CharacterPreview } from "@/components/character/CharacterPreview";
-import { getDraftPlayer } from "@/utils/character";
-import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
+import { Avatar } from "@/components/Avatar";
+import { avatarStorage, generateRandomAvatar } from "@/utils/avatarStorage";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
@@ -40,6 +38,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
+  const [avatarData, setAvatarData] = useState(() => avatarStorage.get());
   
   const teamsList = teams.get();
   const currentSettings = settings.get();
@@ -49,6 +48,19 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   useEffect(() => {
     setUseMetric(currentSettings.units === 'metric');
   }, [currentSettings.units]);
+
+  // Initialize avatar if none exists
+  useEffect(() => {
+    const storedAvatar = avatarStorage.get();
+    if (!storedAvatar || JSON.stringify(storedAvatar) === JSON.stringify(avatarData)) {
+      // Generate random avatar with team colors if available
+      const selectedTeam = teamsList.find(t => t.id === playerData.teamId);
+      const teamColor = selectedTeam?.primaryColor || '#7a5bff';
+      const randomAvatar = generateRandomAvatar(teamColor);
+      avatarStorage.set(randomAvatar);
+      setAvatarData(randomAvatar);
+    }
+  }, [playerData.teamId]);
 
   // Update height when position changes
   useEffect(() => {
@@ -308,10 +320,9 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <CharacterPreview 
-                  size="sm" 
-                  look={getDraftPlayer()?.look || DEFAULT_CHARACTER_LOOK}
-                  className="w-16 h-20" 
+                <Avatar 
+                  stageSize="sm" 
+                  avatarData={avatarData}
                 />
                 <div className="flex-1">
                   <Button
