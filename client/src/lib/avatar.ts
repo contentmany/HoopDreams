@@ -10,14 +10,8 @@ import { hexToRgb } from '../../../src/lib/color';
 
 // Client-side wrapper that handles team colors properly
 export async function composeAvatar(parts: AvatarParts, teamColor?: string): Promise<string> {
-  // Apply team color to colorable accessories
-  if (teamColor && parts.accessory && parts.accessory.includes('colorable')) {
-    const updatedParts = { ...parts };
-    // For now, use teamColor for tinting - the root composeAvatar will handle this
-    return rootComposeAvatar(updatedParts);
-  }
-  
-  return rootComposeAvatar(parts);
+  // Forward teamColor to root composeAvatar for proper tinting
+  return rootComposeAvatar(parts, teamColor);
 }
 
 export const randomAvatar = rootRandomAvatar;

@@ -36,15 +36,15 @@ export default function AssetAvatar({
         if (parts) {
           // Use provided parts
           avatarParts = parts;
-          composedUrl = await composeAvatar(avatarParts);
+          composedUrl = await composeAvatar(avatarParts, teamColor);
         } else if (seed) {
           // Generate from seed
-          const generated = await randomAvatar(seed);
+          const generated = await randomAvatar(seed, teamColor);
           avatarParts = generated.parts;
           composedUrl = generated.dataUrl;
         } else {
           // Generate random
-          const generated = await randomAvatar();
+          const generated = await randomAvatar(undefined, teamColor);
           avatarParts = generated.parts;
           composedUrl = generated.dataUrl;
         }

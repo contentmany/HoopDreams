@@ -87,7 +87,7 @@ export async function tintMask(maskUrl: string, hex: string, size = 512): Promis
   return canvas;
 }
 
-export async function composeAvatar(parts: AvatarParts, size = 512): Promise<string> {
+export async function composeAvatar(parts: AvatarParts, teamColor?: string, size = 512): Promise<string> {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -124,9 +124,9 @@ export async function composeAvatar(parts: AvatarParts, size = 512): Promise<str
   // Accessories
   if (parts.accessory && parts.accessory !== 'none') {
     if (parts.accessory.includes('colorable')) {
-      // Handle team-color tinting - for now use a default color
-      const teamColor = '#7A5BFF'; // Default team color
-      layers.push({ url: `/avatars/masks/${parts.accessory.replace('_colorable', '_mask')}.svg`, tint: teamColor });
+      // Handle team-color tinting
+      const tintColor = teamColor || '#7A5BFF'; // Use passed teamColor or default
+      layers.push({ url: `/avatars/masks/${parts.accessory.replace('_colorable', '_mask')}.svg`, tint: tintColor });
     } else {
       layers.push({ url: `/avatars/accessory/accessory_${parts.accessory}.svg` });
     }
@@ -153,7 +153,7 @@ export async function composeAvatar(parts: AvatarParts, size = 512): Promise<str
   return canvas.toDataURL('image/png');
 }
 
-export async function randomAvatar(seed?: string): Promise<{ parts: AvatarParts; dataUrl: string }> {
+export async function randomAvatar(seed?: string, teamColor?: string): Promise<{ parts: AvatarParts; dataUrl: string }> {
   await loadAvatarAssets();
   if (!manifest) throw new Error('Manifest not loaded');
   
@@ -223,7 +223,7 @@ export async function randomAvatar(seed?: string): Promise<{ parts: AvatarParts;
     accessory
   };
   
-  const dataUrl = await composeAvatar(parts);
+  const dataUrl = await composeAvatar(parts, teamColor);
   
   return { parts, dataUrl };
 }

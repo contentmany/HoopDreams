@@ -24,7 +24,6 @@ import Dash from "@/pages/Dash";
 import News from "@/pages/News";
 import Customize from "@/pages/Customize";
 import AvatarCustomizeNew from "@/pages/AvatarCustomizeNew";
-import AvatarTest from "@/pages/AvatarTest";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -72,11 +71,6 @@ function Router() {
       <Route path="/customize">
         <PreGameLayout title="Customize Appearance">
           <AvatarCustomizeNew onNavigate={handleNavigate} />
-        </PreGameLayout>
-      </Route>
-      <Route path="/avatar-test">
-        <PreGameLayout title="Avatar System Test">
-          <AvatarTest />
         </PreGameLayout>
       </Route>
       <Route path="/builder">
