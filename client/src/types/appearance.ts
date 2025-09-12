@@ -5,6 +5,8 @@ export type Appearance = {
   eyes: number;       // 1..3
   headband: number;   // 1..4  (1 = off)
   jersey: number;     // 1..4
+  accessory: 'headband' | null;   // New accessory system
+  accessoryColor: string;         // Hex color for tinting
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -13,7 +15,9 @@ export const DEFAULT_APPEARANCE: Appearance = {
   hairColor: 'black',
   eyes: 1,            // Default
   headband: 1,        // Off
-  jersey: 1           // Neutral
+  jersey: 1,          // Neutral
+  accessory: null,    // No accessory
+  accessoryColor: '#FFFFFF'  // Default white
 };
 
 // Skin tone colors (CSS values)

@@ -46,6 +46,34 @@ export default function CharacterPreview({
   
   const headbandColor = getHeadbandColor();
   
+  // New accessory system
+  const shouldShowAccessory = appearance.accessory === 'headband';
+  const accessoryColor = appearance.accessoryColor || '#FFFFFF';
+  
+  // Helper function for color tinting - converts hex to hue value
+  const hexToHue = (hex: string) => {
+    const r = parseInt(hex.substr(1, 2), 16) / 255;
+    const g = parseInt(hex.substr(3, 2), 16) / 255;
+    const b = parseInt(hex.substr(5, 2), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const diff = max - min;
+    
+    if (diff === 0) return 0;
+    
+    let hue = 0;
+    if (max === r) {
+      hue = ((g - b) / diff) % 6;
+    } else if (max === g) {
+      hue = (b - r) / diff + 2;
+    } else {
+      hue = (r - g) / diff + 4;
+    }
+    
+    return Math.round(hue * 60);
+  };
+  
   return (
     <div 
       className={`pixel relative ${containerSize} ${className}`}
@@ -86,7 +114,7 @@ export default function CharacterPreview({
         />
       )}
       
-      {/* Headband - Top layer */}
+      {/* Old Headband - Top layer */}
       {appearance.headband !== 1 && (
         <div
           className="absolute inset-x-0 border border-gray-800"
@@ -95,6 +123,20 @@ export default function CharacterPreview({
             top: size === 'lg' ? '25%' : '20%',
             height: size === 'lg' ? '8px' : '4px',
             zIndex: 2
+          }}
+        />
+      )}
+      
+      {/* New Accessory Headband - Above hair */}
+      {shouldShowAccessory && (
+        <div
+          className="absolute inset-x-0 border border-gray-800"
+          style={{ 
+            backgroundColor: accessoryColor,
+            top: size === 'lg' ? '22%' : '18%',
+            height: size === 'lg' ? '10px' : '5px',
+            zIndex: 3,
+            borderRadius: '2px'
           }}
         />
       )}

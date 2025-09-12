@@ -29,7 +29,10 @@ export default function Customize({ onNavigate }: CustomizeProps) {
     // Load existing player data if available
     const draft = getDraftPlayer();
     if (draft) {
-      setAppearance(draft.appearance || DEFAULT_APPEARANCE);
+      setAppearance({
+        ...DEFAULT_APPEARANCE,
+        ...draft.appearance
+      });
       setPlayerName({
         firstName: draft.nameFirst || draft.firstName || '',
         lastName: draft.nameLast || draft.lastName || ''
@@ -39,7 +42,11 @@ export default function Customize({ onNavigate }: CustomizeProps) {
       const stored = localStorage.getItem('hd:appearance');
       if (stored) {
         try {
-          setAppearance(JSON.parse(stored));
+          const storedAppearance = JSON.parse(stored);
+          setAppearance({
+            ...DEFAULT_APPEARANCE,
+            ...storedAppearance
+          });
         } catch (e) {
           console.warn('Failed to parse appearance data:', e);
         }
@@ -249,6 +256,46 @@ export default function Customize({ onNavigate }: CustomizeProps) {
                 onNext={() => adjustValue('jersey', 1, 4)}
                 displayValue={JERSEY_NAMES[appearance.jersey as keyof typeof JERSEY_NAMES]}
               />
+
+              {/* Accessories Section */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-medium mb-3">Accessories</h3>
+                
+                {/* Headband Toggle */}
+                <div className="flex items-center justify-between py-2">
+                  <Label className="text-sm font-medium">Headband</Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={appearance.accessory === 'headband'}
+                      onChange={(e) => updateAppearance({ 
+                        accessory: e.target.checked ? 'headband' : null 
+                      })}
+                      className="w-4 h-4"
+                      data-testid="toggle-headband"
+                    />
+                  </div>
+                </div>
+
+                {/* Color Picker - only show when headband is enabled */}
+                {appearance.accessory === 'headband' && (
+                  <div className="flex items-center justify-between py-2">
+                    <Label className="text-sm font-medium">Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={appearance.accessoryColor}
+                        onChange={(e) => updateAppearance({ accessoryColor: e.target.value })}
+                        className="w-8 h-8 rounded border border-gray-300"
+                        data-testid="color-headband"
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        {appearance.accessoryColor}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4">

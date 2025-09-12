@@ -1,0 +1,89 @@
+You are my engineer. Update the Hoop Dreams repo. Replace the old circular head avatar grid with a CLEAN 2D FULL-BODY CHARACTER SYSTEM (cartoon style with clear facial features; NOT pixel art). No gameplay changes—this is art + UI wiring.
+
+STACK: Vite + React + TypeScript. Keep current routes. Start dev server when done.
+
+GOALS
+- Flow: /new → /customize → /builder → Start Career → /home.
+- One layered 2D character (portrait + full-body) that previews live, persists to localStorage, and renders everywhere (load slots, home, team, inbox/social).
+- Hide the bottom tab bar on pre-game routes (/, /new, /customize, /builder, /load, /settings). Tabs only show in-game.
+
+ART DIRECTION (2D, CLEAN)
+- Crisp mobile-game cartoon with soft shading, anti-aliased edges (no pixelation).
+- PNG assets with transparency. Two canvases:
+  • Portrait (head+shoulders) 256×256
+  • Full-body (neutral stand) 384×512
+- Jersey/shorts should be tintable by team color.
+
+FILES & FOLDERS (create if missing; placeholder PNGs are fine)
+- /public/assets/characters/portrait/{layer}/{variant}.png
+- /public/assets/characters/full/{layer}/{variant}.png
+Layer order (top → bottom):
+  accessory (none|headband|goggles)
+  hair (short|fade|afro|braids|buzz|curly)
+  brows (straight|angled)
+  eyes (default|focused)
+  nose (small|medium)
+  mouth (neutral|smile)
+  head (skin: light|tan|brown|dark)
+  jersey (grayscale for tint)
+  shorts (grayscale for tint)
+  legs (skin)
+  socks
+  shoes
+
+COMPONENTS
+1) src/components/character/CharacterPreview.tsx
+   - Props type:
+     export type CharacterLook = {
+       skin:'light'|'tan'|'brown'|'dark';
+       hair:'short'|'fade'|'afro'|'braids'|'buzz'|'curly';
+       brows:'straight'|'angled';
+       eyes:'default'|'focused';
+       nose:'small'|'medium';
+       mouth:'neutral'|'smile';
+       accessory:'none'|'headband'|'goggles';
+       jerseyColor:string; shortsColor:string; teamNumber?:number;
+     }
+   - Renders portrait OR full-body by layering PNGs absolutely in a fixed canvas.
+   - Tint jersey/shorts from grayscale using <canvas> “multiply”; cache tinted bitmaps.
+
+2) src/components/character/CharacterFull.tsx
+   - Full-body convenience wrapper used on /customize and /builder.
+
+ROUTES & UI
+- /new (Create Player): on submit, go to /customize (do NOT jump straight to builder).
+- /customize (Character Creator):
+  • Large CharacterFull preview.
+  • Controls: Skin Tone, Hair Style, Brows, Eyes, Nose, Mouth, Accessory, Jersey Color, Shorts Color.
+  • Buttons: Randomize, Back, Continue → /builder.
+  • Save to localStorage key hd:player.look.
+- /builder (Player Builder):
+  • Pin the SAME full-body preview near attributes.
+  • Keep attribute UI; Start Career saves slot then goes to /home.
+- /home, /team, /load, inbox/social: use portrait variant as the avatar (scaled cleanly).
+
+DATA
+- Extend hd:player to include:
+  look: CharacterLook; number:number; dominantHand:'R'|'L';
+- On team select at /new:
+  look.jerseyColor = team.primary; look.shortsColor = team.secondary ?? darken(team.primary,12%);
+- Save look inside each save slot snapshot; load restores it.
+
+NPC LOOKS
+- src/utils/characters.ts → export function generateRandomLook(seed?:string):CharacterLook
+  • Deterministic by seed (e.g., `${teamId}-${index}`) for roster teammates and opponents.
+
+PRE/IN-GAME NAV
+- Ensure bottom tab bar is hidden on /, /new, /customize, /builder, /load, /settings (fix leakage on Settings when opened from main menu).
+
+PERFORMANCE
+- Preload active layer images; use will-change: transform; no console errors.
+
+ACCEPTANCE
+- /customize shows clear-face full-body character with live updates.
+- /builder shows the same character beside attributes.
+- Portraits appear sharp across home/team/load/inbox/social.
+- Looks persist across saves/loads; NPCs use deterministic random looks.
+- Bottom tabs never appear on pre-game routes.
+
+Implement, run the dev server, and print the local URL.
