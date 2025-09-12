@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avatar Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .test-container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .test-item { border: 1px solid #333; padding: 15px; border-radius: 8px; }
+        canvas { border: 1px solid #666; background: #2a2320; border-radius: 8px; }
+        button { padding: 8px 16px; margin: 5px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #555; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Avatar System Test</h1>
+    <div id="results"></div>
+    
+    <div class="test-container">
+        <div class="test-item">
+            <h3>Test 1: Basic Avatar Rendering</h3>
+            <canvas id="test1" width="128" height="128"></canvas>
+            <button onclick="testBasicRender()">Test Basic Render</button>
+            <div id="test1-result"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>Test 2: Random DNA Generation</h3>
+            <canvas id="test2" width="128" height="128"></canvas>
+            <button onclick="testRandomDNA()">Test Random DNA</button>
+            <div id="test2-result"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>Test 3: Custom DNA Properties</h3>
+            <canvas id="test3" width="128" height="128"></canvas>
+            <button onclick="testCustomDNA()">Test Custom DNA</button>
+            <div id="test3-result"></div>
+        </div>
+    </div>
+
+    <script src="/js/proc-avatar.js"></script>
+    <script>
+        function log(message, isError = false) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = isError ? 'error' : 'success';
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        function testBasicRender() {
+            try {
+                const canvas = document.getElementById('test1');
+                const result = document.getElementById('test1-result');
+                
+                if (!window.AvatarKit) {
+                    throw new Error('AvatarKit not found');
+                }
+                
+                const basicDNA = {
+                    skin: 'F2',
+                    hairStyle: 'short',
+                    hairColor: '#3a2f25',
+                    eyeColor: '#3a2f25',
+                    eyeShape: 'almond',
+                    brows: true,
+                    mouth: 'smile',
+                    facial: 'none',
+                    accessory: 'none'
+                };
+                
+                window.AvatarKit.render(canvas, basicDNA);
+                result.textContent = 'SUCCESS: Basic rendering completed';
+                result.className = 'success';
+                log('Test 1 PASSED: Basic avatar rendering works');
+                
+            } catch (error) {
+                const result = document.getElementById('test1-result');
+                result.textContent = 'ERROR: ' + error.message;
+                result.className = 'error';
+                log('Test 1 FAILED: ' + error.message, true);
+            }
+        }
+
+        function testRandomDNA() {
+            try {
+                const canvas = document.getElementById('test2');
+                const result = document.getElementById('test2-result');
+                
+                if (!window.AvatarKit || !window.AvatarKit.randomDNA) {
+                    throw new Error('AvatarKit.randomDNA not found');
+                }
+                
+                const randomDNA = window.AvatarKit.randomDNA('test-seed');
+                window.AvatarKit.render(canvas, randomDNA);
+                result.textContent = 'SUCCESS: Random DNA generated and rendered';
+                result.className = 'success';
+                log('Test 2 PASSED: Random DNA generation works');
+                
+            } catch (error) {
+                const result = document.getElementById('test2-result');
+                result.textContent = 'ERROR: ' + error.message;
+                result.className = 'error';
+                log('Test 2 FAILED: ' + error.message, true);
+            }
+        }
+
+        function testCustomDNA() {
+            try {
+                const canvas = document.getElementById('test3');
+                const result = document.getElementById('test3-result');
+                
+                const customDNA = {
+                    skin: 'F3',
+                    hairStyle: 'afro',
+                    hairColor: '#754c24',
+                    eyeColor: '#1f2d57',
+                    eyeShape: 'round',
+                    brows: true,
+                    mouth: 'grin',
+                    facial: 'goatee',
+                    accessory: 'headband'
+                };
+                
+                window.AvatarKit.render(canvas, customDNA);
+                result.textContent = 'SUCCESS: Custom DNA rendered';
+                result.className = 'success';
+                log('Test 3 PASSED: Custom DNA properties work');
+                
+            } catch (error) {
+                const result = document.getElementById('test3-result');
+                result.textContent = 'ERROR: ' + error.message;
+                result.className = 'error';
+                log('Test 3 FAILED: ' + error.message, true);
+            }
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', function() {
+            log('Starting avatar system tests...');
+            setTimeout(() => {
+                testBasicRender();
+                setTimeout(() => {
+                    testRandomDNA();
+                    setTimeout(() => {
+                        testCustomDNA();
+                    }, 500);
+                }, 500);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
