@@ -1,0 +1,192 @@
+PROJECT: Hoop Dreams — Build Functionality (Step 2)
+
+KEEP:
+- All visuals from the current prototype (pixel arena bg, cards, sticky header, bottom tabs).
+- Routes already created: /, /new, /load, /home, /league, /team, /social, /settings, /inbox, /roster-editor.
+- Styling rules: safe-area insets, no overlaps, crisp pixel rendering, dark overlay on background.
+
+UPDATE SUMMARY (what to build now)
+1) MAIN MENU (/) TWEAKS
+   - Keep: Play, Load/Continue, Roster Editor, Settings, Version chip.
+   - REMOVE: “Inbox” from main menu (Inbox belongs inside the save).
+   - Clicking Play → if no active save, go to /new; if a save is active, go to /home.
+
+2) SAVE/LOAD
+   - 5 save slots in localStorage: hd:saveSlots (array of 5), hd:activeSlot (index).
+   - Manual **Save** available in Settings and in a “⋮” header menu on /home (also auto-save after key actions).
+   - Delete with confirm; empty slots show “New Game”.
+
+3) CREATE PLAYER (/new)
+   - Fields: FirstName, LastName, Position (PG/SG/SF/PF/C), Team (from roster-editor), Archetype (filtered by position), Height (supports ft/in and cm), Avatar (grid of randomized pixel heads).
+   - Archetype OPTIONS by position (NBA-style):
+     * PG: Pass First, Shot Creator, 3-Point Playmaker, Two-Way Playmaker
+     * SG: Sharpshooter, Slasher, 3-and-D Guard, Two-Way Scorer
+     * SF: Point Forward, 3-and-D Wing, Slashing Wing, Two-Way Wing
+     * PF: Stretch Four, Glass-Cleaning Finisher, Two-Way Stretch, Inside-Out Four
+     * C : Paint Beast, Stretch Five, Two-Way Interior, Mobile Big
+   - Height input:
+     * UX toggle between **ft/in** and **cm**, showing both (e.g., “6'3" / 191 cm”).
+     * Enforce sensible ranges by position (PG 5'9"–6'5", SG 6'2"–6'8", SF 6'5"–6'10", PF 6'7"–6'11", C 6'9"–7'3"); show inline errors.
+   - **Start Career** sets initial player state and redirects to **/builder** (new route below).
+
+4) PLAYER BUILDER (/builder) — Attributes, OVR, Badges Preview
+   - Goal: allocate points to reach around **65 OVR** (hard cap 65 at creation) with a global max potential of **99**.
+   - Show left column with player info (position, height, archetype), and large OVR meter.
+   - Attributes (0–99):
+     SHOOTING: Close, Mid, Three, FreeThrow
+     FINISHING: DrivingLayup, DrivingDunk, PostControl
+     PLAYMAKING: PassAccuracy, BallHandle, SpeedWithBall
+     DEFENSE: InteriorD, PerimeterD, Steal, Block, OReb, DReb
+     PHYSICALS: Speed, Acceleration, Strength, Vertical, Stamina
+   - **Starting Points**: 250 (tuneable via difficulty, see Section 9).
+   - Caps by POSITION x HEIGHT (examples; implement as tables):
+     PG short(<6'1"): higher Playmaking caps, lower Block/Reb caps
+     PG avg(6'1"–6'3"): balanced
+     PG tall(>6'3"): slightly higher Interior/Block caps, tiny 3P penalty
+     … provide tables for SG/SF/PF/C similar to above.
+   - OVR calculation:
+     * Weighted blend per position (you choose sane weights).
+     * Show a tooltip “How OVR is calculated” and highlight attributes most impactful for the selected position.
+   - Badges PREVIEW panel (read-only here): shows which badges are POSSIBLE at current attribute levels (locked until career). Displays potential tier reachable now (Bronze/Silver/Gold/HOF).
+   - Actions: **Save Build** → persists attributes and goes to /home. **Reset** returns points.
+
+5) HOME (/home)
+   - Sticky header: Left title, center chips (High School • Year • W##), Right: **SIM >>** button.
+   - **NO +1w** button. Playing a game auto-advances 1 week.
+   - Hero card “Next Game”:
+     * Opponent badge + “This week” badge.
+     * Primary button: **Play Game (–3 Energy)** → fake sim popup → result; apply energy cost and auto-advance one week.
+     * Secondary: **Scouting** (placeholder modal).
+   - Quick Row (4 round tiles): **Standings** (/league?tab=standings), **Schedule** (/league?tab=schedule), **Inbox** (/inbox), **News** (/social?tab=news).
+     (Team & Social remain in bottom tabs; no duplicates here.)
+   - **League Snapshot** card with tabs: Standings (top 3 rows), Schedule (next 3). “View full” deep-links to /league.
+   - **Stats Strip** (always above bottom nav): Energy, Mood, Clout, Chemistry, Health, Reputation.
+     * Make it sit higher so all 6 are visible without extra scroll on small screens.
+   - Bottom tabs: **Home • League • Team • Social • Settings**.
+   - OPTIONAL tab: **Dash** (if you already created it) opens a page of extra life-sim tiles (Shop, Businesses, Properties, Gym, etc.). Place Inbox and News elsewhere as specified above.
+
+6) LEAGUE (/league)
+   - Tabs: Standings | Schedule with URL param `?tab=`.
+   - Seed **fictional** high-school teams only (no real names) from /roster-editor or defaults; each has a primary color chip.
+   - Schedule uses 12-game SHORT season by default (Settings can switch to 16 Standard). Simple 4-team playoff after regular season; 8-week offseason (training/social only).
+   - One game per week. Offseason weeks have no opponent.
+
+7) TEAM (/team)
+   - Player card (name, position, archetype, team chip). Roster list with OVR.
+   - Buttons: Practice (consumes energy; small gains), Coach Talk (placeholder).
+   - Training progression: **diminishing returns** + **per-season improvement cap = +8 attribute points** (show “Season Cap: X/8 used”).
+
+8) SOCIAL & INBOX
+   - /social: Followers + Clout summary + simple timeline of fake posts. “Post Update” appends a post.
+   - /inbox: threaded list with unread dots; detail view with “Mark read” + “Mark all read.” Seed 4–6 messages (coach, parent, local paper, sponsor spam).
+
+9) DIFFICULTY (player-adjustable in Settings)
+   - Add a **Difficulty** section in /settings with: Easy, Normal (default), Hard, Custom (sliders).
+   - Difficulty affects:
+     * STARTING ATTRIBUTE POINTS (builder): Easy 280 • Normal 250 • Hard 220
+     * TRAINING RETURN per session: Easy +0.7 • Normal +0.5 • Hard +0.35 (random ±0.1)
+     * BADGE ATTRIBUTE THRESHOLD SCALE: Easy ×0.95 • Normal ×1.00 • Hard ×1.05
+     * MILESTONE REQUIREMENT SCALE (see Section 11): Easy ×0.85 • Normal ×1.00 • Hard ×1.15
+     * INJURY CHANCE (when low energy): Easy ×0.8 • Normal ×1.0 • Hard ×1.2
+     * ENERGY COSTS: Play Game = 3 (all modes); Train: Easy 2 • Normal 3 • Hard 4
+     * SIM OPPONENT STRENGTH: Easy −3 rating, Normal 0, Hard +3 (to their team rating when simming).
+   - Persist chosen difficulty in hd:settings.difficulty. When changing difficulty, **do not** remove earned badges; new unlock checks use the new scales.
+
+10) BADGE SYSTEM (20 total; 4 tiers Bronze/Silver/Gold/HOF)
+   - Four categories; each badge has core attribute thresholds (apply Difficulty scale), **and** can also be earned via milestones (Section 11).
+   - Costs to equip/upgrade (points): Bronze 1 • Silver 2 • Gold 3 • HOF 4.
+   - **Starting Badge Points**: 3 on Normal; Easy 4; Hard 2. Earn +1 on key milestones or season awards; **per-season badge point cap: 6**.
+   - Categories & examples (implement all 20):
+
+   SHOOTING
+   • Catch & Shoot — 3PT: 72/80/88/95
+   • Deadeye — 3PT: 75/83/90/96
+   • Limitless Range — 3PT: 78/86/92/97
+   • Corner Specialist — 3PT: 70/78/86/92
+   • Green Machine — FT or 3PT Consistency proxy (use 3PT + Mood): 72/80/88/95
+
+   FINISHING
+   • Acrobat — Layup: 74/82/90/96
+   • Slithery — Layup or Dunk: 76/84/90/96
+   • Posterizer — Dunk: 80/87/93/97
+   • Fearless Finisher — Layup + Strength: 72/80/88/94
+   • Putback Boss — OReb + Dunk: 72/80/88/94
+
+   PLAYMAKING
+   • Dimer — PassAcc: 76/84/90/95
+   • Quick First Step — SpeedWithBall: 78/86/92/97
+   • Handles for Days — BallHandle: 79/86/92/97
+   • Unpluckable — BallHandle + Strength: 74/82/90/95
+   • Needle Threader — PassAcc: 78/86/92/97
+
+   DEFENSE/REBOUNDING
+   • Clamps — PerimeterD: 78/86/92/97
+   • Interceptor — Steal: 75/83/90/96
+   • Rim Protector — Block: 78/86/92/97
+   • Boxout Beast — Strength + DReb: 74/82/90/95
+   • Anchor — InteriorD: 80/87/93/97
+
+   - Badge **equip panel** on /home (or /team) with filters by category; enforce tier costs, thresholds (post-difficulty), and seasonal badge point cap.
+
+11) BADGE MILESTONES (auto-unlock path)
+   - Track season-long tallies (persist per save): made 3s, assists, steals, blocks, dunks, etc.
+   - Examples (apply **Difficulty milestone scale**):
+     • Deadeye: 50/120/220/360 made 3s
+     • Limitless: 40/100/180/300 made “deep 3s” (just count made 3s for now)
+     • Dimer: 100/240/420/600 assists
+     • Clamps: 60/130/220/360 “stops” (use steals+blocks)
+     • Posterizer: 40/90/160/240 dunks
+   - When milestones hit, award the tier if attribute threshold also met; if not, store as **eligible** and grant when threshold is later met. Show unobtrusive toasts.
+
+12) WEEK LOOP, GAME & SIM
+   - **Play Game** (button on Hero card):
+     * Roll a simple outcome using player OVR + team rating vs opponent; add small variance.
+     * Apply stats using attributes & energy (shooting → points, playmaking → assists, rebounding → rebs, etc.).
+     * Reduce energy (per difficulty) and **auto-advance one week**.
+     * Update standings, schedule, milestones, training cap usage.
+   - **SIM >>** (button in header):
+     * Opens modal: “Sim 1 Week”, “Sim to Playoffs”, “Sim Remainder”.
+     * Sim consumes energy only for “Play Game” weeks? (No; sim weeks don’t change player energy.)
+     * Respect playoffs & offseason windows.
+
+13) ENERGY / PROGRESSION / INJURY
+   - Energy regenerates +2 on non-game weeks, +3 during offseason (cap 10).
+   - Low energy (<3) reduces simulated performance and raises injury chance using Difficulty injury multiplier.
+   - Injuries: simple statuses (Day-to-Day, 1–2 weeks); skip play; show Inbox message.
+
+14) THEME & ACCESSIBILITY
+   - Team-color theming from roster-editor (chips, primary buttons, accents). Contrast-check; auto white/near-black text.
+   - Keep all cards/inputs fully opaque with subtle borders; 60fps scroll on mobile; no overlaps.
+
+15) DATA KEYS (localStorage)
+   - hd:saveSlots (array of 5 slot objects or null)
+   - hd:activeSlot (index or null)
+   - hd:teams (array { id, name, color })
+   - hd:settings { themeColor, soundOn, difficulty, seasonLength: "short" | "standard", units: "imperial" | "metric" }
+   - hd:player {
+       nameFirst, nameLast, position, archetype, heightInches, heightCm,
+       teamId, avatarId, year: 2026, week: 1, age: 14,
+       attributes: { ...as listed }, badgePoints: number,
+       badges: [{ id, tier }], milestones: { threeMade, assists, … },
+       energy: 10, mood: 7, clout: 5, chemistry: 50, health: 100, reputation: 0,
+       seasonCapUsed: 0
+     }
+   - hd:inbox [{ id, dateISO, title, body, read }]
+
+16) ACCEPTANCE CHECKLIST
+   - No console errors. Mobile scrolling remains 60fps; nothing overlaps (safe-area respected).
+   - Main menu has **no Inbox**.
+   - /new filters archetypes by position; height supports ft/in & cm; validation works.
+   - /builder enforces position+height caps; OVR reflects attribute weights; max creation OVR = 65.
+   - Difficulty in Settings changes: starting builder points, training returns, badge thresholds, milestone scales, injury chance, AI strength, and training energy cost.
+   - Home quick row = Standings, Schedule, Inbox, News. Stats strip visible without extra scroll.
+   - Play Game auto-advances one week; **SIM >>** modal can sim 1W/Playoffs/Rest.
+   - Badges (20) equip/upgrade with costs & thresholds; seasonal badge point cap enforced; milestones tracked and award eligibility.
+   - Season length Short(12) or Standard(16) set in Settings; 4-team playoffs; 8-week offseason.
+   - Teams are fictional (no licensed names).
+
+17) DEV NOTES
+   - Keep thresholds & weights in small config files for easy future tuning.
+   - Add clear comments where to plug real match engine later.
+
+When done, run the dev server and print the local URL. Also list the main files created/modified (especially /builder route, badges system, difficulty handlers).
