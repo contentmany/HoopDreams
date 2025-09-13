@@ -38,25 +38,49 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightError, setHeightError] = useState("");
   const [avatarSeed, setAvatarSeed] = useState(() => `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
   
-  // Load procedural avatar system
+  // Initialize procedural avatar system
   useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
-    }
+    const initializeAvatar = async () => {
+      try {
+        // Wait for avatar system to be available
+        const waitForAvatarSystem = () => {
+          return new Promise<void>((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds maximum
+            
+            const check = () => {
+              attempts++;
+              
+              if (window.AvatarKit && window.AvatarHooks) {
+                console.log('Avatar system available for player creation');
+                resolve();
+                return;
+              }
+              
+              if (attempts >= maxAttempts) {
+                reject(new Error('Avatar system failed to load within timeout'));
+                return;
+              }
+              
+              setTimeout(check, 100);
+            };
+            
+            check();
+          });
+        };
+
+        // Wait for avatar system
+        await waitForAvatarSystem();
+        
+        // Initialize the avatar chip
+        window.AvatarHooks.attachImgCanvas('#avatarChip', 40);
+        console.log('Avatar chip initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize avatar chip:', error);
+      }
+    };
     
-    // Initialize player avatar chip
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { attachImgCanvas } from '/js/avatar-hooks.js';
-      setTimeout(() => {
-        attachImgCanvas('#avatarChip', 40);
-      }, 100);
-    `;
-    document.head.appendChild(script);
+    initializeAvatar();
   }, [avatarSeed]);
   
   const teamsList = teams.get();

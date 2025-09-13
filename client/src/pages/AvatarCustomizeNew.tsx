@@ -10,221 +10,75 @@ interface AvatarCustomizeNewProps {
 
 export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
   const [, setLocation] = useLocation();
-  const [loading, setLoading] = useState(true);
   const [avatarReady, setAvatarReady] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    let initializationAttempted = false;
-
-    // Load CSS first
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    document.head.appendChild(link);
-
-    // Enhanced DOM ready check with better timing
-    const checkDOMReady = () => {
-      if (!mounted) return false;
-      
-      // Check for all required elements
-      const requiredElements = [
-        'avatarCanvas',
-        'skin', 
-        'hairStyle', 
-        'hairColor', 
-        'eyeColor', 
-        'eyeShape',
-        'brows',
-        'mouth',
-        'facial', 
-        'accessory',
-        'btnRandom'
-      ];
-      
-      const missingElements = requiredElements.filter(id => !document.getElementById(id));
-      
-      if (missingElements.length === 0) {
-        console.log('All avatar DOM elements are ready');
-        return true;
-      } else {
-        console.log('Missing avatar elements:', missingElements);
-        return false;
-      }
-    };
-
-    // Initialize avatar system with improved error handling
-    const initializeAvatar = () => {
-      if (initializationAttempted || !mounted) return;
-      initializationAttempted = true;
-
+    // Initialize avatar customization system with better timing
+    const initializeAvatar = async () => {
       try {
-        console.log('Creating avatar initialization script...');
-        
-        // Create script element for module import
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.innerHTML = `
-          (async () => {
-            try {
-              console.log('Loading avatar engine...');
+        // Wait for both AvatarKit and AvatarHooks to be available
+        const waitForAvatarSystem = () => {
+          return new Promise<void>((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds maximum
+            
+            const check = () => {
+              attempts++;
               
-              // Load proc-avatar.js first to create window.AvatarKit
-              await import('/js/proc-avatar.js');
-              console.log('Avatar engine loaded, AvatarKit created');
-              
-              // Verify AvatarKit is available
-              if (!window.AvatarKit) {
-                throw new Error('AvatarKit not created properly');
+              if (window.AvatarKit && window.AvatarHooks) {
+                console.log('Avatar system loaded successfully');
+                resolve();
+                return;
               }
               
-              // Now load hooks which depend on AvatarKit
-              const { mountCustomize } = await import('/js/avatar-hooks.js');
-              console.log('Avatar hooks loaded, attempting to mount...');
+              if (attempts >= maxAttempts) {
+                reject(new Error('Avatar system failed to load within timeout'));
+                return;
+              }
               
-              // Small delay to ensure DOM is fully ready
-              setTimeout(() => {
-                try {
-                  mountCustomize();
-                  console.log('Avatar system initialized successfully');
-                  window.dispatchEvent(new CustomEvent('avatarReady'));
-                } catch (mountError) {
-                  console.error('Mount error:', mountError);
-                  window.dispatchEvent(new CustomEvent('avatarError', { detail: mountError }));
-                }
-              }, 50);
-              
-            } catch (error) {
-              console.error('Failed to load avatar system:', error);
-              window.dispatchEvent(new CustomEvent('avatarError', { detail: error }));
-            }
-          })();
-        `;
-        
-        document.head.appendChild(script);
-        
-      } catch (error) {
-        console.error('Failed to create avatar initialization script:', error);
-        // Reset flag to allow retry
-        initializationAttempted = false;
-      }
-    };
-
-    // More robust timing mechanism
-    const startAvatarSystem = () => {
-      if (!mounted) return;
-
-      // Use multiple strategies to ensure DOM is ready
-      const strategies = [
-        // Strategy 1: Immediate check
-        () => {
-          if (checkDOMReady()) {
-            initializeAvatar();
-            return true;
-          }
-          return false;
-        },
-        
-        // Strategy 2: RequestAnimationFrame for next repaint
-        () => new Promise(resolve => {
-          requestAnimationFrame(() => {
-            if (checkDOMReady()) {
-              initializeAvatar();
-              resolve(true);
-            } else {
-              resolve(false);
-            }
-          });
-        }),
-        
-        // Strategy 3: Small delay with retry
-        () => new Promise(resolve => {
-          setTimeout(() => {
-            if (checkDOMReady()) {
-              initializeAvatar();
-              resolve(true);
-            } else {
-              resolve(false);
-            }
-          }, 100);
-        }),
-        
-        // Strategy 4: Polling with backoff
-        () => new Promise(resolve => {
-          let attempts = 0;
-          const maxAttempts = 20;
-          
-          const poll = () => {
-            if (!mounted) {
-              resolve(false);
-              return;
-            }
+              setTimeout(check, 100);
+            };
             
-            attempts++;
-            if (checkDOMReady()) {
-              initializeAvatar();
-              resolve(true);
-            } else if (attempts < maxAttempts) {
-              const delay = Math.min(100 * attempts, 1000); // Exponential backoff up to 1s
-              setTimeout(poll, delay);
-            } else {
-              console.error('Failed to find all avatar elements after maximum attempts');
-              resolve(false);
-            }
-          };
-          
-          poll();
-        })
-      ];
+            check();
+          });
+        };
 
-      // Execute strategies sequentially until one succeeds
-      const executeStrategies = async () => {
-        for (const strategy of strategies) {
-          try {
-            const success = await strategy();
-            if (success) {
-              console.log('Avatar initialization strategy succeeded');
-              break;
-            }
-          } catch (error) {
-            console.warn('Avatar initialization strategy failed:', error);
-          }
+        // Wait for avatar system to be available
+        await waitForAvatarSystem();
+
+        // Wait for DOM elements to be ready
+        const checkDOMReady = () => {
+          const requiredElements = [
+            'avatarCanvas', 'skin', 'hairStyle', 'hairColor', 
+            'eyeColor', 'eyeShape', 'brows', 'mouth', 'facial', 
+            'accessory', 'btnRandom'
+          ];
+          return requiredElements.every(id => document.getElementById(id));
+        };
+
+        // Wait for DOM to be ready with polling
+        let domAttempts = 0;
+        while (!checkDOMReady() && domAttempts < 20) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          domAttempts++;
         }
-      };
 
-      executeStrategies();
-    };
+        if (!checkDOMReady()) {
+          console.error('Avatar DOM elements not ready after timeout');
+          return;
+        }
 
-    // Add event listeners for avatar system feedback
-    const handleAvatarReady = () => {
-      if (mounted) {
-        console.log('Avatar system is ready');
+        // Initialize the avatar customization
+        window.AvatarHooks.mountCustomize();
         setAvatarReady(true);
+        console.log('Avatar customization system initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize avatar system:', error);
       }
     };
 
-    const handleAvatarError = (event: Event) => {
-      if (mounted) {
-        const customEvent = event as CustomEvent<any>;
-        console.error('Avatar system error:', customEvent.detail);
-        // Reset initialization flag to allow retry
-        initializationAttempted = false;
-      }
-    };
-
-    window.addEventListener('avatarReady', handleAvatarReady);
-    window.addEventListener('avatarError', handleAvatarError);
-
-    // Start the avatar system initialization
-    startAvatarSystem();
-    setLoading(false);
-
-    // Cleanup function
-    return () => {
-      mounted = false;
-      window.removeEventListener('avatarReady', handleAvatarReady);
-      window.removeEventListener('avatarError', handleAvatarError);
-    };
+    // Start initialization
+    initializeAvatar();
   }, []);
 
   const handleSave = () => {

@@ -1,5 +1,5 @@
 // V2 Avatar Control Wiring - Uses AvatarKit API
-export function mountCustomize(){
+function mountCustomize(){
   const C = document.getElementById('avatarCanvas');
   if (!C) {
     console.error('Avatar canvas not found');
@@ -69,7 +69,7 @@ export function mountCustomize(){
 }
 
 // Updated helper functions for V2 API compatibility
-export function attachImgCanvas(selector, size = 64){
+function attachImgCanvas(selector, size = 64){
   const el = document.querySelector(selector); 
   if (!el) return;
   el.width = size; 
@@ -79,9 +79,12 @@ export function attachImgCanvas(selector, size = 64){
   window.AvatarKit.render(el, dna);
 }
 
-export function npcIntoCanvas(canvas, seed, size = 40){
+function npcIntoCanvas(canvas, seed, size = 40){
   canvas.width = size; 
   canvas.height = size; 
   canvas.classList.add(`avatar${size}`);
   window.AvatarKit.render(canvas, window.AvatarKit.randomDNA(seed));
 }
+
+// Expose functions globally for non-module usage
+window.AvatarHooks = { mountCustomize, attachImgCanvas, npcIntoCanvas };
