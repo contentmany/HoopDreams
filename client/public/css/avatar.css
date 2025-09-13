@@ -1,5 +1,6 @@
 .avatar-wrap{display:flex;flex-direction:column;gap:.75rem;max-width:360px}
 .avatar128{width:128px;height:128px;background:#2a2320;border-radius:12px}
+.avatar96{width:96px;height:96px}
 .avatar64{width:64px;height:64px}
 .avatar40{width:40px;height:40px}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}

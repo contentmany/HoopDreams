@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avatar System Bug Fix Test</title>
+    <link rel="stylesheet" href="client/public/css/avatar.css">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #333; border-radius: 8px; }
+        .canvas-row { display: flex; gap: 20px; align-items: center; margin: 10px 0; }
+        .size-label { width: 80px; font-weight: bold; }
+        canvas { border: 1px solid #555; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .pass { background: #1a4a1a; border: 1px solid #2a6a2a; }
+        .fail { background: #4a1a1a; border: 1px solid #6a2a2a; }
+    </style>
+</head>
+<body>
+    <h1>Avatar System Bug Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Size Scaling (Fixed Bug #1)</h2>
+        <p>Testing that avatars render correctly at all sizes: 128px, 96px, 64px, 40px</p>
+        
+        <div class="canvas-row">
+            <span class="size-label">128px:</span>
+            <canvas id="test-128" class="avatar128"></canvas>
+        </div>
+        <div class="canvas-row">
+            <span class="size-label">96px:</span>
+            <canvas id="test-96" class="avatar96"></canvas>
+        </div>
+        <div class="canvas-row">
+            <span class="size-label">64px:</span>
+            <canvas id="test-64" class="avatar64"></canvas>
+        </div>
+        <div class="canvas-row">
+            <span class="size-label">40px:</span>
+            <canvas id="test-40" class="avatar40"></canvas>
+        </div>
+        
+        <div id="scaling-result" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Deterministic Rendering (Fixed Bug #2)</h2>
+        <p>Testing that afro hairstyle renders consistently with same DNA</p>
+        
+        <div class="canvas-row">
+            <span class="size-label">Render 1:</span>
+            <canvas id="test-det-1" class="avatar128"></canvas>
+        </div>
+        <div class="canvas-row">
+            <span class="size-label">Render 2:</span>
+            <canvas id="test-det-2" class="avatar128"></canvas>
+        </div>
+        <div class="canvas-row">
+            <span class="size-label">Render 3:</span>
+            <canvas id="test-det-3" class="avatar128"></canvas>
+        </div>
+        
+        <div id="determinism-result" class="test-result"></div>
+    </div>
+
+    <script type="module">
+        // Import the avatar system
+        import('./client/public/js/proc-avatar.js').then(() => {
+            console.log('Avatar system loaded');
+            runTests();
+        }).catch(err => {
+            console.error('Failed to load avatar system:', err);
+            // Try fallback - direct script tag approach
+            const script = document.createElement('script');
+            script.src = 'client/public/js/proc-avatar.js';
+            script.onload = runTests;
+            document.head.appendChild(script);
+        });
+
+        function runTests() {
+            try {
+                // Test 1: Size scaling
+                testSizeScaling();
+                
+                // Test 2: Deterministic rendering
+                testDeterministicRendering();
+                
+            } catch (err) {
+                console.error('Test failed:', err);
+            }
+        }
+
+        function testSizeScaling() {
+            const testDNA = {
+                skin: 'F2',
+                hairStyle: 'afro',
+                hairColor: '#2b2018',
+                eyeColor: '#3a2f25',
+                eyeShape: 'round',
+                brows: true,
+                mouth: 'smile',
+                facial: 'none',
+                accessory: 'none'
+            };
+
+            try {
+                // Render at all sizes
+                window.AvatarKit.render(document.getElementById('test-128'), testDNA);
+                window.AvatarKit.render(document.getElementById('test-96'), testDNA);
+                window.AvatarKit.render(document.getElementById('test-64'), testDNA);
+                window.AvatarKit.render(document.getElementById('test-40'), testDNA);
+                
+                document.getElementById('scaling-result').className = 'test-result pass';
+                document.getElementById('scaling-result').textContent = 'PASS: All sizes rendered successfully';
+            } catch (err) {
+                document.getElementById('scaling-result').className = 'test-result fail';
+                document.getElementById('scaling-result').textContent = 'FAIL: ' + err.message;
+            }
+        }
+
+        function testDeterministicRendering() {
+            const afroDNA = {
+                skin: 'F3',
+                hairStyle: 'afro',
+                hairColor: '#754c24',
+                eyeColor: '#1f2d57',
+                eyeShape: 'almond',
+                brows: true,
+                mouth: 'grin',
+                facial: 'goatee',
+                accessory: 'headband'
+            };
+
+            try {
+                // Render same DNA 3 times
+                window.AvatarKit.render(document.getElementById('test-det-1'), afroDNA);
+                window.AvatarKit.render(document.getElementById('test-det-2'), afroDNA);
+                window.AvatarKit.render(document.getElementById('test-det-3'), afroDNA);
+                
+                // Get image data for comparison
+                const canvas1 = document.getElementById('test-det-1');
+                const canvas2 = document.getElementById('test-det-2');
+                const canvas3 = document.getElementById('test-det-3');
+                
+                const data1 = canvas1.getContext('2d').getImageData(0, 0, canvas1.width, canvas1.height).data;
+                const data2 = canvas2.getContext('2d').getImageData(0, 0, canvas2.width, canvas2.height).data;
+                const data3 = canvas3.getContext('2d').getImageData(0, 0, canvas3.width, canvas3.height).data;
+                
+                // Compare pixel data
+                let identical = true;
+                for (let i = 0; i < data1.length; i++) {
+                    if (data1[i] !== data2[i] || data1[i] !== data3[i]) {
+                        identical = false;
+                        break;
+                    }
+                }
+                
+                if (identical) {
+                    document.getElementById('determinism-result').className = 'test-result pass';
+                    document.getElementById('determinism-result').textContent = 'PASS: Afro hairstyle renders deterministically';
+                } else {
+                    document.getElementById('determinism-result').className = 'test-result fail';
+                    document.getElementById('determinism-result').textContent = 'FAIL: Afro hairstyle renders differently each time';
+                }
+            } catch (err) {
+                document.getElementById('determinism-result').className = 'test-result fail';
+                document.getElementById('determinism-result').textContent = 'FAIL: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>

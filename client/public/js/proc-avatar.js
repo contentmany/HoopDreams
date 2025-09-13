@@ -13,10 +13,8 @@ function E(ctx,x,y,rx,ry){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);c
 function R(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 
 function drawFace(ctx,d){
-  // Get canvas actual size for clearing
-  const canvasWidth = ctx.canvas.width / (ctx.getTransform().a || 1);
-  const canvasHeight = ctx.canvas.height / (ctx.getTransform().d || 1);
-  ctx.clearRect(0,0,canvasWidth,canvasHeight);
+  // Clear entire canvas and fill background in logical 128-unit space
+  ctx.clearRect(0,0,128,128);
   ctx.fillStyle='#2a2320'; ctx.fillRect(0,0,128,128); // padded bg
 
   // Create deterministic RNG from DNA for consistent rendering
@@ -87,7 +85,7 @@ function drawFace(ctx,d){
     case 'buzz': hairBase(); ctx.globalAlpha=.35; E(ctx,CX,CY-22,27,13); ctx.fillStyle='#000'; ctx.fill(); ctx.globalAlpha=1; break;
     case 'short': hairBase(); R(ctx,CX-22,CY-24,44,8,4); ctx.fillStyle=hc; ctx.fill(); break;
     case 'waves': hairBase(); ctx.strokeStyle=darken(hc,.7); ctx.lineWidth=1; for(let y=CY-24;y<CY-6;y+=4){ctx.beginPath();ctx.moveTo(CX-24,y);ctx.bezierCurveTo(CX-8,y+2,CX+8,y-2,CX+24,y+2);ctx.stroke()} break;
-    case 'afro': ctx.fillStyle=hc; for(let i=0;i<26;i++){const a=Math.random()*Math.PI*2,r=22+Math.random()*4;const x=CX+Math.cos(a)*r,y=CY-16+Math.sin(a)*r;E(ctx,x,y,6.5,6.5);ctx.fill()} break;
+    case 'afro': ctx.fillStyle=hc; for(let i=0;i<26;i++){const a=rng()*Math.PI*2,r=22+rng()*4;const x=CX+Math.cos(a)*r,y=CY-16+Math.sin(a)*r;E(ctx,x,y,6.5,6.5);ctx.fill()} break;
     case 'curls': ctx.fillStyle=hc; for(let x=CX-24;x<=CX+24;x+=8){E(ctx,x,CY-22+((x/8)%2?2:0),5.2,5.2);ctx.fill()} E(ctx,CX-26,CY-2,7,15);ctx.fill();E(ctx,CX+26,CY-2,7,15);ctx.fill(); break;
     case 'braids': hairBase(); ctx.fillStyle=hc; for(let i=0;i<6;i++){const x=CX-18+i*6; R(ctx,x,CY-14,4,22,2); ctx.fill()} break;
     case 'locs': hairBase(); ctx.fillStyle=hc; for(let i=0;i<7;i++){const x=CX-18+i*6; R(ctx,x,CY-12,5,26,3); ctx.fill()} for(let i=0;i<6;i++){const x=CX-15+i*6; R(ctx,x,CY+8,5,10,2); ctx.fill()} break;
