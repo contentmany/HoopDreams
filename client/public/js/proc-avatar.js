@@ -79,17 +79,204 @@ function drawFace(ctx,d){
 
   // hair (anchored by same CX/CY; never floats)
   const hc=d.hairColor;
-  const hairBase=()=>{ctx.fillStyle=hc;E(ctx,CX,CY-22,29,15);ctx.fill();E(ctx,CX-26,CY-2,8,16);ctx.fill();E(ctx,CX+26,CY-2,8,16);ctx.fill()};
+  const hcDark=darken(hc,.75);
+  const hcLight=darken(hc,.95);
+  
+  // Improved hair base function - follows head contours naturally
+  const hairBase=()=>{
+    ctx.fillStyle=hc;
+    // Main crown area - follows head ellipse shape
+    E(ctx,CX,CY-18,HEAD_RX-2,18);ctx.fill();
+    // Natural temple connection points
+    E(ctx,CX-HEAD_RX+4,CY-8,10,12);ctx.fill();
+    E(ctx,CX+HEAD_RX-4,CY-8,10,12);ctx.fill();
+    // Seamless blending with scalp
+    ctx.globalAlpha=.8;
+    E(ctx,CX,CY-12,HEAD_RX-4,8);ctx.fill();
+    ctx.globalAlpha=1;
+  };
+  
+  // Enhanced hairline function for natural growth patterns
+  const drawHairline=(fromY,toY,density=1)=>{
+    for(let i=0;i<density*15;i++){
+      const angle=(i/15)*Math.PI*2;
+      const x=CX+Math.cos(angle)*HEAD_RX*.9;
+      const y=fromY+Math.sin(angle*2)*2;
+      if(y>=fromY&&y<=toY){
+        ctx.strokeStyle=hcDark;ctx.lineWidth=.8;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+rng()*3-1.5,y+3+rng()*2);ctx.stroke();
+      }
+    }
+  };
+  
   switch(d.hairStyle){
-    case 'bald': break;
-    case 'buzz': hairBase(); ctx.globalAlpha=.35; E(ctx,CX,CY-22,27,13); ctx.fillStyle='#000'; ctx.fill(); ctx.globalAlpha=1; break;
-    case 'short': hairBase(); R(ctx,CX-22,CY-24,44,8,4); ctx.fillStyle=hc; ctx.fill(); break;
-    case 'waves': hairBase(); ctx.strokeStyle=darken(hc,.7); ctx.lineWidth=1; for(let y=CY-24;y<CY-6;y+=4){ctx.beginPath();ctx.moveTo(CX-24,y);ctx.bezierCurveTo(CX-8,y+2,CX+8,y-2,CX+24,y+2);ctx.stroke()} break;
-    case 'afro': ctx.fillStyle=hc; for(let i=0;i<26;i++){const a=rng()*Math.PI*2,r=22+rng()*4;const x=CX+Math.cos(a)*r,y=CY-16+Math.sin(a)*r;E(ctx,x,y,6.5,6.5);ctx.fill()} break;
-    case 'curls': ctx.fillStyle=hc; for(let x=CX-24;x<=CX+24;x+=8){E(ctx,x,CY-22+((x/8)%2?2:0),5.2,5.2);ctx.fill()} E(ctx,CX-26,CY-2,7,15);ctx.fill();E(ctx,CX+26,CY-2,7,15);ctx.fill(); break;
-    case 'braids': hairBase(); ctx.fillStyle=hc; for(let i=0;i<6;i++){const x=CX-18+i*6; R(ctx,x,CY-14,4,22,2); ctx.fill()} break;
-    case 'locs': hairBase(); ctx.fillStyle=hc; for(let i=0;i<7;i++){const x=CX-18+i*6; R(ctx,x,CY-12,5,26,3); ctx.fill()} for(let i=0;i<6;i++){const x=CX-15+i*6; R(ctx,x,CY+8,5,10,2); ctx.fill()} break;
-    case 'highTop': ctx.fillStyle=hc; R(ctx,CX-22,CY-30,44,22,4); ctx.fill(); break;
+    case 'bald': 
+      // Subtle hair follicles for realism
+      drawHairline(CY-16,CY-10,.3);
+      break;
+      
+    case 'buzz': 
+      hairBase(); 
+      ctx.globalAlpha=.4; 
+      E(ctx,CX,CY-18,HEAD_RX-4,16); 
+      ctx.fillStyle=hcDark; 
+      ctx.fill(); 
+      ctx.globalAlpha=1; 
+      drawHairline(CY-20,CY-8,.6);
+      break;
+      
+    case 'short': 
+      hairBase(); 
+      // Natural short hair texture
+      R(ctx,CX-HEAD_RX+2,CY-22,HEAD_RX*2-4,6,3); 
+      ctx.fillStyle=hc; 
+      ctx.fill();
+      // Add subtle texture lines
+      ctx.strokeStyle=hcDark;ctx.lineWidth=.6;
+      for(let i=0;i<8;i++){
+        const x=CX-20+i*5;
+        ctx.beginPath();ctx.moveTo(x,CY-20);ctx.lineTo(x+rng()*2-1,CY-12);ctx.stroke();
+      }
+      break;
+      
+    case 'waves': 
+      hairBase(); 
+      // Improved wave rendering with natural flow
+      ctx.strokeStyle=hcDark; 
+      ctx.lineWidth=1.2;
+      for(let y=CY-24;y<CY-8;y+=3){
+        const waveY=y+Math.sin((y-CY)*0.3)*1.5;
+        ctx.beginPath();
+        ctx.moveTo(CX-HEAD_RX+4,waveY);
+        ctx.bezierCurveTo(CX-8,waveY+2,CX+8,waveY-2,CX+HEAD_RX-4,waveY+1);
+        ctx.stroke();
+      }
+      break;
+      
+    case 'afro': 
+      // Natural afro with better scalp connection
+      ctx.fillStyle=hc; 
+      const afroPoints=[];
+      for(let i=0;i<28;i++){
+        const angle=rng()*Math.PI*2;
+        const r=18+rng()*8;
+        const x=CX+Math.cos(angle)*r;
+        const y=CY-12+Math.sin(angle)*r;
+        afroPoints.push({x,y,size:5.5+rng()*2});
+      }
+      // Draw from inside out for natural layering
+      afroPoints.sort((a,b)=>(a.x-CX)**2+(a.y-CY)**2-(b.x-CX)**2-(b.y-CY)**2);
+      afroPoints.forEach(p=>{
+        ctx.globalAlpha=.9;
+        E(ctx,p.x,p.y,p.size,p.size);
+        ctx.fill();
+      });
+      ctx.globalAlpha=1;
+      // Add scalp connection
+      E(ctx,CX,CY-12,HEAD_RX-6,12);ctx.fillStyle=hc;ctx.fill();
+      break;
+      
+    case 'curls': 
+      ctx.fillStyle=hc; 
+      // Natural curl placement following head shape
+      for(let angle=0;angle<Math.PI*2;angle+=.8){
+        const baseX=CX+Math.cos(angle)*HEAD_RX*.7;
+        const baseY=CY-16+Math.sin(angle)*10;
+        const curlSize=4.5+rng()*1.5;
+        E(ctx,baseX,baseY+Math.sin(angle*3)*2,curlSize,curlSize);
+        ctx.fill();
+      }
+      // Temple area curls
+      E(ctx,CX-HEAD_RX+6,CY-4,6,14);ctx.fill();
+      E(ctx,CX+HEAD_RX-6,CY-4,6,14);ctx.fill();
+      break;
+      
+    case 'braids': 
+      // Realistic braids that follow head contours
+      ctx.fillStyle=hc;
+      const braidCount=5;
+      for(let i=0;i<braidCount;i++){
+        const startAngle=(i/(braidCount-1))*Math.PI*0.8-Math.PI*0.4;
+        const startX=CX+Math.cos(startAngle+Math.PI/2)*HEAD_RX*.8;
+        const startY=CY-14;
+        
+        // Draw braid as curved segments
+        let currentX=startX;
+        let currentY=startY;
+        const braidLength=25;
+        const segments=8;
+        
+        for(let seg=0;seg<segments;seg++){
+          const progress=seg/segments;
+          const width=4.5-progress*1.5; // Tapering
+          const curve=Math.sin(progress*Math.PI*2)*3;
+          
+          currentY+=braidLength/segments;
+          currentX+=curve+(rng()-.5)*1.5;
+          
+          // Braid segment with natural curves
+          ctx.beginPath();
+          ctx.ellipse(currentX,currentY,width/2,3,0,0,Math.PI*2);
+          ctx.fill();
+          
+          // Braid texture
+          if(seg%2===0){
+            ctx.fillStyle=hcDark;
+            ctx.beginPath();
+            ctx.ellipse(currentX,currentY,width/3,1.5,0,0,Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle=hc;
+          }
+        }
+      }
+      // Scalp connection for braids
+      E(ctx,CX,CY-16,HEAD_RX-4,8);ctx.fill();
+      break;
+      
+    case 'locs': 
+      hairBase(); 
+      ctx.fillStyle=hc; 
+      const locCount=6;
+      for(let i=0;i<locCount;i++){
+        const startAngle=(i/(locCount-1))*Math.PI*0.7-Math.PI*0.35;
+        const x=CX+Math.cos(startAngle+Math.PI/2)*HEAD_RX*.7+i*6-15;
+        
+        // Main loc strands
+        R(ctx,x,CY-14,4.5,24,2.5); 
+        ctx.fill();
+        
+        // Loc texture and variation
+        ctx.fillStyle=hcDark;
+        R(ctx,x+.5,CY-12,3.5,20,2); 
+        ctx.fill();
+        ctx.fillStyle=hc;
+        
+        // Lower hanging locs
+        if(i%2===0){
+          R(ctx,x-1,CY+6,4,12,2); 
+          ctx.fill();
+        }
+      }
+      break;
+      
+    case 'highTop': 
+      ctx.fillStyle=hc; 
+      // Shaped high-top with natural sides
+      R(ctx,CX-HEAD_RX+2,CY-28,HEAD_RX*2-4,20,3); 
+      ctx.fill();
+      // Side fade effect
+      ctx.fillStyle=hcDark;
+      ctx.globalAlpha=.6;
+      E(ctx,CX-HEAD_RX+6,CY-8,8,12);ctx.fill();
+      E(ctx,CX+HEAD_RX-6,CY-8,8,12);ctx.fill();
+      ctx.globalAlpha=1;
+      // Top texture
+      ctx.strokeStyle=hcDark;ctx.lineWidth=.8;
+      for(let i=0;i<5;i++){
+        const x=CX-15+i*6;
+        ctx.beginPath();ctx.moveTo(x,CY-26);ctx.lineTo(x+rng()*2-1,CY-16);ctx.stroke();
+      }
+      break;
   }
 
   // accessories (separate from hair)
