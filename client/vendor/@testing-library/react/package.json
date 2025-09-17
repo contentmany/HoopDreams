@@ -1,0 +1,6 @@
+{
+  "name": "@testing-library/react",
+  "version": "16.1.0",
+  "main": "index.js",
+  "type": "commonjs"
+}
