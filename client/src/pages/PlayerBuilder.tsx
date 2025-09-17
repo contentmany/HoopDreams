@@ -39,25 +39,13 @@ export default function PlayerBuilder() {
   const [availablePoints, setAvailablePoints] = useState(20);
 
   useEffect(() => {
-    // Load procedural avatar system
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
+    const canvas = document.getElementById('builderFace') as HTMLCanvasElement | null;
+    if (canvas && window.AvatarKit) {
+      const stored = localStorage.getItem('hd:playerDNA');
+      const dna = stored ? JSON.parse(stored) : window.AvatarKit.randomDNA('player');
+      window.AvatarKit.render(canvas, dna);
     }
-    
-    // Initialize player avatar
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { attachImgCanvas } from '/js/avatar-hooks.js';
-      setTimeout(() => {
-        attachImgCanvas('#avatarBuilder', 96);
-      }, 100);
-    `;
-    document.head.appendChild(script);
-    
+
     // Load draft player data
     const draft = getDraftPlayer();
     if (draft) {
@@ -196,14 +184,11 @@ export default function PlayerBuilder() {
           
           {/* Character Preview */}
           <Card className="lg:sticky lg:top-4 h-fit">
-            <CardHeader>
+            <CardHeader className="flex items-center gap-2">
+              <canvas id="builderFace" className="avatar64" style={{borderRadius: '8px'}}></canvas>
               <CardTitle>Character Preview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-center">
-                <canvas id="avatarBuilder" className="avatar96" style={{borderRadius: '12px'}}></canvas>
-              </div>
-              
               <div className="text-center space-y-1">
                 <h3 className="font-semibold text-lg" data-testid="text-player-name">
                   {playerName.firstName} {playerName.lastName}

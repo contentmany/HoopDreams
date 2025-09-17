@@ -1,0 +1,8 @@
+{
+  "name": "vitest",
+  "version": "1.6.0",
+  "type": "module",
+  "bin": {
+    "vitest": "./bin/vitest.js"
+  }
+}
