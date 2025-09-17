@@ -12,6 +12,8 @@
     "db:push": "drizzle-kit push",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch"
+    "test": "npm -C client run test",
+    "test:watch": "npm -C client run test:watch"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
