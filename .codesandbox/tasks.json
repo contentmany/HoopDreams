@@ -1,55 +1,19 @@
 {
-
-  // These tasks will run in order when initializing your CodeSandbox project.
-  "setupTasks": [
-    {
-      "command": "npm install",
-      "name": "Installing Dependencies"
-    }
-  ],
-
-  // These tasks can be run from CodeSandbox. Running one will open a log in the app.
-  "tasks": {
-    "dev": {
-      "name": "dev",
-      "command": "npm run dev",
-      "runAtStart": true,
-      "preview": {
-        "port": 5000
-      }
-    },
-    "build": {
-      "name": "build",
-      "command": "npm run build"
-    },
-    "start": {
-      "name": "start",
-      "command": "npm run start"
-    },
-    "check": {
-      "name": "check",
-      "command": "npm run check"
-    },
-    "db:push": {
-      "name": "db:push",
-      "command": "npm run db:push"
-
   "setupTasks": [
     { "name": "Install root", "command": "npm install" },
-    { "name": "Install client", "command": "npm -C client install" }
+    { "name": "Install client", "command": "cd client && npm install" }
   ],
   "tasks": {
-    "dev": {
+    "web": {
       "name": "Web server",
-      "command": "npm -C client run dev -- --host 0.0.0.0 --port $PORT",
+      "command": "cd client && npm run dev -- --host 0.0.0.0 --port $PORT",
       "runAtStart": true,
       "preview": { "port": "$PORT", "open": true }
     },
     "test": {
       "name": "Vitest (one-shot)",
-      "command": "npm -C client run test -- --watch=false",
+      "command": "cd client && npm run test -- --watch=false",
       "runAtStart": false
-
     }
   }
 }
