@@ -22,25 +22,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
   // Avatar handled by procedural system
   
-  // Load procedural avatar system
   useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
+    const canvas = document.getElementById('avatarHomeMe') as HTMLCanvasElement | null;
+    if (canvas && window.AvatarKit) {
+      const stored = localStorage.getItem('hd:playerDNA');
+      const dna = stored ? JSON.parse(stored) : window.AvatarKit.randomDNA('player');
+      window.AvatarKit.render(canvas, dna);
     }
-    
-    // Initialize player avatar
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { attachImgCanvas } from '/js/avatar-hooks.js';
-      setTimeout(() => {
-        attachImgCanvas('#avatarHomeMe', 64);
-      }, 100);
-    `;
-    document.head.appendChild(script);
   }, []);
   const [gameResultsModal, setGameResultsModal] = useState<{
     isOpen: boolean;
@@ -228,11 +216,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {seasonData.upcomingGame && !seasonData.isSeasonComplete ? (
-          <GameCard 
+          <GameCard
             opponent={seasonData.upcomingGame.opponent.name}
             gameType={seasonData.upcomingGame.gameType}
             location={seasonData.upcomingGame.location}
             energyCost={3}
+            playerTeamId={currentPlayer.teamId}
+            playerTeamName={getTeamName(currentPlayer.teamId)}
             onPlayGame={handlePlayGame}
             onScouting={handleScouting}
           />

@@ -1,4 +1,5 @@
 {
+
   // These tasks will run in order when initializing your CodeSandbox project.
   "setupTasks": [
     {
@@ -32,6 +33,23 @@
     "db:push": {
       "name": "db:push",
       "command": "npm run db:push"
+
+  "setupTasks": [
+    { "name": "Install root", "command": "npm install" },
+    { "name": "Install client", "command": "npm -C client install" }
+  ],
+  "tasks": {
+    "dev": {
+      "name": "Web server",
+      "command": "npm -C client run dev -- --host 0.0.0.0 --port $PORT",
+      "runAtStart": true,
+      "preview": { "port": "$PORT", "open": true }
+    },
+    "test": {
+      "name": "Vitest (one-shot)",
+      "command": "npm -C client run test -- --watch=false",
+      "runAtStart": false
+
     }
   }
 }
