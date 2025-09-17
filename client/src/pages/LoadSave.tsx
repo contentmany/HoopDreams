@@ -14,30 +14,14 @@ interface LoadSaveProps {
 export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSaveProps) {
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   
-  // Load procedural avatar system
   useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
-    }
-    
-    // Initialize save slot avatars
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { renderAvatar, dnaFromSeed } from '/js/proc-avatar.js';
-      setTimeout(() => {
-        document.querySelectorAll('canvas.avatar40').forEach(c => {
-          if (c.dataset.seed) {
-            c.width = 40; c.height = 40;
-            renderAvatar(c, dnaFromSeed(c.dataset.seed));
-          }
-        });
-      }, 200);
-    `;
-    document.head.appendChild(script);
+    document.querySelectorAll<HTMLCanvasElement>('canvas.avatar40[data-seed]').forEach(c => {
+      if (window.AvatarKit) {
+        const slot = slots.find(s => `save-slot-${s.id}` === c.dataset.seed);
+        const dna = slot?.player?.dna || window.AvatarKit.randomDNA('npc-' + (c.dataset.seed || 'slot'));
+        window.AvatarKit.render(c, dna);
+      }
+    });
   }, [slots]);
 
   useEffect(() => {
