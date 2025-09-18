@@ -1,105 +1,113 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AvatarSVG, type AvatarDNA } from "@/avatar/AvatarRenderer";
+import { HAIR, type HairStyleId } from "@/avatar/AvatarKit";
+import { ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface AvatarCustomizeNewProps {
   onNavigate?: (path: string) => void;
 }
 
+const hairOrder: HairStyleId[] = [
+  "bald",
+  "buzz_fade",
+  "waves",
+  "short_curls",
+  "braids_box",
+  "twists_two_strand",
+  "locs_medium",
+];
+
+const hairColorOptions = [
+  { key: "black", label: "Black" },
+  { key: "deep_brown", label: "Deep Brown" },
+  { key: "brown", label: "Brown" },
+  { key: "dark_blond", label: "Dark Blond" },
+] as const;
+
+const skinToneOptions: { key: AvatarDNA["skinTone"]; label: string }[] = [
+  { key: "light", label: "Light" },
+  { key: "tan", label: "Tan" },
+  { key: "brown", label: "Brown" },
+  { key: "deep", label: "Deep" },
+];
+
+const eyeColorOptions: { key: AvatarDNA["eyes"]; label: string }[] = [
+  { key: "brown", label: "Brown" },
+  { key: "hazel", label: "Hazel" },
+  { key: "blue", label: "Dark Blue" },
+  { key: "green", label: "Green" },
+];
+
+const eyeShapeOptions: { key: NonNullable<AvatarDNA["eyeShape"]>; label: string }[] = [
+  { key: "round", label: "Round" },
+  { key: "almond", label: "Almond" },
+  { key: "sleepy", label: "Sleepy" },
+];
+
+const mouthOptions: { key: NonNullable<AvatarDNA["mouth"]>; label: string }[] = [
+  { key: "neutral", label: "Neutral" },
+  { key: "smile", label: "Smile" },
+  { key: "frown", label: "Frown" },
+  { key: "smirk", label: "Smirk" },
+];
+
+const facialOptions: { key: AvatarDNA["facialHair"]; label: string }[] = [
+  { key: "none", label: "None" },
+  { key: "goatee_small", label: "Goatee" },
+  { key: "goatee_full", label: "Full Goatee" },
+  { key: "mustache_thin", label: "Mustache" },
+];
+
+const defaultDNA: AvatarDNA = {
+  skinTone: "tan",
+  hairStyle: "buzz_fade",
+  hairColor: "black",
+  brows: "on",
+  facialHair: "none",
+  eyes: "brown",
+  eyeShape: "round",
+  mouth: "neutral",
+};
+
+const randomItem = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
+
+function makeRandomDNA(): AvatarDNA {
+  return {
+    skinTone: randomItem(skinToneOptions.map((opt) => opt.key)),
+    hairStyle: randomItem(hairOrder),
+    hairColor: randomItem(hairColorOptions.map((opt) => opt.key)),
+    brows: Math.random() > 0.12 ? "on" : "off",
+    facialHair: randomItem(facialOptions.map((opt) => opt.key)),
+    eyes: randomItem(eyeColorOptions.map((opt) => opt.key)),
+    eyeShape: randomItem(eyeShapeOptions.map((opt) => opt.key)),
+    mouth: randomItem(mouthOptions.map((opt) => opt.key)),
+  };
+}
+
 export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
   const [, setLocation] = useLocation();
-  const [avatarReady, setAvatarReady] = useState(false);
+  const [dna, setDna] = useState<AvatarDNA>(defaultDNA);
 
-  useEffect(() => {
-    // Initialize avatar customization system with better timing
-    const initializeAvatar = async () => {
-      try {
-        // Wait for both AvatarKit and AvatarHooks to be available
-        const waitForAvatarSystem = () => {
-          return new Promise<void>((resolve, reject) => {
-            let attempts = 0;
-            const maxAttempts = 50; // 5 seconds maximum
-            
-            const check = () => {
-              attempts++;
-              
-              if (window.AvatarKit && window.AvatarHooks) {
-                console.log('Avatar system loaded successfully');
-                resolve();
-                return;
-              }
-              
-              if (attempts >= maxAttempts) {
-                reject(new Error('Avatar system failed to load within timeout'));
-                return;
-              }
-              
-              setTimeout(check, 100);
-            };
-            
-            check();
-          });
-        };
-
-        // Wait for avatar system to be available
-        await waitForAvatarSystem();
-
-        // Wait for DOM elements to be ready
-        const checkDOMReady = () => {
-          const requiredElements = [
-            'avatarCanvas', 'skin', 'hairStyle', 'hairColor', 
-            'eyeColor', 'eyeShape', 'brows', 'mouth', 'facial', 
-            'accessory', 'btnRandom'
-          ];
-          return requiredElements.every(id => document.getElementById(id));
-        };
-
-        // Wait for DOM to be ready with polling
-        let domAttempts = 0;
-        while (!checkDOMReady() && domAttempts < 20) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          domAttempts++;
-        }
-
-        if (!checkDOMReady()) {
-          console.error('Avatar DOM elements not ready after timeout');
-          return;
-        }
-
-        // Initialize the avatar customization
-        window.AvatarHooks.mountCustomize();
-        setAvatarReady(true);
-        console.log('Avatar customization system initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize avatar system:', error);
-      }
+  const handleSelect = <K extends keyof AvatarDNA>(key: K) =>
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDna((current) => ({ ...current, [key]: event.target.value as AvatarDNA[K] }));
     };
-
-    // Start initialization
-    initializeAvatar();
-  }, []);
-
-  const handleSave = () => {
-    onNavigate?.('/builder');
-    setLocation('/builder');
-  };
 
   return (
     <div className="min-h-screen bg-background p-4 pb-20">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Header */}
+      <div className="mx-auto max-w-4xl space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => {
-                  onNavigate?.('/new');
-                  setLocation('/new');
+                  onNavigate?.("/new");
+                  setLocation("/new");
                 }}
                 data-testid="button-back"
               >
@@ -109,112 +117,115 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground">
-              Create your unique look for the basketball courts
-            </div>
-          </CardContent>
-        </Card>
+            <style>{`
+  .avatar-wrap{display:flex;flex-direction:column;gap:.75rem;max-width:360px}
+  .avatar-stage{width:320px;height:320px;border-radius:18px;overflow:hidden;background:#2a2320;display:flex;align-items:center;justify-content:center}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+  .controls label{display:flex;flex-direction:column;font-size:.9rem;gap:.25rem}
+  .controls select{background:#1f1a17;color:#fff;border:1px solid #3a2f2a;border-radius:8px;padding:.35rem .5rem}
+            `}</style>
 
-        {/* Avatar Customization */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customize Appearance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-center">
-              <div className="avatar-wrap">
-                <canvas id="avatarCanvas" className="avatar128" width="128" height="128" aria-label="avatar preview"></canvas>
+            <div className="avatar-wrap">
+              <div className="avatar-stage" aria-label="avatar preview">
+                <AvatarSVG dna={dna} />
+              </div>
 
-                <div className="controls">
-                  <label>Skin
-                    <select id="skin" data-testid="select-skin">
-                      <option value="F1">Fair</option>
-                      <option value="F2" selected>Tan</option>
-                      <option value="F3">Brown</option>
-                      <option value="F4">Deep</option>
-                    </select>
-                  </label>
+              <div className="controls">
+                <label>
+                  Skin
+                  <select value={dna.skinTone} onChange={handleSelect("skinTone")}>
+                    {skinToneOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label>Hair Style
-                    <select id="hairStyle" data-testid="select-hair-style">
-                      <option>bald</option><option>buzz</option><option selected>short</option>
-                      <option>afro</option><option>curls</option><option>waves</option>
-                      <option>braids</option><option>locs</option><option>highTop</option>
-                    </select>
-                  </label>
+                <label>
+                  Hair
+                  <select value={dna.hairStyle} onChange={handleSelect("hairStyle")}>
+                    {hairOrder.map((id) => (
+                      <option key={id} value={id}>
+                        {HAIR[id].label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label>Hair Color
-                    <select id="hairColor" data-testid="select-hair-color">
-                      <option value="#2b2018">Deep Brown</option>
-                      <option value="#3a2f25">Dark Walnut</option>
-                      <option value="#4b382e">Chestnut</option>
-                      <option value="#754c24">Auburn</option>
-                      <option value="#111111">Jet Black</option>
-                    </select>
-                  </label>
+                <label>
+                  Hair Color
+                  <select value={dna.hairColor} onChange={handleSelect("hairColor")}>
+                    {hairColorOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label>Eye Color
-                    <select id="eyeColor" data-testid="select-eye-color">
-                      <option value="#3a2f25">Brown</option>
-                      <option value="#1f2d57">Navy</option>
-                      <option value="#0a6a4f">Green</option>
-                      <option value="#5b3a2e">Hazel</option>
-                    </select>
-                  </label>
+                <label>
+                  Eye Color
+                  <select value={dna.eyes} onChange={handleSelect("eyes")}>
+                    {eyeColorOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label>Eye Shape
-                    <select id="eyeShape" data-testid="select-eye-shape">
-                      <option>round</option><option selected>almond</option><option>droopy</option><option>sharp</option>
-                    </select>
-                  </label>
+                <label>
+                  Eye Shape
+                  <select value={dna.eyeShape} onChange={handleSelect("eyeShape")}>
+                    {eyeShapeOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label>Brows
-                    <select id="brows" data-testid="select-brows">
-                      <option value="true" selected>On</option>
-                      <option value="false">Off</option>
-                    </select>
-                  </label>
+                <label>
+                  Mouth
+                  <select value={dna.mouth} onChange={handleSelect("mouth")}>
+                    {mouthOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <label>Mouth
-                    <select id="mouth" data-testid="select-mouth">
-                      <option>neutral</option><option selected>smile</option><option>grin</option><option>smirk</option><option>frown</option>
-                    </select>
-                  </label>
+                <label>
+                  Brows
+                  <select value={dna.brows} onChange={handleSelect("brows")}>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                  </select>
+                </label>
 
-                  <label>Facial Hair
-                    <select id="facial" data-testid="select-facial">
-                      <option>none</option><option>goatee</option><option>mustache</option><option>chinstrap</option><option>full</option>
-                    </select>
-                  </label>
+                <label>
+                  Facial Hair
+                  <select value={dna.facialHair} onChange={handleSelect("facialHair")}>
+                    {facialOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
-                  <label>Accessory
-                    <select id="accessory" data-testid="select-accessory">
-                      <option>none</option><option>headband</option><option>beanie</option><option>durag</option>
-                    </select>
-                  </label>
-
-                  <button id="btnRandom" data-testid="button-random">Randomize</button>
-                </div>
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={() => setDna(makeRandomDNA())}>
+                  Randomize
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Actions */}
-        <div className="flex justify-between">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              onNavigate?.('/new');
-              setLocation('/new');
-            }}
-            data-testid="button-back"
-          >
-            Back
-          </Button>
-        </div>
       </div>
-
     </div>
   );
 }

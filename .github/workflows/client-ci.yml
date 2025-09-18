@@ -1,0 +1,43 @@
+name: client-ci
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+jobs:
+  unit:
+    name: Unit (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+      - name: Install root (ok if none)
+        run: npm ci || npm install
+      - name: Install client deps
+        run: npm -C client ci || npm -C client install
+      - name: Run Vitest (no watch)
+        run: npm -C client run test -- --run
+  web:
+    name: Web tests (if defined)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install client deps
+        run: npm -C client ci || npm -C client install
+      - name: Run web tests script if present
+        run: |
+          if npm -C client run | grep -qE '^  web'; then
+            npm -C client run web
+          else
+            echo "No 'web' script in client/package.json; skipping."
+          fi

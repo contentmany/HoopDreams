@@ -1,223 +1,56 @@
-import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
-import RouteGuard from "@/components/RouteGuard";
-import { activeSlot, player as playerStorage } from "@/utils/localStorage";
+import React from "react";
+import { PixelAvatar } from "./pixel/PixelAvatar";
+import { HAIR_SET } from "./pixel/hairSet";
+import { SKIN, HAIR as HAIR_PAL } from "./pixel/palettes";
 
-// Layouts
-import PreGameLayout from "@/layouts/PreGameLayout";
-import GameLayout from "@/layouts/GameLayout";
+const keys = <T extends object>(o: T) => Object.keys(o) as (keyof T)[];
 
-// Game Pages
-import MainMenu from "@/pages/MainMenu";
-import Dashboard from "@/pages/Dashboard";
-import CreatePlayer from "@/pages/CreatePlayer";
-import PlayerBuilder from "@/pages/PlayerBuilder";
-import LoadSave from "@/pages/LoadSave";
-import Settings from "@/pages/Settings";
-import League from "@/pages/League";
-import Badges from "@/pages/Badges";
-import Dash from "@/pages/Dash";
-import News from "@/pages/News";
-import Customize from "@/pages/Customize";
-import AvatarCustomizeNew from "@/pages/AvatarCustomizeNew";
+export default function App() {
+  const skinOptions = keys(SKIN);
+  const hairColorOptions = keys(HAIR_PAL);
 
-function Router() {
-  const [, setLocation] = useLocation();
-
-  const handleNavigate = (path: string) => {
-    setLocation(path);
-  };
+  const [skin, setSkin] = React.useState<typeof skinOptions[number]>("tan");
+  const [hairId, setHairId] = React.useState<string>(HAIR_SET[0]?.id ?? "dreads_medium");
+  const [hairColor, setHairColor] = React.useState<typeof hairColorOptions[number]>("dark");
 
   return (
-    <Switch>
-      <Route path="/">
-        <PreGameLayout showHeader={false}>
-          <MainMenu onNavigate={handleNavigate} />
-        </PreGameLayout>
-      </Route>
-      <Route path="/home">
-        {() => {
-          const player = playerStorage.get();
-          return (
-            <RouteGuard requireActiveSave>
-              <GameLayout 
-                year={player?.seasonData?.currentYear}
-                week={player?.seasonData?.currentWeek}
-                maxWeeks={20}
-                showAdvanceWeek={true}
-              >
-                <Dashboard onNavigate={handleNavigate} />
-              </GameLayout>
-            </RouteGuard>
-          );
-        }}
-      </Route>
-      <Route path="/new">
-        <PreGameLayout title="Create Player">
-          <CreatePlayer 
-            onCreatePlayer={(data) => {
-              console.log('Player created:', data);
-              setLocation('/builder');
-            }}
-            onNavigate={handleNavigate}
-          />
-        </PreGameLayout>
-      </Route>
-      
-      <Route path="/customize">
-        <PreGameLayout title="Customize Appearance">
-          <AvatarCustomizeNew onNavigate={handleNavigate} />
-        </PreGameLayout>
-      </Route>
-      <Route path="/builder">
-        <PreGameLayout title="Player Builder">
-          <PlayerBuilder />
-        </PreGameLayout>
-      </Route>
-      <Route path="/load">
-        <PreGameLayout title="Load Game">
-          <LoadSave 
-            onLoadSlot={(id) => {
-              console.log('Loading slot:', id);
-              setLocation('/home');
-            }}
-            onNewGame={() => setLocation('/new')}
-            onDeleteSlot={(id) => console.log('Delete slot:', id)}
-          />
-        </PreGameLayout>
-      </Route>
-      <Route path="/settings">
-        {() => {
-          const currentSlot = activeSlot.get();
-          const noSaveMode = currentSlot === null;
-          
-          if (noSaveMode) {
-            return (
-              <PreGameLayout title="Settings">
-                <Settings 
-                  onNavigateToLoad={() => setLocation('/load')}
-                  onResetGame={() => setLocation('/')}
-                  noSaveMode={noSaveMode}
-                />
-              </PreGameLayout>
-            );
-          } else {
-            return (
-              <GameLayout>
-                <Settings 
-                  onNavigateToLoad={() => setLocation('/load')}
-                  onResetGame={() => setLocation('/')}
-                  noSaveMode={noSaveMode}
-                />
-              </GameLayout>
-            );
-          }
-        }}
-      </Route>
-      <Route path="/league">
-        {() => {
-          const urlParams = new URLSearchParams(window.location.search);
-          const tab = urlParams.get('tab') || 'standings';
-          return (
-            <RouteGuard requireActiveSave>
-              <GameLayout>
-                <League defaultTab={tab} />
-              </GameLayout>
-            </RouteGuard>
-          );
-        }}
-      </Route>
-      <Route path="/badges">
-        <Badges />
-      </Route>
-      
-      {/* Protected routes - require active save */}
-      <Route path="/team">
-        <RouteGuard requireActiveSave>
-          <GameLayout>
-            <div className="flex items-center justify-center min-h-[50vh]">
-              <div className="text-center">
-                <h1 className="text-2xl font-pixel mb-4">Team</h1>
-                <p className="text-muted-foreground">Coming Soon</p>
-              </div>
-            </div>
-          </GameLayout>
-        </RouteGuard>
-      </Route>
-      
-      <Route path="/social">
-        <RouteGuard requireActiveSave>
-          <GameLayout>
-            <div className="flex items-center justify-center min-h-[50vh]">
-              <div className="text-center">
-                <h1 className="text-2xl font-pixel mb-4">Social</h1>
-                <p className="text-muted-foreground">Coming Soon</p>
-              </div>
-            </div>
-          </GameLayout>
-        </RouteGuard>
-      </Route>
-      
-      <Route path="/inbox">
-        <RouteGuard requireActiveSave>
-          <GameLayout>
-            <div className="flex items-center justify-center min-h-[50vh]">
-              <div className="text-center">
-                <h1 className="text-2xl font-pixel mb-4">Inbox</h1>
-                <p className="text-muted-foreground">Coming Soon</p>
-              </div>
-            </div>
-          </GameLayout>
-        </RouteGuard>
-      </Route>
-      
-      <Route path="/news">
-        <RouteGuard requireActiveSave>
-          <GameLayout>
-            <News onNavigate={handleNavigate} />
-          </GameLayout>
-        </RouteGuard>
-      </Route>
-      
-      <Route path="/dash">
-        <RouteGuard requireActiveSave>
-          <GameLayout>
-            <Dash onNavigate={handleNavigate} />
-          </GameLayout>
-        </RouteGuard>
-      </Route>
-      
-      <Route path="/roster-editor">
-        <PreGameLayout title="Roster Editor">
-          <div className="flex items-center justify-center min-h-[50vh]">
-            <div className="text-center">
-              <h1 className="text-2xl font-pixel mb-4">Roster Editor</h1>
-              <p className="text-muted-foreground">Coming Soon</p>
-            </div>
-          </div>
-        </PreGameLayout>
-      </Route>
-      
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+    <div style={{ maxWidth: 920, margin: "0 auto", padding: 24, display: "grid", gap: 24 }}>
+      <h2 style={{ margin: 0 }}>Customize Player</h2>
 
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen bg-background text-foreground">
-          <Router />
+      <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 24, alignItems: "start" }}>
+        <div style={{ padding: 16, background: "#121212", borderRadius: 12, width: 200 }}>
+          <PixelAvatar size={160} skin={skin} hairId={hairId} hairColor={hairColor} />
         </div>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+
+        <div style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span>Skin</span>
+            <select value={skin} onChange={(e) => setSkin(e.target.value as any)}>
+              {skinOptions.map((k) => (
+                <option key={String(k)} value={String(k)}>{String(k)}</option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: 6 }}>
+            <span>Hair Style</span>
+            <select value={hairId} onChange={(e) => setHairId(e.target.value)}>
+              {HAIR_SET.map((h) => (
+                <option key={h.id} value={h.id}>{h.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: 6 }}>
+            <span>Hair Color</span>
+            <select value={hairColor} onChange={(e) => setHairColor(e.target.value as any)}>
+              {hairColorOptions.map((k) => (
+                <option key={String(k)} value={String(k)}>{String(k)}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
   );
 }
-
-export default App;

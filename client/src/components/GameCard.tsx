@@ -9,6 +9,8 @@ interface GameCardProps {
   gameType: string;
   location?: string;
   energyCost: number;
+  playerTeamId?: string;
+  playerTeamName?: string;
   onPlayGame?: () => void;
   onScouting?: () => void;
 }
@@ -18,31 +20,21 @@ export default function GameCard({
   gameType = "Regular Season",
   location = "Home",
   energyCost = 3,
+  playerTeamId,
+  playerTeamName,
   onPlayGame,
   onScouting
 }: GameCardProps) {
-  // Load procedural avatar system
   React.useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
-    }
-    
-    // Initialize NPC avatars
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { npcIntoCanvas } from '/js/avatar-hooks.js';
-      setTimeout(() => {
-        document.querySelectorAll('canvas.avatar64').forEach(c => {
-          if (c.dataset.seed) npcIntoCanvas(c, c.dataset.seed, 64);
-        });
-      }, 100);
-    `;
-    document.head.appendChild(script);
+    document.querySelectorAll<HTMLCanvasElement>('canvas.avatar64[data-seed]').forEach(c => {
+      if (window.AvatarKit) {
+        const dna = window.AvatarKit.randomDNA('npc-' + (c.dataset.seed || 'npc'));
+        window.AvatarKit.render(c, dna);
+      }
+    });
   }, []);
+
+  const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
   return (
     <Card className="hover-elevate">
       <CardHeader className="pb-3">
@@ -58,12 +50,23 @@ export default function GameCard({
         <div className="flex items-center gap-4 py-4">
           {/* Avatar on the left */}
           <div className="flex-shrink-0">
-            <canvas className="avatar64" data-seed="game-card-default" style={{borderRadius: '8px'}}></canvas>
+            <canvas className="avatar64" data-seed={opponent} style={{borderRadius: '8px'}}></canvas>
           </div>
-          
+
           {/* Game info on the right */}
           <div className="flex-1 text-center">
             <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="w-8 h-8">
+                <img
+                  className="team-logo w-8 h-8"
+                  src={`/public/logos/${playerTeamId}.svg`}
+                  alt={`${playerTeamName} logo`}
+                  onError={(e)=>{e.currentTarget.style.display='none'; const s=e.currentTarget.nextElementSibling as HTMLElement; if(s) s.style.display='flex';}}
+                />
+                <div className="hidden w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                  {getInitials(playerTeamName || '')}
+                </div>
+              </div>
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center pixel-art">
                 <span className="text-xs font-pixel">VS</span>
               </div>
