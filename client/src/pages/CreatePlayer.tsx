@@ -36,52 +36,15 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
-  const [avatarSeed, setAvatarSeed] = useState(() => `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-  
-  // Initialize procedural avatar system
+  // Render avatar thumbnail
   useEffect(() => {
-    const initializeAvatar = async () => {
-      try {
-        // Wait for avatar system to be available
-        const waitForAvatarSystem = () => {
-          return new Promise<void>((resolve, reject) => {
-            let attempts = 0;
-            const maxAttempts = 50; // 5 seconds maximum
-            
-            const check = () => {
-              attempts++;
-              
-              if (window.AvatarKit && window.AvatarHooks) {
-                console.log('Avatar system available for player creation');
-                resolve();
-                return;
-              }
-              
-              if (attempts >= maxAttempts) {
-                reject(new Error('Avatar system failed to load within timeout'));
-                return;
-              }
-              
-              setTimeout(check, 100);
-            };
-            
-            check();
-          });
-        };
-
-        // Wait for avatar system
-        await waitForAvatarSystem();
-        
-        // Initialize the avatar chip
-        window.AvatarHooks.attachImgCanvas('#avatarChip', 40);
-        console.log('Avatar chip initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize avatar chip:', error);
-      }
-    };
-    
-    initializeAvatar();
-  }, [avatarSeed]);
+    const canvas = document.getElementById('createThumb') as HTMLCanvasElement | null;
+    if (canvas && window.AvatarKit) {
+      const stored = localStorage.getItem('hd:playerDNA');
+      const dna = stored ? JSON.parse(stored) : window.AvatarKit.randomDNA('player');
+      window.AvatarKit.render(canvas, dna);
+    }
+  }, []);
   
   const teamsList = teams.get();
   const currentSettings = settings.get();
@@ -92,10 +55,6 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
     setUseMetric(currentSettings.units === 'metric');
   }, [currentSettings.units]);
 
-  // Generate new avatar when team changes
-  useEffect(() => {
-    setAvatarSeed(`player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-  }, [playerData.teamId]);
 
   // Update height when position changes
   useEffect(() => {
@@ -355,7 +314,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <canvas id="avatarChip" className="avatar40" data-seed={avatarSeed} style={{borderRadius: '8px'}}></canvas>
+                <canvas id="createThumb" className="avatar40" style={{borderRadius: '8px'}}></canvas>
                 <div className="flex-1">
                   <Button
                     variant="outline"
