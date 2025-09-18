@@ -5,5 +5,5 @@ function Dummy() { return <div>Hoop Dreams</div>; }
 
 test('renders placeholder text', () => {
   render(<Dummy />);
-  expect(screen.getByText(/Hoop Dreams/i)).toBeInTheDocument();
+  expect(screen.getByText(/Hoop Dreams/i)).toBeTruthy();
 });

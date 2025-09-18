@@ -2,9 +2,92 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Module from 'node:module';
-import * as esbuild from 'esbuild';
+import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
 import { createExpect } from '../src/expect.js';
+
+function setupTsCompiler(projectRoot, ts) {
+  const compilerOptions = {
+    module: ts.ModuleKind.CommonJS,
+    jsx: ts.JsxEmit.ReactJSX,
+    esModuleInterop: true,
+    target: ts.ScriptTarget.ES2020,
+    moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    skipLibCheck: true,
+    sourceMap: false,
+  };
+  const extensions = ['.ts', '.tsx'];
+  for (const ext of extensions) {
+    Module._extensions[ext] = (module, filename) => {
+      const code = fs.readFileSync(filename, 'utf8');
+      const output = ts.transpileModule(code, { compilerOptions, fileName: filename });
+      module._compile(output.outputText, filename);
+    };
+  }
+
+  const originalResolve = Module._resolveFilename;
+  Module._resolveFilename = function (request, parent, isMain, options) {
+    const vendor = mapVendorModule(projectRoot, request);
+    if (vendor) {
+      return originalResolve.call(this, vendor, parent, isMain, options);
+    }
+    if (typeof request === 'string' && request.startsWith('@/')) {
+      const resolved = resolveAlias(projectRoot, request.slice(2));
+      if (resolved) {
+        return originalResolve.call(this, resolved, parent, isMain, options);
+      }
+    }
+    return originalResolve.call(this, request, parent, isMain, options);
+  };
+}
+
+function mapVendorModule(projectRoot, request) {
+  const vendorMap = {
+    react: path.join(projectRoot, 'vendor/react/index.js'),
+    'react/jsx-runtime': path.join(projectRoot, 'vendor/react/jsx-runtime.js'),
+    'react-dom/server': path.join(projectRoot, 'vendor/react-dom/server.js'),
+  };
+  return vendorMap[request] ?? null;
+}
+
+function resolveAlias(projectRoot, specifier) {
+  const base = path.join(projectRoot, 'src', specifier);
+  return resolveWithExtensions(base);
+}
+
+function resolveWithExtensions(basePath) {
+  const attempts = [
+    basePath,
+    `${basePath}.ts`,
+    `${basePath}.tsx`,
+    `${basePath}.js`,
+    `${basePath}.jsx`,
+    path.join(basePath, 'index.ts'),
+    path.join(basePath, 'index.tsx'),
+    path.join(basePath, 'index.js'),
+  ];
+  for (const attempt of attempts) {
+    if (fs.existsSync(attempt) && fs.statSync(attempt).isFile()) {
+      return attempt;
+    }
+  }
+  return null;
+}
+
+async function loadTypeScript() {
+  try {
+    const mod = await import('typescript');
+    return mod.default ?? mod;
+  } catch (error) {
+    const execDir = path.dirname(process.execPath);
+    const tsPath = path.join(execDir, '..', 'lib', 'node_modules', 'typescript', 'lib', 'typescript.js');
+    if (fs.existsSync(tsPath)) {
+      const mod = await import(pathToFileURL(tsPath));
+      return mod.default ?? mod;
+    }
+    throw error;
+  }
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -33,6 +116,8 @@ async function main() {
   }
 
   const projectRoot = process.cwd();
+  const ts = await loadTypeScript();
+  setupTsCompiler(projectRoot, ts);
   const requireFromRoot = Module.createRequire(path.join(projectRoot, 'package.json'));
   const setupFile = path.join(projectRoot, 'src/test/setup.ts');
   const testRoot = path.join(projectRoot, 'src');
@@ -238,24 +323,8 @@ class TestFileRunner {
   }
 
   async executeModule(file) {
-    const result = await esbuild.build({
-      entryPoints: [file],
-      bundle: true,
-      platform: 'node',
-      format: 'cjs',
-      target: 'node18',
-      write: false,
-      jsx: 'automatic',
-      jsxImportSource: 'react',
-      absWorkingDir: this.projectRoot,
-    });
-    const code = result.outputFiles[0].text;
-    const module = { exports: {} };
-    const dirname = path.dirname(file);
     const localRequire = Module.createRequire(file);
-    const wrapper = new Function('require', 'module', 'exports', '__filename', '__dirname', code);
-    wrapper(localRequire, module, module.exports, file, dirname);
-    return module.exports;
+    return localRequire(file);
   }
 }
 

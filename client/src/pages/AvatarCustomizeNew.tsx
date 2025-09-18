@@ -1,18 +1,104 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AvatarSVG, type AvatarDNA } from "@/avatar/AvatarRenderer";
+import { HAIR, type HairStyleId } from "@/avatar/AvatarKit";
+import { ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface AvatarCustomizeNewProps {
   onNavigate?: (path: string) => void;
 }
 
+const hairOrder: HairStyleId[] = [
+  "bald",
+  "buzz_fade",
+  "waves",
+  "short_curls",
+  "braids_box",
+  "twists_two_strand",
+  "locs_medium",
+];
+
+const hairColorOptions = [
+  { key: "black", label: "Black" },
+  { key: "deep_brown", label: "Deep Brown" },
+  { key: "brown", label: "Brown" },
+  { key: "dark_blond", label: "Dark Blond" },
+] as const;
+
+const skinToneOptions: { key: AvatarDNA["skinTone"]; label: string }[] = [
+  { key: "light", label: "Light" },
+  { key: "tan", label: "Tan" },
+  { key: "brown", label: "Brown" },
+  { key: "deep", label: "Deep" },
+];
+
+const eyeColorOptions: { key: AvatarDNA["eyes"]; label: string }[] = [
+  { key: "brown", label: "Brown" },
+  { key: "hazel", label: "Hazel" },
+  { key: "blue", label: "Dark Blue" },
+  { key: "green", label: "Green" },
+];
+
+const eyeShapeOptions: { key: NonNullable<AvatarDNA["eyeShape"]>; label: string }[] = [
+  { key: "round", label: "Round" },
+  { key: "almond", label: "Almond" },
+  { key: "sleepy", label: "Sleepy" },
+];
+
+const mouthOptions: { key: NonNullable<AvatarDNA["mouth"]>; label: string }[] = [
+  { key: "neutral", label: "Neutral" },
+  { key: "smile", label: "Smile" },
+  { key: "frown", label: "Frown" },
+  { key: "smirk", label: "Smirk" },
+];
+
+const facialOptions: { key: AvatarDNA["facialHair"]; label: string }[] = [
+  { key: "none", label: "None" },
+  { key: "goatee_small", label: "Goatee" },
+  { key: "goatee_full", label: "Full Goatee" },
+  { key: "mustache_thin", label: "Mustache" },
+];
+
+const defaultDNA: AvatarDNA = {
+  skinTone: "tan",
+  hairStyle: "buzz_fade",
+  hairColor: "black",
+  brows: "on",
+  facialHair: "none",
+  eyes: "brown",
+  eyeShape: "round",
+  mouth: "neutral",
+};
+
+const randomItem = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
+
+function makeRandomDNA(): AvatarDNA {
+  return {
+    skinTone: randomItem(skinToneOptions.map((opt) => opt.key)),
+    hairStyle: randomItem(hairOrder),
+    hairColor: randomItem(hairColorOptions.map((opt) => opt.key)),
+    brows: Math.random() > 0.12 ? "on" : "off",
+    facialHair: randomItem(facialOptions.map((opt) => opt.key)),
+    eyes: randomItem(eyeColorOptions.map((opt) => opt.key)),
+    eyeShape: randomItem(eyeShapeOptions.map((opt) => opt.key)),
+    mouth: randomItem(mouthOptions.map((opt) => opt.key)),
+  };
+}
+
 export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
   const [, setLocation] = useLocation();
+  const [dna, setDna] = useState<AvatarDNA>(defaultDNA);
+
+  const handleSelect = <K extends keyof AvatarDNA>(key: K) =>
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDna((current) => ({ ...current, [key]: event.target.value as AvatarDNA[K] }));
+    };
 
   return (
     <div className="min-h-screen bg-background p-4 pb-20">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -20,8 +106,8 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
                 variant="ghost"
                 size="icon"
                 onClick={() => {
-                  onNavigate?.('/new');
-                  setLocation('/new');
+                  onNavigate?.("/new");
+                  setLocation("/new");
                 }}
                 data-testid="button-back"
               >
@@ -33,91 +119,108 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
           <CardContent>
             <style>{`
   .avatar-wrap{display:flex;flex-direction:column;gap:.75rem;max-width:360px}
-  #avatarCanvas{width:128px;height:128px;background:#2a2320;border-radius:12px}
-  .avatar64{width:64px;height:64px}
-  .avatar40{width:40px;height:40px}
-  .controls{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  .avatar-stage{width:320px;height:320px;border-radius:18px;overflow:hidden;background:#2a2320;display:flex;align-items:center;justify-content:center}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
   .controls label{display:flex;flex-direction:column;font-size:.9rem;gap:.25rem}
-  .controls select,.controls button{background:#1f1a17;color:#fff;border:1px solid #3a2f2a;border-radius:8px;padding:.35rem .5rem}
+  .controls select{background:#1f1a17;color:#fff;border:1px solid #3a2f2a;border-radius:8px;padding:.35rem .5rem}
             `}</style>
 
             <div className="avatar-wrap">
-              <canvas id="avatarCanvas" width={128} height={128} aria-label="avatar preview"></canvas>
+              <div className="avatar-stage" aria-label="avatar preview">
+                <AvatarSVG dna={dna} />
+              </div>
+
               <div className="controls">
-                <label>Skin
-                  <select id="skinSel">
-                    <option value="F1">F1 – light</option>
-                    <option value="F2" selected>F2 – tan</option>
-                    <option value="F3">F3 – brown</option>
-                    <option value="F4">F4 – deep</option>
+                <label>
+                  Skin
+                  <select value={dna.skinTone} onChange={handleSelect("skinTone")}>
+                    {skinToneOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
-                <label>Hair
-                  <select id="hairSel">
-                    <option value="bald">bald</option>
-                    <option value="afro">afro</option>
-                    <option value="straight">straight (side part)</option>
-                    <option value="fadeShort" selected>short fade</option>
-                    <option value="cornrows">cornrows</option>
+                <label>
+                  Hair
+                  <select value={dna.hairStyle} onChange={handleSelect("hairStyle")}>
+                    {hairOrder.map((id) => (
+                      <option key={id} value={id}>
+                        {HAIR[id].label}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
-                <label>Hair Color
-                  <select id="hairColorSel">
-                    <option value="#111111" selected>Black</option>
-                    <option value="#2b2018">Very Dark Brown</option>
-                    <option value="#3a2f25">Dark Brown</option>
-                    <option value="#4b382e">Brown</option>
-                    <option value="#754c24">Chestnut</option>
+                <label>
+                  Hair Color
+                  <select value={dna.hairColor} onChange={handleSelect("hairColor")}>
+                    {hairColorOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
-                <label>Eye Color
-                  <select id="eyeColorSel">
-                    <option value="#3a2f25" selected>Brown</option>
-                    <option value="#1f2d57">Dark Blue</option>
-                    <option value="#0a6a4f">Green</option>
-                    <option value="#5b3a2e">Hazel</option>
+                <label>
+                  Eye Color
+                  <select value={dna.eyes} onChange={handleSelect("eyes")}>
+                    {eyeColorOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
-                <label>Eye Shape
-                  <select id="eyeShapeSel">
-                    <option value="round" selected>round</option>
-                    <option value="almond">almond</option>
-                    <option value="sleepy">sleepy</option>
+                <label>
+                  Eye Shape
+                  <select value={dna.eyeShape} onChange={handleSelect("eyeShape")}>
+                    {eyeShapeOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
-                <label>Mouth
-                  <select id="mouthSel">
-                    <option value="neutral" selected>neutral</option>
-                    <option value="smile">smile</option>
-                    <option value="frown">frown</option>
-                    <option value="smirk">smirk</option>
+                <label>
+                  Mouth
+                  <select value={dna.mouth} onChange={handleSelect("mouth")}>
+                    {mouthOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
-                <label>Facial Hair
-                  <select id="facialSel">
-                    <option value="none" selected>none</option>
-                    <option value="goatee">goatee</option>
-                    <option value="mustache">mustache</option>
-                    <option value="full">full beard</option>
+                <label>
+                  Brows
+                  <select value={dna.brows} onChange={handleSelect("brows")}>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
                   </select>
                 </label>
 
-                <label>Accessory
-                  <select id="accSel">
-                    <option value="none" selected>none</option>
-                    <option value="headband">headband</option>
-                    <option value="beanie">beanie</option>
-                    <option value="durag">durag</option>
+                <label>
+                  Facial Hair
+                  <select value={dna.facialHair} onChange={handleSelect("facialHair")}>
+                    {facialOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
+              </div>
 
-                <button id="btnRandom">Randomize</button>
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={() => setDna(makeRandomDNA())}>
+                  Randomize
+                </Button>
               </div>
             </div>
 
@@ -220,19 +323,6 @@ sync();
             `}</script>
           </CardContent>
         </Card>
-
-        <div className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={() => {
-              onNavigate?.('/new');
-              setLocation('/new');
-            }}
-            data-testid="button-back"
-          >
-            Back
-          </Button>
-        </div>
       </div>
     </div>
   );

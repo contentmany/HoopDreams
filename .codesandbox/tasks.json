@@ -1,18 +1,18 @@
 {
   "setupTasks": [
     { "name": "Install root", "command": "npm install" },
-    { "name": "Install client", "command": "cd client && npm install" }
+    { "name": "Install client", "command": "npm -C client install" }
   ],
   "tasks": {
-    "web": {
+    "dev": {
       "name": "Web server",
-      "command": "cd client && npm run dev -- --host 0.0.0.0 --port $PORT",
+      "command": "npm -C client run dev -- --host 0.0.0.0 --port $PORT",
       "runAtStart": true,
       "preview": { "port": "$PORT", "open": true }
     },
     "test": {
       "name": "Vitest (one-shot)",
-      "command": "cd client && npm run test -- --watch=false",
+      "command": "npm -C client run test -- --watch=false",
       "runAtStart": false
     }
   }
