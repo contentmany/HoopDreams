@@ -14,7 +14,10 @@
     "@testing-library/jest-dom": "file:vendor/@testing-library/jest-dom",
     "@testing-library/react": "file:vendor/@testing-library/react",
     "@testing-library/user-event": "file:vendor/@testing-library/user-event",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
     "jsdom": "file:vendor/jsdom",
+    "react": "^19.1.1",
     "vitest": "file:vendor/vitest"
   }
 }
