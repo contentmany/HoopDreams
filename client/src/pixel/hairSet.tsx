@@ -6,11 +6,10 @@ export type HairDef = {
 
 // Your existing hair entries go here; keep the keys stable (ids you use in UI/tests)
 export const hairSet: Record<string, HairDef> = {
-  dreads_short: { label: "Dreads (Short)", render: () => <></> },
+  none: { label: "None", render: () => <></> },
   dreads_medium: { label: "Dreads (Medium)", render: () => <></> },
-  waves: { label: "Waves", render: () => <></> },
+  waves_short: { label: "Waves (Short)", render: () => <></> },
   buzz: { label: "Buzz", render: () => <></> },
-  afro: { label: "Afro", render: () => <></> },
 };
 
 export type HairId = keyof typeof hairSet;
