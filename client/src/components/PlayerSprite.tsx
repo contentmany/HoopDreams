@@ -1,38 +1,14 @@
 import React from "react";
+import AvatarOrFallback from "../components/AvatarOrFallback";
 
 type Variant = "full" | "face" | "mini";
 
-function getSpriteUrl(): string {
-  try {
-    const saved = JSON.parse(localStorage.getItem("player") || "{}");
-    return saved?.appearance?.spriteUrl || "/assets/sprites/generic_player.png";
-  } catch {
-    return "/assets/sprites/generic_player.png";
-  }
-}
-
-export default function PlayerSprite({ variant = "face", alt = "Player" }: { variant?: Variant; alt?: string }) {
-  const src = getSpriteUrl();
-  const base = "hd-sprite-img";
-
-  if (variant === "full") {
-    return (
-      <div className="hd-sprite hd-sprite--full">
-        <img className={base} src={src} alt={alt} />
-      </div>
-    );
-  }
-  if (variant === "mini") {
-    return (
-      <div className="hd-sprite hd-sprite--mini">
-        <img className={base + " hd-sprite--head"} src={src} alt={alt} />
-      </div>
-    );
-  }
-  // face (default)
+export default function PlayerSprite({ variant = "face", alt = "Player", name = "Player", pixelProps = {} }: { variant?: Variant; alt?: string; name?: string; pixelProps?: Record<string, any> }) {
+  // You can customize pixelProps or name as needed, or pull from localStorage if required
+  const size = variant === "full" ? 160 : variant === "mini" ? 64 : 112;
   return (
-    <div className="hd-sprite hd-sprite--face">
-      <img className={base + " hd-sprite--head"} src={src} alt={alt} />
+    <div className={`hd-sprite hd-sprite--${variant}`}>
+      <AvatarOrFallback name={name || alt} size={size} pixelProps={pixelProps} />
     </div>
   );
 }
