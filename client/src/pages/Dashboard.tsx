@@ -12,6 +12,7 @@ import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localSto
 import { simulateGame, type GameResult, type OpponentTeam } from "@/utils/gameSimulation";
 import { initializeSeason, updateSeasonAfterGame, advanceWeek, type SeasonData } from "@/utils/seasonManager";
 import type { Player } from "@/utils/localStorage";
+import AvatarPreview from "@/components/AvatarPreview";
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;
@@ -20,16 +21,7 @@ interface DashboardProps {
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
-  // Avatar handled by procedural system
-  
-  useEffect(() => {
-    const canvas = document.getElementById('avatarHomeMe') as HTMLCanvasElement | null;
-    if (canvas && window.AvatarKit) {
-      const stored = localStorage.getItem('hd:playerDNA');
-      const dna = stored ? JSON.parse(stored) : window.AvatarKit.randomDNA('player');
-      window.AvatarKit.render(canvas, dna);
-    }
-  }, []);
+  // Avatar handled by pixel renderer
   const [gameResultsModal, setGameResultsModal] = useState<{
     isOpen: boolean;
     result?: GameResult;
@@ -208,7 +200,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <main className="space-y-6">
         {/* Player Info Card */}
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-          <canvas id="avatarHomeMe" className="avatar64" data-seed={`player-${currentPlayer?.nameFirst || 'default'}-${currentPlayer?.nameLast || 'player'}`} style={{borderRadius: '8px'}}></canvas>
+          <AvatarPreview size={72} className="rounded-xl" />
           <div className="flex-1">
             <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
             <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>

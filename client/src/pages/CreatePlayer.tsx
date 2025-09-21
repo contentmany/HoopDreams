@@ -7,14 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { teams, settings } from "@/utils/localStorage";
-import { 
-  heightRanges, 
-  inchesToFeetInches, 
-  inchesToCm, 
+import {
+  heightRanges,
+  inchesToFeetInches,
+  inchesToCm,
   cmToInches,
   feetInchesToInches
 } from "@/utils/gameConfig";
 import { getArchetypesForPosition, isValidArchetypeForPosition } from "@/constants/positionArchetypes";
+import AvatarPreview from "@/components/AvatarPreview";
 
 interface CreatePlayerProps {
   onCreatePlayer?: (playerData: any) => void;
@@ -36,16 +37,6 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
-  // Render avatar thumbnail
-  useEffect(() => {
-    const canvas = document.getElementById('createThumb') as HTMLCanvasElement | null;
-    if (canvas && window.AvatarKit) {
-      const stored = localStorage.getItem('hd:playerDNA');
-      const dna = stored ? JSON.parse(stored) : window.AvatarKit.randomDNA('player');
-      window.AvatarKit.render(canvas, dna);
-    }
-  }, []);
-  
   const teamsList = teams.get();
   const currentSettings = settings.get();
   const positions = ["PG", "SG", "SF", "PF", "C"];
@@ -314,7 +305,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <canvas id="createThumb" className="avatar40" style={{borderRadius: '8px'}}></canvas>
+                <AvatarPreview size={56} className="rounded-lg" />
                 <div className="flex-1">
                   <Button
                     variant="outline"

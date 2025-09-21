@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
 import { saveSlots, activeSlot, type SaveSlot } from "@/utils/localStorage";
+import AvatarPreview from "@/components/AvatarPreview";
 
 interface LoadSaveProps {
   onLoadSlot?: (slotId: number) => void;
@@ -14,16 +15,6 @@ interface LoadSaveProps {
 export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSaveProps) {
   const [slots, setSlots] = useState<SaveSlot[]>([]);
   
-  useEffect(() => {
-    document.querySelectorAll<HTMLCanvasElement>('canvas.avatar40[data-seed]').forEach(c => {
-      if (window.AvatarKit) {
-        const slot = slots.find(s => `save-slot-${s.id}` === c.dataset.seed);
-        const dna = slot?.player?.dna || window.AvatarKit.randomDNA('npc-' + (c.dataset.seed || 'slot'));
-        window.AvatarKit.render(c, dna);
-      }
-    });
-  }, [slots]);
-
   useEffect(() => {
     // Load all save slots
     const allSlots = saveSlots.get();
@@ -67,7 +58,11 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
                 {slot.player ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <canvas className="avatar40" data-seed={`save-slot-${slot.id}`} style={{borderRadius: '6px'}}></canvas>
+                      <AvatarPreview
+                        size={48}
+                        seed={slot.player ? `${slot.player.nameFirst}-${slot.player.nameLast}` : `save-slot-${slot.id}`}
+                        className="rounded-lg"
+                      />
                       
                       <div>
                         <h3 className="font-semibold" data-testid={`text-player-name-${slot.id}`}>

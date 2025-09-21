@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
 import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
+import AvatarPreview from '@/components/AvatarPreview';
 
 interface BuilderAttributes {
   finishing: number;
@@ -39,13 +40,6 @@ export default function PlayerBuilder() {
   const [availablePoints, setAvailablePoints] = useState(20);
 
   useEffect(() => {
-    const canvas = document.getElementById('builderFace') as HTMLCanvasElement | null;
-    if (canvas && window.AvatarKit) {
-      const stored = localStorage.getItem('hd:playerDNA');
-      const dna = stored ? JSON.parse(stored) : window.AvatarKit.randomDNA('player');
-      window.AvatarKit.render(canvas, dna);
-    }
-
     // Load draft player data
     const draft = getDraftPlayer();
     if (draft) {
@@ -185,7 +179,7 @@ export default function PlayerBuilder() {
           {/* Character Preview */}
           <Card className="lg:sticky lg:top-4 h-fit">
             <CardHeader className="flex items-center gap-2">
-              <canvas id="builderFace" className="avatar64" style={{borderRadius: '8px'}}></canvas>
+              <AvatarPreview size={96} className="rounded-xl" />
               <CardTitle>Character Preview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
