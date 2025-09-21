@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import type { HairId } from "../pixel/hairSet";
+import { hairSet, type HairId } from "../pixel/hairSets";
 describe("hair list", ()=>{
-  const expected: HairId[] = ["none","dreads_medium","waves_short","buzz"];
+  const expected: HairId[] = Object.keys(hairSet) as HairId[];
   it("has curated styles", ()=>{
     expect(expected).toEqual(["none","dreads_medium","waves_short","buzz"]);
   });
