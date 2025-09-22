@@ -14,6 +14,16 @@ export default defineConfig({
       '@assets': path.resolve(dirname, '../attached_assets'),
     },
   },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+  },
   test: {
     environment: 'jsdom',
     globals: true,

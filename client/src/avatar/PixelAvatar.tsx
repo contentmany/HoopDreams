@@ -1,6 +1,3 @@
-codex/install-hybrid-pixel-avatar-files
-export { PixelAvatar8 as PixelAvatar } from "./PixelAvatar8";
-export type { PixelAvatarProps } from "./PixelAvatar8";
 import React, { useEffect, useMemo, useRef } from "react";
 import { AvatarDNA, DEFAULT_DNA } from "./types";
 import { eyeHex, hairHex, skinHex } from "./palettes";
