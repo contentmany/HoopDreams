@@ -1,6 +1,8 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import AvatarCustomizeNew from "./pages/AvatarCustomizeNew";
+import { Routes, Route, Link } from "react-router-dom";
+import WorkingAvatarCustomize from "./pages/WorkingAvatarCustomize";
+import WorkingMainMenu from "./pages/WorkingMainMenu";
+import WorkingNotFound from "./pages/WorkingNotFound";
 
 function Home() {
   return (
@@ -8,17 +10,18 @@ function Home() {
       <h1>HoopDreams</h1>
       <p>New pixel avatars are wired. Go customize:</p>
       <p><Link to="/customize-new">Customize Appearance (Pixel)</Link></p>
+      <p><Link to="/play">Play</Link></p>
     </div>
   );
 }
 
 export default function App(){
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home/>} />
-        <Route path="/customize-new" element={<AvatarCustomizeNew/>} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<Home/>} />
+      <Route path="/customize-new" element={<WorkingAvatarCustomize/>} />
+      <Route path="/play" element={<WorkingMainMenu/>} />
+      <Route path="*" element={<WorkingNotFound/>} />
+    </Routes>
   );
 }

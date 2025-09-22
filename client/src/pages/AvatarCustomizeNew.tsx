@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AvatarSVG, type AvatarDNA } from "@/avatar/AvatarRenderer";
 import { HAIR, type HairStyleId } from "@/avatar/AvatarKit";
 import { ArrowLeft } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface AvatarCustomizeNewProps {
   onNavigate?: (path: string) => void;
@@ -88,7 +88,7 @@ function makeRandomDNA(): AvatarDNA {
 }
 
 export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [dna, setDna] = useState<AvatarDNA>(defaultDNA);
 
   const handleSelect = <K extends keyof AvatarDNA>(key: K) =>
@@ -106,8 +106,8 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
                 variant="ghost"
                 size="icon"
                 onClick={() => {
-                  onNavigate?.("/new");
-                  setLocation("/new");
+                  onNavigate?.("/");
+                  navigate("/");
                 }}
                 data-testid="button-back"
               >
