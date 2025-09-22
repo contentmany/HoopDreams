@@ -43,25 +43,26 @@ export function getActivePlayer() {
 
 // Random character look generator
 export function generateRandomCharacterLook(): CharacterLook {
-  const randomSkin = SKIN_OPTIONS[Math.floor(Math.random() * SKIN_OPTIONS.length)];
-  const randomHair = HAIR_OPTIONS[Math.floor(Math.random() * HAIR_OPTIONS.length)];
-  const randomBrow = BROW_OPTIONS[Math.floor(Math.random() * BROW_OPTIONS.length)];
-  const randomEye = EYE_OPTIONS[Math.floor(Math.random() * EYE_OPTIONS.length)];
-  const randomNose = NOSE_OPTIONS[Math.floor(Math.random() * NOSE_OPTIONS.length)];
-  const randomMouth = MOUTH_OPTIONS[Math.floor(Math.random() * MOUTH_OPTIONS.length)];
-  const randomAccessory = ACCESSORY_OPTIONS[Math.floor(Math.random() * ACCESSORY_OPTIONS.length)];
-  const randomTeamColor = TEAM_COLORS[Math.floor(Math.random() * TEAM_COLORS.length)];
-  
+  const skin = SKIN_OPTIONS[Math.floor(Math.random() * SKIN_OPTIONS.length)];
+  const hair = HAIR_OPTIONS[Math.floor(Math.random() * HAIR_OPTIONS.length)];
+  const brows = BROW_OPTIONS[Math.floor(Math.random() * BROW_OPTIONS.length)];
+  const eyes = EYE_OPTIONS[Math.floor(Math.random() * EYE_OPTIONS.length)];
+  const nose = NOSE_OPTIONS[Math.floor(Math.random() * NOSE_OPTIONS.length)];
+  const mouth = MOUTH_OPTIONS[Math.floor(Math.random() * MOUTH_OPTIONS.length)];
+  const accessory = ACCESSORY_OPTIONS[Math.floor(Math.random() * ACCESSORY_OPTIONS.length)];
+  const teamColors = Object.values(TEAM_COLORS);
+  const color = teamColors[Math.floor(Math.random() * teamColors.length)];
+
   return {
-    skinTone: randomSkin.id,
-    hairStyle: randomHair.id,
-    browStyle: randomBrow.id,
-    eyeStyle: randomEye.id,
-    noseStyle: randomNose.id,
-    mouthStyle: randomMouth.id,
-    accessoryStyle: randomAccessory.id,
-    jerseyColor: randomTeamColor.color,
-    shortsColor: randomTeamColor.color,
-    teamNumber: Math.floor(Math.random() * 99) + 1
+    skin,
+    hair,
+    brows,
+    eyes,
+    nose,
+    mouth,
+    accessory,
+    jerseyColor: color,
+    shortsColor: color,
+    teamNumber: Math.floor(Math.random() * 99) + 1,
   };
 }
