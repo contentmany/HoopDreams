@@ -1,3 +1,7 @@
+ copilot/vscode1758546602552
+export { PixelAvatar8 as PixelAvatar } from "./PixelAvatar8";
+export type { PixelAvatarProps } from "./PixelAvatar8";
+
 import React, { useEffect, useMemo, useRef } from "react";
 import { AvatarDNA, DEFAULT_DNA } from "./types";
 import { eyeHex, hairHex, skinHex } from "./palettes";
@@ -335,3 +339,4 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({ dna = DEFAULT_DNA, siz
     />
   );
 };
+ main

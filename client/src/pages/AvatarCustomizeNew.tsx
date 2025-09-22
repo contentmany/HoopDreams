@@ -56,6 +56,9 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
   };
 
   const handleBack = () => {
+ copilot/vscode1758546602552
+    onNavigate?.("/new");
+ main
     navigate("/");
   };
 
