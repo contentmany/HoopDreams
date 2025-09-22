@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
@@ -43,7 +43,7 @@ const formatLabel = (value: string) =>
     .replace(/^./, (char) => char.toUpperCase());
 
 export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [lastSaved, setLastSaved] = useState<AvatarDNA>(() => loadDNA());
   const [dna, setDna] = useState<AvatarDNA>(() => loadDNA());
 
@@ -57,7 +57,7 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
 
   const handleBack = () => {
     onNavigate?.("/new");
-    setLocation("/new");
+    navigate("/");
   };
 
   const handleSave = () => {
