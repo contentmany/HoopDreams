@@ -1,4 +1,4 @@
-// client/s../pixel/hairSets.ts
+// client/s../pixel/hairSetss.ts
 export type HairDef = {
   label: string;
   render: (opts: Record<string, unknown>) => JSX.Element;
