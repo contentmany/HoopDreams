@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin } from "lucide-react";
+import AvatarPreview from "@/components/AvatarPreview";
 
 interface GameCardProps {
   opponent: string;
@@ -25,15 +26,6 @@ export default function GameCard({
   onPlayGame,
   onScouting
 }: GameCardProps) {
-  React.useEffect(() => {
-    document.querySelectorAll<HTMLCanvasElement>('canvas.avatar64[data-seed]').forEach(c => {
-      if (window.AvatarKit) {
-        const dna = window.AvatarKit.randomDNA('npc-' + (c.dataset.seed || 'npc'));
-        window.AvatarKit.render(c, dna);
-      }
-    });
-  }, []);
-
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
   return (
     <Card className="hover-elevate">
@@ -50,7 +42,7 @@ export default function GameCard({
         <div className="flex items-center gap-4 py-4">
           {/* Avatar on the left */}
           <div className="flex-shrink-0">
-            <canvas className="avatar64" data-seed={opponent} style={{borderRadius: '8px'}}></canvas>
+            <AvatarPreview size={72} seed={`npc-${opponent}`} className="rounded-xl" />
           </div>
 
           {/* Game info on the right */}
