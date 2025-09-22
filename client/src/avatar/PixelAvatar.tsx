@@ -335,4 +335,3 @@ export const PixelAvatar: React.FC<PixelAvatarProps> = ({ dna = DEFAULT_DNA, siz
     />
   );
 };
- main
