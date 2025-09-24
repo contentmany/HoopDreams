@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import AvatarOrPhoto from "@/components/AvatarOrPhoto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,32 +14,7 @@ interface LoadSaveProps {
 
 export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSaveProps) {
   const [slots, setSlots] = useState<SaveSlot[]>([]);
-  
-  // Load procedural avatar system
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
-    }
-    
-    // Initialize save slot avatars
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { renderAvatar, dnaFromSeed } from '/js/proc-avatar.js';
-      setTimeout(() => {
-        document.querySelectorAll('canvas.avatar40').forEach(c => {
-          if (c.dataset.seed) {
-            c.width = 40; c.height = 40;
-            renderAvatar(c, dnaFromSeed(c.dataset.seed));
-          }
-        });
-      }, 200);
-    `;
-    document.head.appendChild(script);
-  }, [slots]);
+  // No procedural avatar system
 
   useEffect(() => {
     // Load all save slots
@@ -83,7 +59,7 @@ export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSa
                 {slot.player ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <canvas className="avatar40" data-seed={`save-slot-${slot.id}`} style={{borderRadius: '6px'}}></canvas>
+                      <AvatarOrPhoto size={40} />
                       
                       <div>
                         <h3 className="font-semibold" data-testid={`text-player-name-${slot.id}`}>

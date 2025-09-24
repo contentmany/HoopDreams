@@ -1,4 +1,5 @@
 import React from "react";
+import AvatarOrPhoto from "@/components/AvatarOrPhoto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,43 +22,7 @@ export default function GameCard({
   onPlayGame,
   onScouting
 }: GameCardProps) {
-  // Load procedural avatar system
-  React.useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
-    }
-    
-    // Initialize NPC avatars
-    const script = document.createElement('script');
- feat/restore-from-archive
-    script.type = 'module';
-    script.innerHTML = `
-      import { npcIntoCanvas } from '/js/avatar-hooks.js';
-      setTimeout(() => {
-        document.querySelectorAll('canvas.avatar64').forEach(c => {
-          if (c.dataset.seed) npcIntoCanvas(c, c.dataset.seed, 64);
-        });
-      }, 100);
-    `;
-    script.src = '/js/avatar-hooks.js';
-    script.onload = () => {
-      setTimeout(() => {
-        if (window.AvatarHooks) {
-          document.querySelectorAll('canvas.avatar64').forEach(c => {
-            const canvas = c as HTMLCanvasElement;
-            if (canvas.dataset && canvas.dataset.seed) {
-              window.AvatarHooks.npcIntoCanvas(canvas, canvas.dataset.seed, 64);
-            }
-          });
-        }
-      }, 100);
-    };
- main
-    document.head.appendChild(script);
-  }, []);
+  // No procedural avatar scripts; purely UI
   return (
     <Card className="hover-elevate">
       <CardHeader className="pb-3">
@@ -73,7 +38,7 @@ export default function GameCard({
         <div className="flex items-center gap-4 py-4">
           {/* Avatar on the left */}
           <div className="flex-shrink-0">
-            <canvas className="avatar64" data-seed="game-card-default" style={{borderRadius: '8px'}}></canvas>
+            <AvatarOrPhoto size={64} />
           </div>
           
           {/* Game info on the right */}
