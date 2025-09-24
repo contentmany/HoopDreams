@@ -22,7 +22,7 @@ import League from "@/pages/League";
 import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
-import AvatarPhotoPage from "@/pages/AvatarPhotoPage";
+import AvatarPhoto from "@/pages/AvatarPhoto";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -67,9 +67,7 @@ function Router() {
         </PreGameLayout>
       </Route>
       <Route path="/avatar-photo">
-        <PreGameLayout title="Set Your Photo">
-          <AvatarPhotoPage />
-        </PreGameLayout>
+        <AvatarPhoto />
       </Route>
       <Route path="/builder">
         <PreGameLayout title="Player Builder">

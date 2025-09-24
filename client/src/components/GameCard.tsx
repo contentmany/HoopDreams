@@ -1,5 +1,5 @@
 import React from "react";
-import AvatarOrPhoto from "@/components/AvatarOrPhoto";
+import AvatarImage from "@/features/avatar/AvatarImage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ export default function GameCard({
         <div className="flex items-center gap-4 py-4">
           {/* Avatar on the left */}
           <div className="flex-shrink-0">
-            <AvatarOrPhoto size={64} />
+            <AvatarImage size={64} />
           </div>
           
           {/* Game info on the right */}

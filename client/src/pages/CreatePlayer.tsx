@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import AvatarOrPhoto from "@/components/AvatarOrPhoto";
+import AvatarImage from "@/features/avatar/AvatarImage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
-  // No procedural avatar system; AvatarOrPhoto will display the user's chosen photo if any
+  // AvatarImage will display user's chosen photo or silhouette fallback
   
   const teamsList = teams.get();
   const currentSettings = settings.get();
@@ -308,7 +308,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <AvatarOrPhoto size={40} />
+                <AvatarImage size={40} />
                 <div className="flex-1">
                   <Button
                     variant="outline"

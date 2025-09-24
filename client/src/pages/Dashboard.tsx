@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import AvatarOrPhoto from "@/components/AvatarOrPhoto";
+import AvatarImage from "@/features/avatar/AvatarImage";
 import GameHeader from "@/components/GameHeader";
 import GameCard from "@/components/GameCard";
 import QuickActions from "@/components/QuickActions";
@@ -21,7 +21,7 @@ interface DashboardProps {
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
-  // Photo avatar handled by AvatarOrPhoto; no procedural assets
+  // Photo avatar handled by AvatarImage; fallback to silhouette
   const [gameResultsModal, setGameResultsModal] = useState<{
     isOpen: boolean;
     result?: GameResult;
@@ -200,7 +200,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <main className="space-y-6">
         {/* Player Info Card */}
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-          <AvatarOrPhoto size={64} />
+          <AvatarImage size={64} />
           <div className="flex-1">
             <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
             <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>

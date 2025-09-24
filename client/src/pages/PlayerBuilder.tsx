@@ -182,7 +182,10 @@ export default function PlayerBuilder() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-center">
-                <AvatarOrPhoto size={96} />
+                <div className="flex flex-col items-center space-y-2">
+                  <canvas className="avatar96" data-seed="player-builder-default" style={{borderRadius: '50%'}}></canvas>
+                  <p className="text-xs text-muted-foreground">Procedural avatar</p>
+                </div>
               </div>
               
               <div className="text-center space-y-1">
