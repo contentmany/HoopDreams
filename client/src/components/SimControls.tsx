@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { loadSave, saveSave, simOneWeek, simToEndOfSeason, type SaveState } from '@/state/sim';
+import { loadSave, advanceWeek, simMultipleWeeks, simToEndOfSeason, type SaveState } from '@/state/sim';
 
 interface SimControlsProps {
   currentSave?: SaveState | null;
@@ -18,12 +18,11 @@ export default function SimControls({ currentSave, onSimComplete }: SimControlsP
   const { toast } = useToast();
 
   const handleSimNextWeek = async () => {
-    if (!currentSave) return;
+    const currentSave = loadSave();
     
     setIsSimming(true);
     try {
-      const updatedSave = simOneWeek(currentSave);
-      saveSave(updatedSave);
+      const updatedSave = advanceWeek(currentSave);
       
       toast({
         title: "Week Advanced",
@@ -43,16 +42,11 @@ export default function SimControls({ currentSave, onSimComplete }: SimControlsP
   };
 
   const handleSimMultipleWeeks = async () => {
-    if (!currentSave) return;
+    const currentSave = loadSave();
     
     setIsSimming(true);
     try {
-      let updatedSave = currentSave;
-      for (let i = 0; i < weeksToSim && updatedSave.week <= 20; i++) {
-        updatedSave = simOneWeek(updatedSave);
-      }
-      
-      saveSave(updatedSave);
+      const updatedSave = simMultipleWeeks(currentSave, weeksToSim);
       
       toast({
         title: "Weeks Simulated",
@@ -72,12 +66,11 @@ export default function SimControls({ currentSave, onSimComplete }: SimControlsP
   };
 
   const handleSimToEndOfSeason = async () => {
-    if (!currentSave) return;
+    const currentSave = loadSave();
     
     setIsSimming(true);
     try {
       const updatedSave = simToEndOfSeason(currentSave);
-      saveSave(updatedSave);
       
       toast({
         title: "Season Simulated",

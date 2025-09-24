@@ -9,7 +9,9 @@ import SimControls from "@/components/SimControls";
 import BottomTabBar from "@/components/BottomTabBar";
 import GameResultsModal from "@/components/GameResultsModal";
 import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
-import { loadSave, saveSave, newSeason, type SaveState } from "@/state/sim";
+import { loadSave, saveSave, newSeason, advanceWeek, playCurrentGame, getNextGame, simToEndOfSeason, type SaveState } from "@/state/sim";
+import { useSave } from "@/hooks/useSave";
+import { useToast } from "@/hooks/use-toast";
 import { TEAMS } from "@/data/teams";
 import type { Player } from "@/utils/localStorage";
 
@@ -19,23 +21,13 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-  const [saveState, setSaveState] = useState<SaveState | null>(null);
+  const saveState = useSave(); // Use the reactive hook
+  const { toast } = useToast();
   // Photo avatar handled by AvatarImage; fallback to silhouette
   const [gameResultsModal, setGameResultsModal] = useState<{
     isOpen: boolean;
-    result?: {
-      playerStats: {
-        points: number;
-        rebounds: number;
-        assists: number;
-      };
-      won: boolean;
-      score: { player: number; opponent: number };
-    };
-    opponent?: {
-      name: string;
-      abbrev: string;
-    };
+    result?: any;
+    opponent?: any;
     location?: 'Home' | 'Away';
   }>({ isOpen: false });
 
@@ -44,33 +36,43 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     if (player) {
       setCurrentPlayer(player);
       
-      // Try to load new save state first
-      const newSaveState = loadSave();
-      if (newSaveState) {
-        setSaveState(newSaveState);
-      } else {
-        // Initialize new save state from old player data
+      // Initialize SaveState if needed (useSave hook handles the state)
+      const currentSave = loadSave();
+      if (!currentSave || !currentSave.player) {
+        // Initialize new save state from player data
+        const initialSeason = newSeason(2025, player.teamId || 'cvhs', 'northern');
         const initialSaveState: SaveState = {
           year: 2025,
           week: 1,
           age: 16,
           birthdayWeek: 10,
           playerTeamId: player.teamId || 'cvhs',
-          season: newSeason(2025, player.teamId || 'cvhs', 'northern'),
+          season: initialSeason,
           awards: [],
           history: [{ label: 'Started high school career', dateISO: new Date().toISOString() }],
-          accessories: []
+          accessories: [],
+          player: {
+            firstName: player.nameFirst || 'Your',
+            lastName: player.nameLast || 'Player',
+            position: player.position || 'PG',
+            archetype: 'Playmaker',
+            heightInCm: player.heightCm || 180,
+            baseAttributes: {
+              shooting: 70,
+              finishing: 65,
+              defense: 60,
+              rebounding: 55,
+              physicals: 75
+            }
+          }
         };
         saveSave(initialSaveState);
-        setSaveState(initialSaveState);
       }
-      
     }
   }, []);
 
   const refreshData = () => {
-    const newSaveState = loadSave();
-    setSaveState(newSaveState);
+    // Data refreshes automatically via useSave hook
   };
 
   const getTeamName = (teamId: string): string => {
@@ -88,44 +90,65 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   const handlePlayGame = () => {
-    if (!saveState) return;
+    const currentSave = loadSave();
+    const currentGame = getNextGame(currentSave);
     
-    const currentGame = saveState.season.schedule.find(g => g.week === saveState.week);
-    if (!currentGame) return;
+    if (!currentGame) {
+      // Handle end of season case
+      if (currentSave.week > 20) {
+        const completedSave = simToEndOfSeason(currentSave);
+        toast({
+          title: "Season completed",
+          description: "New season started."
+        });
+        return;
+      }
+      return;
+    }
     
     const opponent = TEAMS[currentGame.opponentId];
     if (!opponent) return;
     
-    // Import simOneWeek here to avoid circular dependency
-    import('@/state/sim').then(({ simOneWeek }) => {
-      // Play the game using the new simulation system
-      const updatedSave = simOneWeek(saveState);
-      saveSave(updatedSave);
-      setSaveState(updatedSave);
+    // Use unified engine
+    const updatedSave = playCurrentGame(currentSave);
+    
+    // Get the result for the modal
+    const result = updatedSave.season.results.find(r => r.week === currentGame.week);
+    if (result) {
+      // Format result data for GameResultsModal
+      const playerScore = result.won ? 95 : 88;
+      const opponentScore = result.won ? 88 : 95;
       
-      // Get the result for the modal
-      const result = updatedSave.season.results.find(r => r.week === currentGame.week);
-      if (result) {
-        // Show results modal using new result format
-        setGameResultsModal({
-          isOpen: true,
-          result: {
-            playerStats: {
-              points: result.points,
-              rebounds: result.rebounds,
-              assists: result.assists
-            },
-            won: result.won,
-            score: { player: result.won ? 95 : 88, opponent: result.won ? 88 : 95 }
+      // Show results modal with expected format
+      setGameResultsModal({
+        isOpen: true,
+        result: {
+          playerStats: {
+            points: result.points,
+            rebounds: result.rebounds,
+            assists: result.assists
           },
-          opponent: {
-            name: opponent.name,
-            abbrev: opponent.abbrev
+          teamStats: {
+            win: result.won,
+            playerScore,
+            opponentScore
           },
-          location: result.home ? 'Home' : 'Away'
-        });
-      }
-    });
+          gameGrade: result.points >= 20 ? 'A' : result.points >= 15 ? 'B' : 'C',
+          energyUsed: 3,
+          injuryRisk: false
+        },
+        opponent: {
+          name: opponent.name,
+          abbrev: opponent.abbrev
+        },
+        location: result.home ? 'Home' : 'Away'
+      });
+      
+      toast({
+        title: result.won ? "Victory!" : "Defeat",
+        description: `${result.points} PTS, ${result.rebounds} REB, ${result.assists} AST`
+      });
+    }
   };
 
   // These are now handled by SimControls component
