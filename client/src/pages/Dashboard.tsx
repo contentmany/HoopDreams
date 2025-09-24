@@ -217,25 +217,32 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           onSimComplete={refreshData}
         />
 
-        {saveState && saveState.week <= 20 && saveState.season.schedule.length > 0 && (
-          <GameCard 
-            opponentId={saveState.season.schedule.find(g => g.week === saveState.week)?.opponentId || 'cvhs'}
-            gameType="Regular Season"
-            location={saveState.season.schedule.find(g => g.week === saveState.week)?.home ? 'Home' : 'Away'}
-            energyCost={3}
-            onPlayGame={handlePlayGame}
-            onScouting={handleScouting}
-          />
-        )}
+        {(() => {
+          const nextGame = getNextGame(saveState);
+          if (nextGame) {
+            return (
+              <GameCard 
+                opponentId={nextGame.opponentId}
+                gameType="Regular Season"
+                location={nextGame.home ? 'Home' : 'Away'}
+                energyCost={3}
+                onPlayGame={handlePlayGame}
+                onScouting={handleScouting}
+              />
+            );
+          } else if (saveState.week > 20) {
+            return (
+              <div className="text-center py-8">
+                <h3 className="text-lg font-semibold mb-2">Regular Season Complete!</h3>
+                <p className="text-muted-foreground">
+                  No remaining regular-season games.
+                </p>
+              </div>
+            );
+          }
+          return null;
+        })()}
         
-        {saveState && saveState.week && saveState.week > 20 ? (
-          <div className="text-center py-8">
-            <h3 className="text-lg font-semibold mb-2">Season Complete!</h3>
-            <p className="text-muted-foreground">
-              Check your awards and prepare for next season.
-            </p>
-          </div>
-        ) : null}
         
         <QuickActions onAction={(path) => onNavigate?.(path)} />
         
