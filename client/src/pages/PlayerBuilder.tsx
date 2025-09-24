@@ -49,6 +49,15 @@ export default function PlayerBuilder() {
     
     // Initialize player avatar
     const script = document.createElement('script');
+ feat/restore-from-archive
+    script.type = 'module';
+    script.innerHTML = `
+      import { attachImgCanvas } from '/js/avatar-hooks.js';
+      setTimeout(() => {
+        attachImgCanvas('#avatarBuilder', 96);
+      }, 100);
+    `;
+
     script.src = '/js/avatar-hooks.js';
     script.onload = () => {
       setTimeout(() => {
@@ -57,6 +66,7 @@ export default function PlayerBuilder() {
         }
       }, 100);
     };
+ main
     document.head.appendChild(script);
     
     // Load draft player data
