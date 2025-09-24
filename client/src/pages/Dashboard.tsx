@@ -202,7 +202,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
           <AvatarImage size={64} />
           <div className="flex-1">
-            <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
+            <button 
+              onClick={() => onNavigate?.('/profile')}
+              className="font-semibold text-left hover:text-primary transition-colors"
+              data-testid="button-player-name"
+            >
+              {currentPlayer.nameFirst} {currentPlayer.nameLast}
+            </button>
             <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>
           </div>
         </div>
