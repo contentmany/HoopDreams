@@ -8,10 +8,16 @@ import StatsTable from "@/components/profile/StatsTable";
 import AwardsList from "@/components/profile/AwardsList";
 import HistoryList from "@/components/profile/HistoryList";
 import { player as playerStorage } from "@/utils/localStorage";
+import { useSave } from '@/hooks/useSave';
+import { aggregateStats } from '@/state/sim';
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("stats");
   const currentPlayer = playerStorage.get();
+  const saveState = useSave();
+  
+  // Get aggregated stats from game results
+  const stats = aggregateStats(saveState.season.results);
 
   if (!currentPlayer) {
     return (
@@ -86,15 +92,89 @@ export default function Profile() {
           </TabsList>
           
           <TabsContent value="stats" className="mt-6">
-            <StatsTable />
+            <Card>
+              <CardHeader>
+                <CardTitle>Season Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{stats.totals.pts}</div>
+                    <div className="text-sm text-muted-foreground">Total Points</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{stats.totals.reb}</div>
+                    <div className="text-sm text-muted-foreground">Total Rebounds</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{stats.totals.ast}</div>
+                    <div className="text-sm text-muted-foreground">Total Assists</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{stats.perGame.pts}</div>
+                    <div className="text-sm text-muted-foreground">PPG</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{stats.perGame.reb}</div>
+                    <div className="text-sm text-muted-foreground">RPG</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{stats.perGame.ast}</div>
+                    <div className="text-sm text-muted-foreground">APG</div>
+                  </div>
+                  <div className="text-center col-span-full">
+                    <div className="text-sm text-muted-foreground">
+                      Games Played: {saveState.season.results.length}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="awards" className="mt-6">
-            <AwardsList />
+            <Card>
+              <CardHeader>
+                <CardTitle>Awards</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {saveState.awards.length > 0 ? (
+                  <div className="space-y-2">
+                    {saveState.awards.map((award, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-muted rounded">
+                        🏆 {award}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No awards yet</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="history" className="mt-6">
-            <HistoryList />
+            <Card>
+              <CardHeader>
+                <CardTitle>Career History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {saveState.history.length > 0 ? (
+                  <div className="space-y-2">
+                    {saveState.history.map((event, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
+                        <span>{event.label}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(event.dateISO).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No history yet</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
