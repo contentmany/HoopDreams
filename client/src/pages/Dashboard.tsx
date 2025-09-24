@@ -109,11 +109,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     const opponent = TEAMS[currentGame.opponentId];
     if (!opponent) return;
     
-    // Use unified engine
-    const updatedSave = playCurrentGame(currentSave);
+    // Use unified engine - advanceWeek includes game play AND week advancement
+    const updatedSave = advanceWeek(currentSave);
     
-    // Get the result for the modal
-    const result = updatedSave.season.results.find(r => r.week === currentGame.week);
+    // Get the result for the modal (last played game result)
+    const result = updatedSave.season.results[updatedSave.season.results.length - 1];
     if (result) {
       // Format result data for GameResultsModal
       const playerScore = result.won ? 95 : 88;
