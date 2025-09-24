@@ -1,19 +1,38 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
-import Home from "@/pages/Home";
+import { Routes, Route, Navigate } from "@/lib/router";
+import MainMenu from "@/pages/MainMenu";
+import NewPlayer from "@/pages/NewPlayer";
+import LoadGame from "@/pages/LoadGame";
+import Roster from "@/pages/Roster";
 import Play from "@/pages/Play";
-import Profile from "@/pages/Profile";
-import NotFound from "@/pages/not-found";
+import League from "@/pages/League";
+import Team from "@/pages/Team";
+import Social from "@/pages/Social";
+import Business from "@/pages/Business";
+import Settings from "@/pages/Settings";
+import NotFound from "@/pages/NotFound";
+import { Store } from "@/lib/store";
+
+function GuardedPlay(){
+  // Require an active player to enter the game
+  const p = Store.current();
+  return p ? <Play/> : <Navigate to="/new" replace />;
+}
 
 export default function App(){
   return (
-    <div style={{ minHeight: "100vh", background: "#0b0b0b", color: "#fff" }}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/play" element={<Play />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </div>
+    <Routes>
+      <Route path="/" element={<MainMenu/>}/>
+      <Route path="/new" element={<NewPlayer/>}/>
+      <Route path="/load" element={<LoadGame/>}/>
+      <Route path="/roster" element={<Roster/>}/>
+      <Route path="/play" element={<GuardedPlay/>}/>
+      <Route path="/league" element={<League/>}/>
+      <Route path="/team" element={<Team/>}/>
+      <Route path="/social" element={<Social/>}/>
+      <Route path="/business" element={<Business/>}/>
+      <Route path="/settings" element={<Settings/>}/>
+      <Route path="*" element={<NotFound/>}/>
+    </Routes>
   );
 }
