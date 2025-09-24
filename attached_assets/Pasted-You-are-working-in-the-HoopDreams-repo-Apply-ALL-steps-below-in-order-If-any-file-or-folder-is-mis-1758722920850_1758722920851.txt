@@ -1,0 +1,199 @@
+You are working in the HoopDreams repo. Apply ALL steps below in order. If any file or folder is missing, create it.
+
+=====================================
+0) PREP / CONVENTIONS
+=====================================
+- Tech: React + TypeScript + Vite + React Router.
+- All new client code lives under `client/src`.
+- Use functional components, hooks, and Tailwind classes already in the project.
+- Keep the current dark/brown/orange theme.
+- Persist small app state in localStorage.
+- If a path differs in this repo, adapt but keep the structure and names.
+
+=====================================
+1) AVATAR: GALLERY-FRIENDLY PHOTO PICKER + STABLE CROPPING + SILHOUETTE
+=====================================
+A. Create a neutral grey silhouette that matches the reference.
+  - File: `client/public/assets/silhouette-grey.svg`
+  - SVG contents (simple neutral avatar): grey rectangle bg, grey head/shoulder shapes (use neutral #8a8d91/#6f7377).
+
+B. Update the photo picker so users can choose from camera OR gallery and initial zoom is sensible:
+  - File: `client/src/components/PhotoAvatar.tsx` (or equivalent).
+  - Ensure `<input type="file" accept="image/*">` (DO NOT include `capture` attribute).
+  - If using a cropper library (e.g., react-easy-crop), initialize `zoom={1}`, `minZoom=1`, `maxZoom≈3`, square crop.
+  - When “Save” completes, store a **dataURL** of the cropped square to localStorage (e.g., key `hd.avatar.v1`) and **navigate back** with `navigate(-1)` (NOT to main menu).
+  - Display avatars everywhere with `object-fit: cover; border-radius: 9999px` so they never stretch or zoom unexpectedly.
+  - If no photo: show `/assets/silhouette-grey.svg`.
+
+C. Avatar shows ONLY beside the player name on Home. Remove duplicates in “Next Game”.
+
+=====================================
+2) PERSISTED BUILDER STATE (NO RESET WHEN GOING BACK)
+=====================================
+A. Add a Builder context backed by localStorage so name/position/attributes/photo persist while navigating.
+  - File: `client/src/state/BuilderContext.tsx`
+  - State: { firstName,lastName,position,archetype,heightInCm, attributes{finishing,shooting,rebounding,defense,physicals}, photoDataUrl }
+  - Export `BuilderProvider` and `useBuilder()`.
+
+B. Wrap the app router with `<BuilderProvider>` in `client/src/main.tsx`.
+
+C. Make all Builder steps (NameStep, PhotoStep, AttributesStep, PreviewStep) read/write from `useBuilder()`.
+  - All “Back” buttons use `navigate(-1)`.
+
+D. Simplify Preview: shows avatar + read-only summary + attributes bars. Remove duplicate “Player Information” form.
+
+=====================================
+3) PLAYER PROFILE PAGE (tap name to open)
+=====================================
+A. New route: `/profile`
+  - Files:
+    - `client/src/pages/Profile.tsx`
+    - `client/src/components/profile/StatsTable.tsx`
+    - `client/src/components/profile/AwardsList.tsx`
+    - `client/src/components/profile/HistoryList.tsx`
+  - Read from a new save model (see Section 6) and show:
+    - Header: avatar (small), Full Name, Position, Archetype, Age.
+    - Tabs (local state): **Stats**, **Awards**, **History**.
+    - Initially all empty (show “No stats yet”, “No awards yet”, “Nothing here yet”).
+  - On Home, player name is a button/link to `/profile`.
+
+=====================================
+4) HIGH-SCHOOL STRUCTURE: CONFERENCES, SCHEDULE, LOGOS
+=====================================
+A. Data model + placeholder logos.
+  - File: `client/src/data/teams.ts`
+    - Export TEAMS: record by teamId (`id`, `name`, `abbrev`, `conferenceId`, `colors`, `logo`).
+    - Include at least 12 HS teams across 2–3 conferences (ex: “Northern”, “Coastal”, “Metro”).
+      Ex: CVHS (Central Valley High), OHP (Oak Hills Prep), RCH (River City HS), etc.
+  - Add simple SVG placeholders for each team under `client/public/assets/teams/<id>.svg` (colored square + abbrev text).
+
+B. Conferences
+  - File: `client/src/data/conferences.ts`
+    - Export CONFERENCES: `{ id, name, teams: string[] }`.
+    - Ensure each team in TEAMS references a `conferenceId`.
+
+C. Team logo component
+  - File: `client/src/components/TeamLogo.tsx`
+    - Props: `{ teamId:string; size?:number }`
+    - Render `<img src={team.logo} ... />` or fallback silhouette.
+
+D. Next Game card (Home):
+  - Remove avatar from this panel.
+  - Show opponent logo + full name + abbrev. Example: “vs Central Valley High (CVHS)”.
+  - Under the hood, opponent is taken from the schedule in save model (Section 6).
+
+=====================================
+5) SEASON FORMAT + PLAYOFFS/Tournament (HS “Varsity”-like)
+=====================================
+Implement a simplified American HS structure:
+- Regular season: 20 weeks (conference-heavy schedule).
+- District/Conference tournament: single-elimination 8-team bracket (top 8 by W-L in the conference).
+- “States” tournament: optional hook (stub) for later; for now, after conference tournament, season ends.
+- Aging: player has `age` and `birthdayWeek`. Crossing `birthdayWeek` increments `age`.
+
+A. Save/Sim model (backed by localStorage):
+  - File: `client/src/state/sim.ts`
+    - Types:
+      - `Game`: { week:number, opponentId:string, home:boolean }
+      - `Result`: { week:number, opponentId:string, home:boolean, points:number, rebounds:number, assists:number, won:boolean }
+      - `Season`: { year:number, level:"High School", conferenceId:string, schedule: Game[], results: Result[], standings: Record<teamId,{w:number,l:number}> }
+      - `SaveState`: { year:number, week:number (1..20 then “T1..”), age:number, birthdayWeek:number, playerTeamId:string, season: Season, awards: string[], history: { label:string, dateISO:string }[], accessories: AccessoryInstance[] }
+      - `AccessoryInstance`: { id:string; name:string; gamesRemaining:number; boost:{ attr:keyof Attributes; amount:number } }
+    - Functions:
+      - `newSeason(year:number, playerTeamId:string, conferenceId:string): Season` – builds a 20-week schedule using conference teams (round-robin + repeats).
+      - `loadSave()`, `saveSave()`
+      - `applyAccessoryBoosts(baseAttributes, accessories)` – sum boosts where `gamesRemaining>0`.
+      - `playGameOnce(s:SaveState)` – generate a result using simple ratings + boosts; update standings and decrement `gamesRemaining` on equipped accessories.
+      - `simOneWeek(s: SaveState): SaveState` – plays the scheduled game for the current week and increments `week`.
+      - `simToEndOfSeason(s: SaveState): SaveState` – sim weeks to 20, then run `runConferenceTournament(s)` (see below), increment year, reset week to 1, create a new season with fresh schedule; keep age logic.
+      - `runConferenceTournament(s: SaveState): SaveState` – build an 8-team bracket from standings (top 8); simulate quarters/semis/final; add a “Conference Champion” award to the winner (push string to `awards` and a history entry). Return updated save.
+
+B. Hook up Sim UI:
+  - File: `client/src/components/SimControls.tsx` (or existing)
+    - Show current week and year.
+    - Buttons:
+      - **Sim Next Week** → `simOneWeek()`, refresh Home
+      - **Sim Multiple Weeks** (1–8) → loop `simOneWeek()`
+      - **Sim to End of Season** → `simToEndOfSeason()`
+  - On success, show toast “Week advanced” or “Season simulated”.
+
+C. Home Header:
+  - Display level (“High School”), current `year`, and `W01..W20` badges (if after week 20 and during tournament, show “Tourn”).
+  - Next to the player name, show “Age X”.
+
+=====================================
+6) STATS / AWARDS / HISTORY SURFACING
+=====================================
+- On every simulated game, push a `Result` with randomized but reasonable stat lines.
+- Player Profile page:
+  - **Stats** tab: aggregate per-season totals and per-game averages from `season.results`.
+  - **Awards** tab: list strings from `save.awards` (e.g., “Conference Champion (2026)”).
+  - **History** tab: list `{ label, dateISO }`.
+
+=====================================
+7) ACCESSORIES SYSTEM (inventory + equip/unequip + temporary boosts)
+=====================================
+A. Data model:
+  - File: `client/src/data/accessories.ts`
+    - Export a small catalog for now (empty visible shop, but define type):
+      - `Accessory`: { id:string; name:string; price:number; boost:{ attr: "shooting"|"finishing"|"defense"|"rebounding"|"physicals"; amount:number }; durationGames:number }
+    - Include 3 example items (not yet purchasable by default).
+
+B. Inventory & Equip:
+  - SaveState already contains `accessories: AccessoryInstance[]`.
+  - Create an Accessories page.
+    - File: `client/src/pages/Accessories.tsx`
+      - Shows equipped items (if any) and their `gamesRemaining`.
+      - If none: show empty state “No accessories yet”.
+      - Provide Equip/Unequip buttons for instances (for now, pre-populate none; later we’ll add a Shop).
+  - Equip flow:
+    - When an item is “equipped”, push `{ id, name, gamesRemaining: durationGames, boost }` to `save.accessories`.
+    - On each played game (sim), decrement `gamesRemaining` >0.
+    - When `gamesRemaining` hits 0, keep it listed but marked “expired” until removed (user can remove).
+  - After “purchase” popup (future), we’ll call Equip immediately or store to inventory.
+
+C. Navigation:
+  - Add a bottom/tab item “Accessories” → `/accessories`.
+
+=====================================
+8) UI WIRING / NAV / GUARDS
+=====================================
+- Ensure “Back” on subpages uses `navigate(-1)` so users return to their previous page without bouncing to main menu.
+- Home:
+  - Top row: “Hoop Dreams” title; level/year/week chips; “>>” opens Sim controls.
+  - Card “Next Game”: opponent logo + name + abbrev; buttons: “Play Game (-3 Energy)” (stub), “Scouting” (stub).
+- Keep Energy/Health/Chemistry/Reputation bars as they are.
+
+=====================================
+9) TEAMS & SCHEDULE HOOKS
+=====================================
+- When creating a new career (Start Career), set:
+  - `playerTeamId` to a default team (e.g., user selects later; for now choose one).
+  - `conferenceId` from that team.
+  - Initialize save via `newSeason(year, playerTeamId, conferenceId)`.
+  - Age = 16; `birthdayWeek = 26`.
+- Schedule generation: aim for 16 conference games + 4 non-conference (rotate through teams list).
+
+=====================================
+10) RUN & VERIFY
+=====================================
+- Ensure Tailwind + Vite remain wired.
+- Run:
+  npm install
+  npm run dev
+- Open preview and verify:
+  [ ] Photo picker allows gallery, not just camera. Initial zoom sane. After Save, returns to previous page.
+  [ ] Avatar only next to player name. Everywhere else shows team logo as needed.
+  [ ] Builder inputs persist when going back and forth.
+  [ ] Tapping player name opens Profile with empty Stats/Awards/History initially.
+  [ ] Sim Next Week advances week, writes a Result, and can age the player when crossing birthday week.
+  [ ] Sim to End of Season runs the 20-week season, executes a conference tournament, adds an award to the winner, increments year, resets week, and creates a new schedule.
+  [ ] Accessories tab exists; inventory is empty but page works; equipped items reduce `gamesRemaining` after each simulated game (can temporarily seed one item for testing).
+
+=====================================
+11) COMMIT
+=====================================
+- Commit on new branch:
+  git checkout -b feat/hs-structure-sim-profile-accessories
+  git add .
+  git commit -m "HS conferences + logos + season/tournament sim with aging; gallery-friendly photo avatar; persistent builder; Player Profile; Accessories scaffold"

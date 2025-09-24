@@ -33,8 +33,8 @@ export default function AvatarPhoto() {
     const w = el.naturalWidth, h = el.naturalHeight;
     setNatural({ w, h });
     const cover = Math.max(cropSize / w, cropSize / h); // fit (no zoom)
-    setMinScale(cover);
-    setScale(cover);
+    setMinScale(1);
+    setScale(Math.max(1, cover)); // Start at 1x or cover scale, whichever is larger
   }
 
   function exportCanvas(): string | null {
@@ -159,8 +159,8 @@ export default function AvatarPhoto() {
                     <Slider
                       value={[scale]}
                       onValueChange={(value) => setScale(value[0])}
-                      min={minScale}
-                      max={Math.max(minScale * 2, minScale + 0.01)}
+                      min={1}
+                      max={3}
                       step={0.01}
                       className="w-full"
                     />

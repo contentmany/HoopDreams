@@ -2,18 +2,19 @@ import { getAvatarPhoto } from "./storage";
 
 function Silhouette({ size = 48 }: { size?: number }) {
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 128 128" 
-      role="img" 
-      aria-label="silhouette"
-      style={{ display: "block", borderRadius: "50%", background: "#1f1f1f" }}
-    >
-      <circle cx="64" cy="64" r="64" fill="#262626" />
-      <circle cx="64" cy="50" r="26" fill="#8a8a8a" />
-      <path d="M18 112c6-22 24-34 46-34s40 12 46 34" fill="#8a8a8a" />
-    </svg>
+    <img 
+      src="/assets/silhouette-grey.svg" 
+      alt="Default avatar"
+      width={size}
+      height={size}
+      style={{ 
+        width: size, 
+        height: size, 
+        borderRadius: "50%", 
+        objectFit: "cover",
+        display: "block"
+      }}
+    />
   );
 }
 
@@ -41,11 +42,10 @@ export default function AvatarImage({
       style={{ 
         width: size, 
         height: size, 
-        borderRadius: "50%", 
+        borderRadius: "9999px", 
         objectFit: "cover",
         objectPosition: "center", 
-        display: "block", 
-        background: "#1f1f1f" 
+        display: "block"
       }}
       className={className} 
     />
