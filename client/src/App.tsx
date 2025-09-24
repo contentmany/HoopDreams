@@ -23,7 +23,7 @@ import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
 import Customize from "@/pages/Customize";
-import AvatarCustomizeNew from "@/pages/AvatarCustomizeNew";
+import AvatarPhotoPage from "@/pages/AvatarPhotoPage";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -70,7 +70,7 @@ function Router() {
       
       <Route path="/customize">
         <PreGameLayout title="Customize Appearance">
-          <AvatarCustomizeNew onNavigate={handleNavigate} />
+          <AvatarPhotoPage onNavigate={handleNavigate} />
         </PreGameLayout>
       </Route>
       <Route path="/builder">
@@ -199,6 +199,12 @@ function Router() {
               <p className="text-muted-foreground">Coming Soon</p>
             </div>
           </div>
+        </PreGameLayout>
+      </Route>
+      
+      <Route path="/avatar-photo">
+        <PreGameLayout title="Set Your Photo">
+          <AvatarPhotoPage onNavigate={handleNavigate} />
         </PreGameLayout>
       </Route>
       
