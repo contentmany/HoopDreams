@@ -33,13 +33,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     
     // Initialize player avatar
     const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { attachImgCanvas } from '/js/avatar-hooks.js';
+    script.src = '/js/avatar-hooks.js';
+    script.onload = () => {
       setTimeout(() => {
-        attachImgCanvas('#avatarHomeMe', 64);
+        if (window.AvatarHooks) {
+          window.AvatarHooks.attachImgCanvas('#avatarHomeMe', 64);
+        }
       }, 100);
-    `;
+    };
     document.head.appendChild(script);
   }, []);
   const [gameResultsModal, setGameResultsModal] = useState<{

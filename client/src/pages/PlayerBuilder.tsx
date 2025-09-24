@@ -49,13 +49,14 @@ export default function PlayerBuilder() {
     
     // Initialize player avatar
     const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { attachImgCanvas } from '/js/avatar-hooks.js';
+    script.src = '/js/avatar-hooks.js';
+    script.onload = () => {
       setTimeout(() => {
-        attachImgCanvas('#avatarBuilder', 96);
+        if (window.AvatarHooks) {
+          window.AvatarHooks.attachImgCanvas('#avatarBuilder', 96);
+        }
       }, 100);
-    `;
+    };
     document.head.appendChild(script);
     
     // Load draft player data
