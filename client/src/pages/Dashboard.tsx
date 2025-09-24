@@ -9,7 +9,7 @@ import SimControls from "@/components/SimControls";
 import BottomTabBar from "@/components/BottomTabBar";
 import GameResultsModal from "@/components/GameResultsModal";
 import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
-import { loadSave, saveSave, newSeason, advanceWeek, playCurrentGame, getNextGame, simToEndOfSeason, type SaveState } from "@/state/sim";
+import { loadSave, newSeason, advanceWeek, getNextGame, simToEndOfSeason, type SaveState } from "@/state/sim";
 import { useSave } from "@/hooks/useSave";
 import { useToast } from "@/hooks/use-toast";
 import { TEAMS } from "@/data/teams";
