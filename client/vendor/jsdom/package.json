@@ -1,6 +1,0 @@
-{
-  "name": "jsdom",
-  "version": "24.1.1",
-  "main": "index.js",
-  "type": "commonjs"
-}
