@@ -1,0 +1,116 @@
+/* Pixel-crisp scaling */
+.hd-sprite-img, .hd-sprite img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges; /* browser fallback */
+}
+
+/* Base container – prevents overlap */
+.hd-sprite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  overflow: hidden;
+  flex: 0 0 auto;           /* never stretch */
+}
+
+/* Full body preview (exact box) */
+.hd-sprite--full {
+  width: 128px;             /* 2× base grid; change only in multiples of 16 */
+  height: 192px;
+}
+
+/* Face chip (card/header) */
+.hd-sprite--face {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Mini icon (lists) */
+.hd-sprite--mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Image fits container without distortion */
+.hd-sprite-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;      /* show whole body in FULL */
+  object-position: center top;
+}
+
+/* For head/shoulder crops, zoom and pin to upper area */
+.hd-sprite--head {
+  object-fit: cover;        /* fill the small box */
+  object-position: center 28%; /* 28% down catches the face cleanly */
+}
+
+/* Avatar sizing classes */
+.av-xxs {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.av-xs {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.av-sm {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.av-md {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.av-lg {
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.av-xl {
+  width: 128px;
+  height: 128px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.av-2xl {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+/* Avatar image styling */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: auto; /* Smooth rendering for clean 2D heads */
+}
