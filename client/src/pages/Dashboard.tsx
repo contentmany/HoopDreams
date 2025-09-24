@@ -9,8 +9,6 @@ import SimControls from "@/components/SimControls";
 import BottomTabBar from "@/components/BottomTabBar";
 import GameResultsModal from "@/components/GameResultsModal";
 import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
-import { simulateGame, type GameResult, type OpponentTeam } from "@/utils/gameSimulation";
-import { initializeSeason, updateSeasonAfterGame, advanceWeek, type SeasonData } from "@/utils/seasonManager";
 import { loadSave, saveSave, newSeason, type SaveState } from "@/state/sim";
 import { TEAMS } from "@/data/teams";
 import type { Player } from "@/utils/localStorage";
@@ -22,12 +20,22 @@ interface DashboardProps {
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [saveState, setSaveState] = useState<SaveState | null>(null);
-  const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
   // Photo avatar handled by AvatarImage; fallback to silhouette
   const [gameResultsModal, setGameResultsModal] = useState<{
     isOpen: boolean;
-    result?: GameResult;
-    opponent?: OpponentTeam;
+    result?: {
+      playerStats: {
+        points: number;
+        rebounds: number;
+        assists: number;
+      };
+      won: boolean;
+      score: { player: number; opponent: number };
+    };
+    opponent?: {
+      name: string;
+      abbrev: string;
+    };
     location?: 'Home' | 'Away';
   }>({ isOpen: false });
 
@@ -57,20 +65,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         setSaveState(initialSaveState);
       }
       
-      // Keep old season data for compatibility
-      if (!player.seasonData) {
-        const updatedPlayer = { 
-          ...player, 
-          teamName: getTeamName(player.teamId)
-        };
-        const newSeasonData = initializeSeason(updatedPlayer);
-        updatedPlayer.seasonData = newSeasonData;
-        playerStorage.set(updatedPlayer);
-        setCurrentPlayer(updatedPlayer);
-        setSeasonData(newSeasonData);
-      } else {
-        setSeasonData(player.seasonData);
-      }
     }
   }, []);
 
@@ -94,100 +88,53 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   const handlePlayGame = () => {
-    if (!currentPlayer || !seasonData?.upcomingGame) return;
-
-    const opponent = seasonData.upcomingGame.opponent;
-    const location = seasonData.upcomingGame.location;
-    const playerEnergy = currentPlayer.energy || 8;
-
-    // Simulate the game
-    const gameResult = simulateGame(currentPlayer, opponent, playerEnergy);
+    if (!saveState) return;
     
-    // Update player stats and milestones
-    const updatedMilestones = { ...currentPlayer.milestones };
-    Object.entries(gameResult.milestoneUpdates).forEach(([key, value]) => {
-      if (key in updatedMilestones) {
-        (updatedMilestones as any)[key] = ((updatedMilestones as any)[key] || 0) + value;
-      }
-    });
-
-    // Apply energy cost and potential injury
-    const newEnergy = Math.max(0, playerEnergy - gameResult.energyUsed);
-    const injury = gameResult.injuryRisk ? {
-      type: 'Fatigue',
-      weeksRemaining: 1,
-      description: 'Minor fatigue from intense game'
-    } : undefined;
-
-    // Update season data
-    const newSeasonData = updateSeasonAfterGame(seasonData, gameResult, opponent, location);
+    const currentGame = saveState.season.schedule.find(g => g.week === saveState.week);
+    if (!currentGame) return;
     
-    // Update player
-    const updatedPlayer: Player = {
-      ...currentPlayer,
-      energy: newEnergy,
-      milestones: updatedMilestones,
-      injury: injury || currentPlayer.injury,
-      seasonData: newSeasonData,
-      mood: Math.min(10, (currentPlayer.mood || 7) + (gameResult.teamStats.win ? 1 : -1)),
-      chemistry: Math.min(100, (currentPlayer.chemistry || 65) + (gameResult.teamStats.win ? 2 : -1)),
-      reputation: Math.min(100, (currentPlayer.reputation || 0) + Math.floor(gameResult.playerStats.points / 5))
-    };
-
-    // Save updated player
-    playerStorage.set(updatedPlayer);
-    setCurrentPlayer(updatedPlayer);
-    setSeasonData(newSeasonData);
-
-    // Show game results
-    setGameResultsModal({
-      isOpen: true,
-      result: gameResult,
-      opponent,
-      location
-    });
-  };
-
-  const handleAdvanceWeek = () => {
-    if (!currentPlayer) return;
-
-    const { player: updatedPlayer, seasonData: newSeasonData, weekEvents } = advanceWeek(currentPlayer);
+    const opponent = TEAMS[currentGame.opponentId];
+    if (!opponent) return;
     
-    // Save updated player
-    playerStorage.set(updatedPlayer);
-    setCurrentPlayer(updatedPlayer);
-    setSeasonData(newSeasonData);
-
-    console.log('Week advanced:', weekEvents);
-  };
-
-  const handleSimWeeks = (weeks: number) => {
-    if (!currentPlayer) return;
-
-    let currentPlayerState = currentPlayer;
-    
-    for (let i = 0; i < weeks; i++) {
-      const { player: updatedPlayer, seasonData: newSeasonData } = advanceWeek(currentPlayerState);
-      currentPlayerState = updatedPlayer;
+    // Import simOneWeek here to avoid circular dependency
+    import('@/state/sim').then(({ simOneWeek }) => {
+      // Play the game using the new simulation system
+      const updatedSave = simOneWeek(saveState);
+      saveSave(updatedSave);
+      setSaveState(updatedSave);
       
-      // Update the season data state if this is the last iteration
-      if (i === weeks - 1) {
-        setSeasonData(newSeasonData);
+      // Get the result for the modal
+      const result = updatedSave.season.results.find(r => r.week === currentGame.week);
+      if (result) {
+        // Show results modal using new result format
+        setGameResultsModal({
+          isOpen: true,
+          result: {
+            playerStats: {
+              points: result.points,
+              rebounds: result.rebounds,
+              assists: result.assists
+            },
+            won: result.won,
+            score: { player: result.won ? 95 : 88, opponent: result.won ? 88 : 95 }
+          },
+          opponent: {
+            name: opponent.name,
+            abbrev: opponent.abbrev
+          },
+          location: result.home ? 'Home' : 'Away'
+        });
       }
-    }
-    
-    // Save final player state
-    playerStorage.set(currentPlayerState);
-    setCurrentPlayer(currentPlayerState);
-    
-    console.log(`Simulated ${weeks} weeks`);
+    });
   };
+
+  // These are now handled by SimControls component
 
   const handleScouting = () => {
     console.log('Scouting functionality coming soon!');
   };
 
-  if (!currentPlayer || !seasonData) {
+  if (!currentPlayer || !saveState) {
     return (
       <div className="min-h-screen bg-background">
         <GameHeader />
@@ -199,19 +146,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     );
   }
 
-  // Convert season data to dashboard format
-  const standings = seasonData.standings.map(team => ({
-    name: team.name,
-    wins: team.wins,
-    losses: team.losses,
-    streak: team.streak,
-    color: team.isPlayerTeam ? "#7A5BFF" : "#38E1C6"
+  // Convert standings to display format
+  const standings = Object.entries(saveState.season.standings).map(([teamId, record]) => ({
+    name: TEAMS[teamId]?.name || teamId,
+    wins: record.w,
+    losses: record.l,
+    streak: record.w > record.l ? `W${record.w}` : `L${record.l}`,
+    color: teamId === saveState.playerTeamId ? "#7A5BFF" : "#38E1C6"
   }));
 
-  const schedule = seasonData.standings.slice(0, 3).map((team, index) => ({
-    homeTeam: team.name,
-    awayTeam: "TBD",
-    week: seasonData.currentWeek + index
+  const schedule = saveState.season.schedule.slice(saveState.week, saveState.week + 3).map((game, index) => ({
+    homeTeam: game.home ? TEAMS[saveState.playerTeamId]?.name || 'You' : TEAMS[game.opponentId]?.name || 'TBD',
+    awayTeam: game.home ? TEAMS[game.opponentId]?.name || 'TBD' : TEAMS[saveState.playerTeamId]?.name || 'You',
+    week: game.week
   }));
 
   const stats = [
@@ -258,16 +205,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           />
         )}
         
-        {seasonData?.upcomingGame && !seasonData.isSeasonComplete ? (
-          <GameCard 
-            opponentId={seasonData.upcomingGame.opponent.name || 'cvhs'}
-            gameType={seasonData.upcomingGame.gameType}
-            location={seasonData.upcomingGame.location}
-            energyCost={3}
-            onPlayGame={handlePlayGame}
-            onScouting={handleScouting}
-          />
-        ) : saveState && saveState.week && saveState.week > 20 ? (
+        {saveState && saveState.week && saveState.week > 20 ? (
           <div className="text-center py-8">
             <h3 className="text-lg font-semibold mb-2">Season Complete!</h3>
             <p className="text-muted-foreground">
@@ -278,7 +216,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         
         <QuickActions onAction={(path) => onNavigate?.(path)} />
         
-        {seasonData && (
+        {saveState && standings.length > 0 && (
           <LeagueSnapshot 
             standings={standings}
             schedule={schedule}

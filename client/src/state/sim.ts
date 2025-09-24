@@ -65,24 +65,24 @@ export function newSeason(year: number, playerTeamId: string, conferenceId: stri
   const allTeams = Object.keys(TEAMS);
   const nonConferenceTeams = allTeams.filter(id => !conferenceTeams.includes(id));
   
-  // Generate 20-week schedule: 16 conference games + 4 non-conference
+  // Generate 20-week schedule: 12 conference games + 8 non-conference (4 teams per conference)
   const schedule: Game[] = [];
   let week = 1;
   
   // Conference games (play each team in conference 4 times - home and away twice)
   for (let round = 0; round < 4; round++) {
     for (const opponentId of conferenceTeams) {
-      if (opponentId !== playerTeamId && week <= 16) {
+      if (opponentId !== playerTeamId && week <= 12) {
         schedule.push({
           week: week++,
           opponentId,
-          home: Math.random() > 0.5
+          home: round % 2 === 0 // Alternate home/away by round
         });
       }
     }
   }
   
-  // Fill remaining weeks with non-conference games
+  // Fill remaining 8 weeks with non-conference games
   while (week <= 20 && nonConferenceTeams.length > 0) {
     const randomOpponent = nonConferenceTeams[Math.floor(Math.random() * nonConferenceTeams.length)];
     schedule.push({
@@ -144,18 +144,36 @@ export function playGameOnce(saveState: SaveState): SaveState {
   const currentGame = saveState.season.schedule.find(g => g.week === saveState.week);
   if (!currentGame) return saveState;
   
-  // Simple game simulation - generate random but reasonable stats
-  const points = Math.floor(Math.random() * 20) + 8; // 8-27 points
-  const rebounds = Math.floor(Math.random() * 8) + 2; // 2-9 rebounds  
+  // Apply accessory boosts to base attributes for game performance
+  const baseAttributes = {
+    shooting: 70,
+    finishing: 65,
+    defense: 60,
+    rebounding: 55,
+    physicals: 75
+  };
+  
+  const boostedAttributes = applyAccessoryBoosts(baseAttributes, saveState.accessories);
+  
+  // Use boosted attributes to influence game performance
+  const shootingBonus = (boostedAttributes.shooting - baseAttributes.shooting) * 0.3;
+  const finishingBonus = (boostedAttributes.finishing - baseAttributes.finishing) * 0.25;
+  const reboundingBonus = (boostedAttributes.rebounding - baseAttributes.rebounding) * 0.2;
+  const physicalBonus = (boostedAttributes.physicals - baseAttributes.physicals) * 0.15;
+  
+  // Generate stats influenced by accessories
+  const points = Math.floor(Math.random() * 20) + 8 + shootingBonus + finishingBonus; // 8-27+ points
+  const rebounds = Math.floor(Math.random() * 8) + 2 + reboundingBonus; // 2-9+ rebounds  
   const assists = Math.floor(Math.random() * 6) + 1; // 1-6 assists
-  const won = Math.random() > 0.4; // 60% win rate
+  const winChance = Math.min(0.95, Math.max(0.05, 0.6 + (physicalBonus * 0.02))); // Base 60% + boost influence, clamped to 5%-95%
+  const won = Math.random() < winChance;
   
   const result: Result = {
     week: currentGame.week,
     opponentId: currentGame.opponentId,
     home: currentGame.home,
-    points,
-    rebounds,
+    points: Math.round(points),
+    rebounds: Math.round(rebounds),
     assists,
     won
   };
