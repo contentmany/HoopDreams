@@ -2,6 +2,14 @@ import { TEAMS } from '@/data/teams';
 import { CONFERENCES } from '@/data/conferences';
 
 // Types
+export interface Attributes {
+  shooting: number;
+  finishing: number;
+  defense: number;
+  rebounding: number;
+  physicals: number;
+}
+
 export interface Game {
   week: number;
   opponentId: string;
@@ -34,17 +42,9 @@ export interface AccessoryInstance {
   boost: { attr: keyof Attributes; amount: number };
 }
 
-export interface Attributes {
-  shooting: number;
-  finishing: number;
-  defense: number;
-  rebounding: number;
-  physicals: number;
-}
-
 export interface SaveState {
   year: number;
-  week: number; // 1..20 then "T1.." etc
+  week: number;
   age: number;
   birthdayWeek: number;
   playerTeamId: string;
@@ -52,11 +52,145 @@ export interface SaveState {
   awards: string[];
   history: { label: string; dateISO: string }[];
   accessories: AccessoryInstance[];
+  player: {
+    firstName: string;
+    lastName: string;
+    position: string;
+    archetype: string;
+    heightInCm: number;
+    baseAttributes: Attributes;
+  };
 }
 
-const SAVE_KEY = 'hd.save.state.v1';
+const SAVE_KEY = 'hd.save.v1';
 
-// Functions
+// Core persistence
+export function loadSave(): SaveState {
+  const stored = localStorage.getItem(SAVE_KEY);
+  if (!stored) {
+    // Return default save state
+    return {
+      year: 2024,
+      week: 1,
+      age: 16,
+      birthdayWeek: 10,
+      playerTeamId: 'cvhs',
+      season: newSeason(2024, 'cvhs', 'northern'),
+      awards: [],
+      history: [{ label: 'Started high school career', dateISO: new Date().toISOString() }],
+      accessories: [],
+      player: {
+        firstName: 'Your',
+        lastName: 'Player',
+        position: 'PG',
+        archetype: 'Playmaker',
+        heightInCm: 180,
+        baseAttributes: {
+          shooting: 70,
+          finishing: 65,
+          defense: 60,
+          rebounding: 55,
+          physicals: 75
+        }
+      }
+    };
+  }
+  return JSON.parse(stored);
+}
+
+export function saveSave(next: SaveState): void {
+  localStorage.setItem(SAVE_KEY, JSON.stringify(next));
+  
+  // Import and trigger pub/sub
+  import('./saveBus').then(({ publishSaveChanged }) => {
+    publishSaveChanged();
+  });
+}
+
+// Helper functions
+export function getNextGame(s: SaveState): Game | null {
+  if (s.week > 20) return null; // Season over
+  return s.season.schedule.find(g => g.week === s.week) || null;
+}
+
+export function applyAccessoryBoosts(base: Attributes, acc: AccessoryInstance[]): Attributes {
+  const boosted = { ...base };
+  
+  for (const accessory of acc) {
+    if (accessory.gamesRemaining > 0) {
+      boosted[accessory.boost.attr] += accessory.boost.amount;
+    }
+  }
+  
+  return boosted;
+}
+
+export function randStats(attrs: Attributes): { points: number; rebounds: number; assists: number } {
+  // Simple RNG influenced by attributes
+  const shootingFactor = attrs.shooting / 100;
+  const finishingFactor = attrs.finishing / 100;
+  const reboundingFactor = attrs.rebounding / 100;
+  
+  const points = Math.floor(Math.random() * 20) + 8 + (shootingFactor + finishingFactor) * 5;
+  const rebounds = Math.floor(Math.random() * 8) + 2 + reboundingFactor * 3;
+  const assists = Math.floor(Math.random() * 6) + 1;
+  
+  return {
+    points: Math.round(points),
+    rebounds: Math.round(rebounds),
+    assists
+  };
+}
+
+export function updateStandings(standings: Record<string, { w: number; l: number }>, playerTeamId: string, opponentId: string, didWin: boolean): void {
+  // Update player team
+  if (standings[playerTeamId]) {
+    if (didWin) {
+      standings[playerTeamId].w++;
+    } else {
+      standings[playerTeamId].l++;
+    }
+  }
+  
+  // Update opponent team  
+  if (standings[opponentId]) {
+    if (!didWin) {
+      standings[opponentId].w++;
+    } else {
+      standings[opponentId].l++;
+    }
+  }
+}
+
+export function aggregateStats(results: Result[]): { totals: { pts: number; reb: number; ast: number }; perGame: { pts: number; reb: number; ast: number } } {
+  if (results.length === 0) {
+    return {
+      totals: { pts: 0, reb: 0, ast: 0 },
+      perGame: { pts: 0, reb: 0, ast: 0 }
+    };
+  }
+  
+  const totals = results.reduce(
+    (acc, result) => ({
+      pts: acc.pts + result.points,
+      reb: acc.reb + result.rebounds,
+      ast: acc.ast + result.assists
+    }),
+    { pts: 0, reb: 0, ast: 0 }
+  );
+  
+  const games = results.length;
+  return {
+    totals,
+    perGame: {
+      pts: Math.round((totals.pts / games) * 10) / 10,
+      reb: Math.round((totals.reb / games) * 10) / 10,
+      ast: Math.round((totals.ast / games) * 10) / 10
+    }
+  };
+}
+
+// Season operations
 export function newSeason(year: number, playerTeamId: string, conferenceId: string): Season {
   const conference = CONFERENCES[conferenceId];
   if (!conference) throw new Error(`Conference ${conferenceId} not found`);
@@ -65,11 +199,11 @@ export function newSeason(year: number, playerTeamId: string, conferenceId: stri
   const allTeams = Object.keys(TEAMS);
   const nonConferenceTeams = allTeams.filter(id => !conferenceTeams.includes(id));
   
-  // Generate 20-week schedule: 12 conference games + 8 non-conference (4 teams per conference)
+  // Generate 20-week schedule: 12 conference games + 8 non-conference
   const schedule: Game[] = [];
   let week = 1;
   
-  // Conference games (play each team in conference 4 times - home and away twice)
+  // Conference games (play each team in conference 4 times)
   for (let round = 0; round < 4; round++) {
     for (const opponentId of conferenceTeams) {
       if (opponentId !== playerTeamId && week <= 12) {
@@ -92,7 +226,7 @@ export function newSeason(year: number, playerTeamId: string, conferenceId: stri
     });
   }
   
-  // Initialize standings
+  // Initialize standings for conference teams
   const standings: Record<string, { w: number; l: number }> = {};
   for (const teamId of conferenceTeams) {
     standings[teamId] = { w: 0, l: 0 };
@@ -102,122 +236,140 @@ export function newSeason(year: number, playerTeamId: string, conferenceId: stri
     year,
     level: "High School",
     conferenceId,
-    schedule: schedule.slice(0, 20), // Ensure exactly 20 games
+    schedule,
     results: [],
     standings
   };
 }
 
-export function loadSave(): SaveState | null {
-  try {
-    const saved = localStorage.getItem(SAVE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
+export function runConferenceTournament(s: SaveState): SaveState {
+  // Simple 8-team single elimination
+  const standings = Object.entries(s.season.standings)
+    .map(([teamId, record]) => ({
+      teamId,
+      wins: record.w,
+      losses: record.l,
+      winPct: record.w / (record.w + record.l || 1)
+    }))
+    .sort((a, b) => b.winPct - a.winPct)
+    .slice(0, 8); // Top 8 teams
+  
+  const playerRank = standings.findIndex(st => st.teamId === s.playerTeamId);
+  
+  if (playerRank === -1) {
+    // Player didn't make tournament
+    return {
+      ...s,
+      history: [
+        ...s.history,
+        { label: 'Did not qualify for conference tournament', dateISO: new Date().toISOString() }
+      ]
+    };
+  }
+  
+  // Simple tournament simulation - player has 60% chance to advance each round
+  let currentRound = 1;
+  let playerStillIn = true;
+  const newHistory = [...s.history];
+  const newAwards = [...s.awards];
+  
+  while (currentRound <= 3 && playerStillIn) { // 3 rounds for 8-team tournament
+    const advanceChance = 0.6;
+    const advances = Math.random() < advanceChance;
+    
+    if (advances) {
+      const roundNames = ['Conference Quarterfinals', 'Conference Semifinals', 'Conference Finals'];
+      newHistory.push({
+        label: `Won ${roundNames[currentRound - 1]}`,
+        dateISO: new Date().toISOString()
+      });
+      
+      if (currentRound === 3) {
+        newAwards.push('Conference Champion');
+        newHistory.push({
+          label: 'Won Conference Championship',
+          dateISO: new Date().toISOString()
+        });
+      }
+    } else {
+      const roundNames = ['Conference Quarterfinals', 'Conference Semifinals', 'Conference Finals'];
+      newHistory.push({
+        label: `Lost in ${roundNames[currentRound - 1]}`,
+        dateISO: new Date().toISOString()
+      });
+      playerStillIn = false;
     }
-  } catch (error) {
-    console.warn('Failed to load save state:', error);
-  }
-  return null;
-}
-
-export function saveSave(saveState: SaveState): void {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
-  } catch (error) {
-    console.warn('Failed to save state:', error);
-  }
-}
-
-export function applyAccessoryBoosts(baseAttributes: Attributes, accessories: AccessoryInstance[]): Attributes {
-  const boosted = { ...baseAttributes };
-  
-  for (const accessory of accessories) {
-    if (accessory.gamesRemaining > 0) {
-      boosted[accessory.boost.attr] += accessory.boost.amount;
-    }
+    currentRound++;
   }
   
-  return boosted;
-}
-
-export function playGameOnce(saveState: SaveState): SaveState {
-  const currentGame = saveState.season.schedule.find(g => g.week === saveState.week);
-  if (!currentGame) return saveState;
-  
-  // Apply accessory boosts to base attributes for game performance
-  const baseAttributes = {
-    shooting: 70,
-    finishing: 65,
-    defense: 60,
-    rebounding: 55,
-    physicals: 75
+  return {
+    ...s,
+    awards: newAwards,
+    history: newHistory
   };
+}
+
+// MOST IMPORTANT: Single call sites
+export function playCurrentGame(s: SaveState): SaveState {
+  // Step 1: Check if there's a game to play
+  const g = getNextGame(s);
+  if (!g) return s; // no-op
   
-  const boostedAttributes = applyAccessoryBoosts(baseAttributes, saveState.accessories);
+  // Step 2: Build effective attributes
+  const effectiveAttrs = applyAccessoryBoosts(s.player.baseAttributes, s.accessories.filter(acc => acc.gamesRemaining > 0));
   
-  // Use boosted attributes to influence game performance
-  const shootingBonus = (boostedAttributes.shooting - baseAttributes.shooting) * 0.3;
-  const finishingBonus = (boostedAttributes.finishing - baseAttributes.finishing) * 0.25;
-  const reboundingBonus = (boostedAttributes.rebounding - baseAttributes.rebounding) * 0.2;
-  const physicalBonus = (boostedAttributes.physicals - baseAttributes.physicals) * 0.15;
-  
-  // Generate stats influenced by accessories
-  const points = Math.floor(Math.random() * 20) + 8 + shootingBonus + finishingBonus; // 8-27+ points
-  const rebounds = Math.floor(Math.random() * 8) + 2 + reboundingBonus; // 2-9+ rebounds  
-  const assists = Math.floor(Math.random() * 6) + 1; // 1-6 assists
-  const winChance = Math.min(0.95, Math.max(0.05, 0.6 + (physicalBonus * 0.02))); // Base 60% + boost influence, clamped to 5%-95%
+  // Step 3: Create randomized Result
+  const stats = randStats(effectiveAttrs);
+  const playerRating = (effectiveAttrs.shooting + effectiveAttrs.finishing + effectiveAttrs.physicals) / 3;
+  const winChance = Math.min(0.95, Math.max(0.05, 0.5 + (playerRating - 70) * 0.01)); // Rating bias
   const won = Math.random() < winChance;
   
   const result: Result = {
-    week: currentGame.week,
-    opponentId: currentGame.opponentId,
-    home: currentGame.home,
-    points: Math.round(points),
-    rebounds: Math.round(rebounds),
-    assists,
+    week: g.week,
+    opponentId: g.opponentId,
+    home: g.home,
+    points: stats.points,
+    rebounds: stats.rebounds,
+    assists: stats.assists,
     won
   };
   
-  // Update standings
-  const updatedStandings = { ...saveState.season.standings };
-  if (updatedStandings[saveState.playerTeamId]) {
-    if (won) {
-      updatedStandings[saveState.playerTeamId].w++;
-    } else {
-      updatedStandings[saveState.playerTeamId].l++;
-    }
-  }
+  // Step 4: Push result
+  const newResults = [...s.season.results, result];
   
-  // Update opponent standings (opposite result)
-  if (updatedStandings[currentGame.opponentId]) {
-    if (!won) {
-      updatedStandings[currentGame.opponentId].w++;
-    } else {
-      updatedStandings[currentGame.opponentId].l++;
-    }
-  }
-  
-  // Decrement accessory games remaining
-  const updatedAccessories = saveState.accessories.map(acc => ({
+  // Step 5: Decrement gamesRemaining for equipped accessories
+  const updatedAccessories = s.accessories.map(acc => ({
     ...acc,
-    gamesRemaining: Math.max(0, acc.gamesRemaining - 1)
+    gamesRemaining: acc.gamesRemaining > 0 ? acc.gamesRemaining - 1 : 0
   }));
   
-  return {
-    ...saveState,
+  // Step 6: Update standings
+  const newStandings = { ...s.season.standings };
+  updateStandings(newStandings, s.playerTeamId, g.opponentId, won);
+  
+  // Step 7: Save and return
+  const updatedState = {
+    ...s,
+    accessories: updatedAccessories,
     season: {
-      ...saveState.season,
-      results: [...saveState.season.results, result],
-      standings: updatedStandings
-    },
-    accessories: updatedAccessories
+      ...s.season,
+      results: newResults,
+      standings: newStandings
+    }
   };
+  
+  saveSave(updatedState);
+  return updatedState;
 }
 
-export function simOneWeek(saveState: SaveState): SaveState {
-  let updatedState = playGameOnce(saveState);
+export function advanceWeek(s: SaveState): SaveState {
+  // Step 1: Play current game (ensures Play and Sim are identical)
+  let updatedState = playCurrentGame(s);
   
-  // Check for birthday
+  // Step 2: Increment week
+  updatedState = { ...updatedState, week: updatedState.week + 1 };
+  
+  // Step 3: Check for birthday
   if (updatedState.week === updatedState.birthdayWeek) {
     updatedState = {
       ...updatedState,
@@ -229,78 +381,51 @@ export function simOneWeek(saveState: SaveState): SaveState {
     };
   }
   
-  // Increment week
-  updatedState.week++;
+  // Step 4: Handle week boundaries
+  if (updatedState.week <= 20) {
+    saveSave(updatedState);
+    return updatedState;
+  }
   
+  // Step 5: Postseason - keep week at 21 sentinel
+  updatedState = { ...updatedState, week: 21 };
+  saveSave(updatedState);
   return updatedState;
 }
 
-export function runConferenceTournament(saveState: SaveState): SaveState {
-  const standings = Object.entries(saveState.season.standings)
-    .map(([teamId, record]) => ({
-      teamId,
-      wins: record.w,
-      losses: record.l,
-      winPct: record.w / (record.w + record.l || 1)
-    }))
-    .sort((a, b) => b.winPct - a.winPct)
-    .slice(0, 8); // Top 8 teams
-  
-  const playerRank = standings.findIndex(s => s.teamId === saveState.playerTeamId);
-  let updatedState = { ...saveState };
-  
-  if (playerRank >= 0 && playerRank < 8) {
-    // Player made the tournament
-    const tournamentResult = Math.random() > 0.5; // 50% chance to win tournament
-    
-    if (tournamentResult) {
-      // Won conference tournament
-      updatedState.awards.push(`Conference Champion (${saveState.year})`);
-      updatedState.history.push({
-        label: `Won Conference Championship`,
-        dateISO: new Date().toISOString()
-      });
-    } else {
-      // Lost in tournament
-      updatedState.history.push({
-        label: `Lost in Conference Tournament`,
-        dateISO: new Date().toISOString()
-      });
-    }
-  } else {
-    // Didn't make tournament
-    updatedState.history.push({
-      label: `Missed Conference Tournament`,
-      dateISO: new Date().toISOString()
-    });
+export function simMultipleWeeks(s: SaveState, n: number): SaveState {
+  let current = s;
+  for (let i = 0; i < n; i++) {
+    if (!getNextGame(current)) break; // No more games
+    current = advanceWeek(current);
   }
-  
-  return updatedState;
+  return current;
 }
 
-export function simToEndOfSeason(saveState: SaveState): SaveState {
-  let updatedState = saveState;
-  
-  // Sim remaining weeks to 20
-  while (updatedState.week <= 20) {
-    updatedState = simOneWeek(updatedState);
+export function simToEndOfSeason(s: SaveState): SaveState {
+  // Step 1: Play all remaining regular season games
+  let current = s;
+  while (getNextGame(current)) {
+    current = advanceWeek(current);
   }
   
-  // Run conference tournament
-  updatedState = runConferenceTournament(updatedState);
+  // Step 2: Run conference tournament
+  current = runConferenceTournament(current);
   
-  // Advance to next year
-  updatedState = {
-    ...updatedState,
-    year: updatedState.year + 1,
-    week: 1,
-    season: newSeason(updatedState.year + 1, updatedState.playerTeamId, updatedState.season.conferenceId)
+  // Step 3: Advance to next year
+  current = {
+    ...current,
+    year: current.year + 1,
+    week: 1
   };
   
-  updatedState.history.push({
-    label: `Started ${updatedState.year} season`,
-    dateISO: new Date().toISOString()
-  });
+  // Step 4: Create new season
+  current = {
+    ...current,
+    season: newSeason(current.year, current.playerTeamId, current.season.conferenceId)
+  };
   
-  return updatedState;
+  // Step 5: Save and return
+  saveSave(current);
+  return current;
 }

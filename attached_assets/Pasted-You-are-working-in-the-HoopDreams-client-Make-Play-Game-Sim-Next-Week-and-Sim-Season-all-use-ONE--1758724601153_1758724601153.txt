@@ -1,0 +1,152 @@
+You are working in the HoopDreams client. Make Play Game, Sim Next Week, and Sim Season all use ONE source of truth so results, next opponent, and player stats always stay consistent.
+
+=====================================
+0) RULES
+=====================================
+- TypeScript + React + Vite.
+- All code under client/src.
+- Persist SaveState in localStorage key "hd.save.v1".
+- Provide safe guards for end-of-season and off-season states.
+- If files exist with different names, adapt paths but keep the API below.
+
+=====================================
+1) CORE SIM ENGINE (single source of truth)
+=====================================
+Create/replace file: client/src/state/sim.ts with the following API. Keep existing types and extend as needed.
+
+Export types:
+- Attributes (existing).
+- Game = { week:number; opponentId:string; home:boolean }
+- Result = { week:number; opponentId:string; home:boolean; points:number; rebounds:number; assists:number; won:boolean }
+- Season = { year:number; level:"High School"; conferenceId:string; schedule:Game[]; results:Result[]; standings: Record<string,{w:number;l:number}> }
+- SaveState = {
+    year:number; week:number; age:number; birthdayWeek:number;
+    playerTeamId:string; season:Season;
+    awards:string[]; history:{label:string; dateISO:string}[];
+    accessories: AccessoryInstance[];
+    player:{ firstName:string; lastName:string; position:string; archetype:string; heightInCm:number; baseAttributes:Attributes }
+  }
+
+Export helpers:
+- loadSave(): SaveState
+- saveSave(next: SaveState): void
+- getNextGame(s: SaveState): Game | null    // returns null if no schedule or season over
+- applyAccessoryBoosts(base:Attributes, acc:AccessoryInstance[]): Attributes
+- randStats(attrs:Attributes): {points:number; rebounds:number; assists:number} // simple RNG influenced by attrs
+- updateStandings(standings, playerTeamId, opponentId, didWin): void
+- aggregateStats(results: Result[]): { totals:{pts,reb,ast}, perGame:{pts,reb,ast} }
+
+Export season ops:
+- newSeason(year:number, playerTeamId:string, conferenceId:string): Season
+- runConferenceTournament(s:SaveState): SaveState // keep simple 8-team single-elim, add award+history to winner
+
+***MOST IMPORTANT: single call sites below***
+
+Export game/week/season ops:
+- playCurrentGame(s: SaveState): SaveState
+  Steps:
+  1) const g = getNextGame(s); if !g return s (no-op).
+  2) Build effective attributes = applyAccessoryBoosts(s.player.baseAttributes, s.accessories with gamesRemaining>0).
+  3) Create randomized Result with randStats(effectiveAttrs) and determine win/loss (coinflip + rating bias).
+  4) Push result to s.season.results.
+  5) Decrement gamesRemaining for equipped accessories >0.
+  6) updateStandings(s.season.standings, s.playerTeamId, g.opponentId, result.won).
+  7) saveSave(s) and return updated copy.
+
+- advanceWeek(s: SaveState): SaveState
+  Steps:
+  1) s = playCurrentGame(s)   // ensures Play and Sim are identical.
+  2) s.week++
+  3) If s.week === s.birthdayWeek -> s.age++
+  4) If s.week <= 20 -> saveSave(s) and return.
+  5) If s.week > 20 -> we're in postseason; keep s.week at 21 sentinel or "T1" label and return (tournament handled by simToEndOfSeason).
+
+- simMultipleWeeks(s: SaveState, n:number): SaveState
+  Loop n times calling advanceWeek() while getNextGame() != null.
+
+- simToEndOfSeason(s: SaveState): SaveState
+  1) While getNextGame(s) != null: s = advanceWeek(s)
+  2) s = runConferenceTournament(s)
+  3) s.year++; s.week = 1
+  4) s.season = newSeason(s.year, s.playerTeamId, s.season.conferenceId)
+  5) saveSave(s); return s
+
+=====================================
+2) LIGHTWEIGHT SAVE HOOK + PUB/SUB
+=====================================
+Create file: client/src/state/saveBus.ts
+- Implement a tiny EventTarget: export const saveBus = new EventTarget()
+- export function publishSaveChanged(){ saveBus.dispatchEvent(new Event("save-changed")) }
+- In saveSave(), call publishSaveChanged()
+
+Create file: client/src/hooks/useSave.ts
+- Returns current SaveState and re-renders on "save-changed" via saveBus and window "storage".
+- const [save, setSave] = useState(loadSave()); subscribe in useEffect; on event, setSave(loadSave()).
+
+=====================================
+3) WIRE UI BUTTONS TO THE SINGLE ENGINE
+=====================================
+A) Home "Play Game (-3 Energy)" button
+File: client/src/pages/Home.tsx (or component that renders Next Game)
+- Import { loadSave, saveSave, advanceWeek } from state/sim and useSave()
+- onClick Play:
+  const s = loadSave()
+  const next = advanceWeek(s)
+  saveSave(next)     // advanceWeek already saves, but call once is fine if idempotent
+  // UI will refresh via useSave subscription
+- After click, show a toast with the result (won/lost + stat line from the last pushed Result).
+
+B) SimControls
+File: client/src/components/SimControls.tsx
+- Replace current handlers with engine calls:
+  - Sim Next Week → advanceWeek(loadSave())
+  - Sim Multiple Weeks (1–8) → simMultipleWeeks(loadSave(), n)
+  - Sim to End of Season → simToEndOfSeason(loadSave())
+- After each, show toast and close modal. UI refresh via saveBus.
+
+C) Season boundary guards
+- If getNextGame() returns null on Home, show “Season complete — run Postseason or New Season”.
+- When simToEndOfSeason finishes, header chips should display the incremented year and week reset to W01.
+
+=====================================
+4) PROFILE + STATS MUST REFLECT RESULTS
+=====================================
+A) Profile page (client/src/pages/Profile.tsx)
+- Import { aggregateStats } and compute totals & perGame from save.season.results.
+- Stats tab shows both totals and per-game (0 if none).
+- History tab lists save.history entries.
+- Awards tab lists save.awards.
+
+=====================================
+5) NEXT GAME PANEL ALWAYS IN SYNC
+=====================================
+File: client/src/components/NextGameCard.tsx (or in Home)
+- Use useSave() to read current save.
+- const next = getNextGame(save)
+- If next:
+  - Lookup opponent from TEAMS by next.opponentId
+  - Show TeamLogo + “vs <Full Name> (<ABBR>)” and location (Home/Away).
+Else:
+  - Show “No remaining regular-season games.”
+
+=====================================
+6) EDGE CASES + TESTS
+=====================================
+- If user clicks Play Game on postseason weeks, call simToEndOfSeason() instead of advanceWeek(), then show a toast “Season completed. New season started.” and refresh.
+- Ensure age increments exactly when week passes birthdayWeek (once per year).
+
+=====================================
+7) STYLE + UX
+=====================================
+- Keep avatar only near the player name (Home header).
+- No double avatar on Next Game card.
+- All navigations after engine actions remain on the same screen; do not redirect to main menu.
+- Toasts: use existing toaster provider.
+
+=====================================
+8) COMMIT
+=====================================
+Create branch and commit:
+git checkout -b fix/sim-engine-unified
+git add .
+git commit -m "Unify sim engine: Play Game, Sim Week/Season share one source; results/next-opponent/stats stay in sync; profile aggregates live stats."
