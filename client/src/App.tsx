@@ -22,8 +22,7 @@ import League from "@/pages/League";
 import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
-import Customize from "@/pages/Customize";
-import AvatarCustomizeNew from "@/pages/AvatarCustomizeNew";
+import AvatarPhotoPage from "@/pages/AvatarPhotoPage";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -67,10 +66,9 @@ function Router() {
           />
         </PreGameLayout>
       </Route>
-      
-      <Route path="/customize">
-        <PreGameLayout title="Customize Appearance">
-          <AvatarCustomizeNew onNavigate={handleNavigate} />
+      <Route path="/avatar-photo">
+        <PreGameLayout title="Set Your Photo">
+          <AvatarPhotoPage />
         </PreGameLayout>
       </Route>
       <Route path="/builder">

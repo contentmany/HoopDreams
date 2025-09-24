@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import AvatarOrPhoto from "@/components/AvatarOrPhoto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,52 +37,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
-  const [avatarSeed, setAvatarSeed] = useState(() => `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-  
-  // Initialize procedural avatar system
-  useEffect(() => {
-    const initializeAvatar = async () => {
-      try {
-        // Wait for avatar system to be available
-        const waitForAvatarSystem = () => {
-          return new Promise<void>((resolve, reject) => {
-            let attempts = 0;
-            const maxAttempts = 50; // 5 seconds maximum
-            
-            const check = () => {
-              attempts++;
-              
-              if (window.AvatarKit && window.AvatarHooks) {
-                console.log('Avatar system available for player creation');
-                resolve();
-                return;
-              }
-              
-              if (attempts >= maxAttempts) {
-                reject(new Error('Avatar system failed to load within timeout'));
-                return;
-              }
-              
-              setTimeout(check, 100);
-            };
-            
-            check();
-          });
-        };
-
-        // Wait for avatar system
-        await waitForAvatarSystem();
-        
-        // Initialize the avatar chip
-        window.AvatarHooks.attachImgCanvas('#avatarChip', 40);
-        console.log('Avatar chip initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize avatar chip:', error);
-      }
-    };
-    
-    initializeAvatar();
-  }, [avatarSeed]);
+  // No procedural avatar system; AvatarOrPhoto will display the user's chosen photo if any
   
   const teamsList = teams.get();
   const currentSettings = settings.get();
@@ -92,10 +48,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
     setUseMetric(currentSettings.units === 'metric');
   }, [currentSettings.units]);
 
-  // Generate new avatar when team changes
-  useEffect(() => {
-    setAvatarSeed(`player-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-  }, [playerData.teamId]);
+  // No-op: removing seed-based procedural avatar
 
   // Update height when position changes
   useEffect(() => {
@@ -355,17 +308,17 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <canvas id="avatarChip" className="avatar40" data-seed={avatarSeed} style={{borderRadius: '8px'}}></canvas>
+                <AvatarOrPhoto size={40} />
                 <div className="flex-1">
                   <Button
                     variant="outline"
-                    onClick={() => onNavigate?.('/customize')}
+                    onClick={() => onNavigate?.('/avatar-photo')}
                     data-testid="button-customize"
                   >
-                    Customize
+                    Set Photo
                   </Button>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Customize your player's appearance
+                    Upload a photo for your player's avatar
                   </p>
                 </div>
               </div>

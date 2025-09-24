@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
 import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
+import AvatarOrPhoto from '@/components/AvatarOrPhoto';
 
 interface BuilderAttributes {
   finishing: number;
@@ -39,25 +40,6 @@ export default function PlayerBuilder() {
   const [availablePoints, setAvailablePoints] = useState(20);
 
   useEffect(() => {
-    // Load procedural avatar system
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/css/avatar.css';
-    if (!document.querySelector('link[href="/css/avatar.css"]')) {
-      document.head.appendChild(link);
-    }
-    
-    // Initialize player avatar
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.innerHTML = `
-      import { attachImgCanvas } from '/js/avatar-hooks.js';
-      setTimeout(() => {
-        attachImgCanvas('#avatarBuilder', 96);
-      }, 100);
-    `;
-    document.head.appendChild(script);
-    
     // Load draft player data
     const draft = getDraftPlayer();
     if (draft) {
@@ -164,7 +146,7 @@ export default function PlayerBuilder() {
   };
 
   const handleBack = () => {
-    setLocation('/customize');
+    setLocation('/avatar-photo');
   };
 
   const getAttributeColor = (value: number) => {
@@ -201,7 +183,7 @@ export default function PlayerBuilder() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-center">
-                <canvas id="avatarBuilder" className="avatar96" style={{borderRadius: '12px'}}></canvas>
+                <AvatarOrPhoto size={96} />
               </div>
               
               <div className="text-center space-y-1">
