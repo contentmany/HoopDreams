@@ -32,6 +32,7 @@ export default function GameCard({
     
     // Initialize NPC avatars
     const script = document.createElement('script');
+ feat/restore-from-archive
     script.type = 'module';
     script.innerHTML = `
       import { npcIntoCanvas } from '/js/avatar-hooks.js';
@@ -41,6 +42,20 @@ export default function GameCard({
         });
       }, 100);
     `;
+    script.src = '/js/avatar-hooks.js';
+    script.onload = () => {
+      setTimeout(() => {
+        if (window.AvatarHooks) {
+          document.querySelectorAll('canvas.avatar64').forEach(c => {
+            const canvas = c as HTMLCanvasElement;
+            if (canvas.dataset && canvas.dataset.seed) {
+              window.AvatarHooks.npcIntoCanvas(canvas, canvas.dataset.seed, 64);
+            }
+          });
+        }
+      }, 100);
+    };
+ main
     document.head.appendChild(script);
   }, []);
   return (

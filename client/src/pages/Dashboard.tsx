@@ -33,6 +33,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     
     // Initialize player avatar
     const script = document.createElement('script');
+ feat/restore-from-archive
     script.type = 'module';
     script.innerHTML = `
       import { attachImgCanvas } from '/js/avatar-hooks.js';
@@ -40,6 +41,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         attachImgCanvas('#avatarHomeMe', 64);
       }, 100);
     `;
+
+    script.src = '/js/avatar-hooks.js';
+    script.onload = () => {
+      setTimeout(() => {
+        if (window.AvatarHooks) {
+          window.AvatarHooks.attachImgCanvas('#avatarHomeMe', 64);
+        }
+      }, 100);
+    };
+ main
     document.head.appendChild(script);
   }, []);
   const [gameResultsModal, setGameResultsModal] = useState<{
