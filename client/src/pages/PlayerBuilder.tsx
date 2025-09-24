@@ -9,7 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
 import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
+<<<<<<< HEAD
 import AvatarOrPhoto from '@/components/AvatarOrPhoto';
+=======
+>>>>>>> origin/main
 
 interface BuilderAttributes {
   finishing: number;
