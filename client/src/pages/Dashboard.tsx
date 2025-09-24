@@ -5,13 +5,14 @@ import GameCard from "@/components/GameCard";
 import QuickActions from "@/components/QuickActions";
 import LeagueSnapshot from "@/components/LeagueSnapshot";
 import StatsStrip from "@/components/StatsStrip";
-import { CharacterPreview } from "@/components/character/CharacterPreview";
-import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
+import SimControls from "@/components/SimControls";
 import BottomTabBar from "@/components/BottomTabBar";
 import GameResultsModal from "@/components/GameResultsModal";
 import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
 import { simulateGame, type GameResult, type OpponentTeam } from "@/utils/gameSimulation";
 import { initializeSeason, updateSeasonAfterGame, advanceWeek, type SeasonData } from "@/utils/seasonManager";
+import { loadSave, saveSave, newSeason, type SaveState } from "@/state/sim";
+import { TEAMS } from "@/data/teams";
 import type { Player } from "@/utils/localStorage";
 
 interface DashboardProps {
@@ -20,6 +21,7 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [saveState, setSaveState] = useState<SaveState | null>(null);
   const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
   // Photo avatar handled by AvatarImage; fallback to silhouette
   const [gameResultsModal, setGameResultsModal] = useState<{
@@ -34,7 +36,28 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     if (player) {
       setCurrentPlayer(player);
       
-      // Initialize season data if not exists
+      // Try to load new save state first
+      const newSaveState = loadSave();
+      if (newSaveState) {
+        setSaveState(newSaveState);
+      } else {
+        // Initialize new save state from old player data
+        const initialSaveState: SaveState = {
+          year: 2025,
+          week: 1,
+          age: 16,
+          birthdayWeek: 10,
+          playerTeamId: player.teamId || 'cvhs',
+          season: newSeason(2025, player.teamId || 'cvhs', 'northern'),
+          awards: [],
+          history: [{ label: 'Started high school career', dateISO: new Date().toISOString() }],
+          accessories: []
+        };
+        saveSave(initialSaveState);
+        setSaveState(initialSaveState);
+      }
+      
+      // Keep old season data for compatibility
       if (!player.seasonData) {
         const updatedPlayer = { 
           ...player, 
@@ -50,6 +73,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       }
     }
   }, []);
+
+  const refreshData = () => {
+    const newSaveState = loadSave();
+    setSaveState(newSaveState);
+  };
 
   const getTeamName = (teamId: string): string => {
     const teamNames = {
@@ -213,31 +241,50 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </div>
         </div>
 
-        {seasonData.upcomingGame && !seasonData.isSeasonComplete ? (
+        {/* New Simulation Controls */}
+        <SimControls 
+          currentSave={saveState}
+          onSimComplete={refreshData}
+        />
+
+        {saveState && saveState.week <= 20 && saveState.season.schedule.length > 0 && (
           <GameCard 
-            opponent={seasonData.upcomingGame.opponent.name}
+            opponentId={saveState.season.schedule.find(g => g.week === saveState.week)?.opponentId || 'cvhs'}
+            gameType="Regular Season"
+            location={saveState.season.schedule.find(g => g.week === saveState.week)?.home ? 'Home' : 'Away'}
+            energyCost={3}
+            onPlayGame={handlePlayGame}
+            onScouting={handleScouting}
+          />
+        )}
+        
+        {seasonData?.upcomingGame && !seasonData.isSeasonComplete ? (
+          <GameCard 
+            opponentId={seasonData.upcomingGame.opponent.name || 'cvhs'}
             gameType={seasonData.upcomingGame.gameType}
             location={seasonData.upcomingGame.location}
             energyCost={3}
             onPlayGame={handlePlayGame}
             onScouting={handleScouting}
           />
-        ) : (
+        ) : saveState && saveState.week && saveState.week > 20 ? (
           <div className="text-center py-8">
             <h3 className="text-lg font-semibold mb-2">Season Complete!</h3>
             <p className="text-muted-foreground">
-              {seasonData.awards ? 'Check your awards and prepare for next season.' : 'Great season! Time to prepare for next year.'}
+              Check your awards and prepare for next season.
             </p>
           </div>
-        )}
+        ) : null}
         
         <QuickActions onAction={(path) => onNavigate?.(path)} />
         
-        <LeagueSnapshot 
-          standings={standings}
-          schedule={schedule}
-          onViewFull={(tab) => onNavigate?.(`/league?tab=${tab}`)}
-        />
+        {seasonData && (
+          <LeagueSnapshot 
+            standings={standings}
+            schedule={schedule}
+            onViewFull={(tab) => onNavigate?.(`/league?tab=${tab}`)}
+          />
+        )}
       </main>
 
       {gameResultsModal.result && gameResultsModal.opponent && (

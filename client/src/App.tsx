@@ -24,6 +24,7 @@ import Dash from "@/pages/Dash";
 import News from "@/pages/News";
 import AvatarPhoto from "@/pages/AvatarPhoto";
 import Profile from "@/pages/Profile";
+import Accessories from "@/pages/Accessories";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -73,6 +74,11 @@ function Router() {
       <Route path="/profile">
         <RouteGuard requireActiveSave>
           <Profile />
+        </RouteGuard>
+      </Route>
+      <Route path="/accessories">
+        <RouteGuard requireActiveSave>
+          <Accessories />
         </RouteGuard>
       </Route>
       <Route path="/builder">
