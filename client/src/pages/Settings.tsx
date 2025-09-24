@@ -11,6 +11,7 @@ import { Settings as SettingsIcon, Palette, Volume2, Gamepad2, RotateCcw, Trash2
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import GameHeader from "@/components/GameHeader";
 import BottomTabBar from "@/components/BottomTabBar";
+import BackLink from "@/components/BackLink";
 import { settings, activeSlot, saveSlots, type Settings as SettingsType } from "@/utils/localStorage";
 import { difficultySettings } from "@/utils/gameConfig";
 
@@ -390,18 +391,13 @@ export default function Settings({ onNavigateToLoad, onResetGame, noSaveMode = f
             </Card>
           </div>
         )}
-        {/* Back to Main Menu in no-save mode */}
+        {/* Back navigation in no-save mode */}
         {noSaveMode && (
           <Card>
             <CardContent className="pt-6">
-              <Button 
-                variant="outline" 
-                onClick={onResetGame}
-                className="w-full"
-                data-testid="button-back-to-menu"
-              >
-                Back to Main Menu
-              </Button>
+              <BackLink fallback="/" className="w-full text-center block py-2 px-4 border rounded-lg hover:bg-muted transition-colors" data-testid="button-back-to-menu">
+                ← Back
+              </BackLink>
             </CardContent>
           </Card>
         )}
