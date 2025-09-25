@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import BackLink from "@/components/BackLink";
-import { saveAvatarPhoto, getAvatarPhoto, clearAvatarPhoto } from "@/features/avatar/storage";
-import AvatarImage from "@/features/avatar/AvatarImage";
+import { useGameStore } from "@/state/gameStore";
 import { useToast } from "@/hooks/use-toast";
 
 const EXPORT_SIZE = 256;
@@ -18,8 +17,9 @@ export default function AvatarPhoto() {
   const cropSize = 320;
   const imgRef = useRef<HTMLImageElement | null>(null);
   const { toast } = useToast();
-
-  const current = getAvatarPhoto();
+  const { career, setPhoto } = useGameStore();
+  
+  const current = career.player.photo;
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -60,7 +60,7 @@ export default function AvatarPhoto() {
   function onSave() {
     const dataUrl = exportCanvas();
     if (!dataUrl) return;
-    saveAvatarPhoto(dataUrl);
+    setPhoto(dataUrl);
     toast({
       title: "Photo saved",
       description: "Your avatar photo has been updated successfully.",
@@ -69,7 +69,7 @@ export default function AvatarPhoto() {
   }
 
   function onClear() {
-    clearAvatarPhoto();
+    setPhoto('');
     setFileUrl(null);
     setNatural(null);
     toast({

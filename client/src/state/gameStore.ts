@@ -159,7 +159,8 @@ export const useGameStore = create<GameStore>()(
           nextGame,
           homeRecord,
           awayRecord,
-          state.career.player.attributes
+          state.career.player.attributes,
+          state.career.teamId
         );
 
         set((currentState) => ({
@@ -194,8 +195,48 @@ export const useGameStore = create<GameStore>()(
 
       advanceWeek: (n = 1) => {
         for (let i = 0; i < n; i++) {
-          const played = get().playNextGame();
-          if (!played) break;
+          const state = get();
+          const nextGame = state.getNextGame();
+          if (!nextGame) break;
+          
+          const homeRecord = state.league.records[nextGame.homeTeamId];
+          const awayRecord = state.league.records[nextGame.awayTeamId];
+
+          const result = simulateGame(
+            state.career.player,
+            nextGame,
+            homeRecord,
+            awayRecord,
+            state.career.player.attributes,
+            state.career.teamId
+          );
+
+          set((currentState) => ({
+            league: {
+              ...currentState.league,
+              schedule: currentState.league.schedule.map(game =>
+                game.id === nextGame.id ? result.updatedGame : game
+              ),
+              records: {
+                ...currentState.league.records,
+                [nextGame.homeTeamId]: {
+                  ...homeRecord,
+                  ...result.homeUpdate
+                },
+                [nextGame.awayTeamId]: {
+                  ...awayRecord,
+                  ...result.awayUpdate
+                }
+              }
+            },
+            career: {
+              ...currentState.career,
+              player: {
+                ...currentState.career.player,
+                energy: Math.max(0, currentState.career.player.energy - 1) // Small energy loss for simming
+              }
+            }
+          }));
         }
 
         set((state) => {

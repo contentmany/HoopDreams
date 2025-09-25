@@ -1,17 +1,35 @@
 import type { Player, Game, TeamRecord, AttributeSet } from '@/types';
 
+// Simple seeded random number generator
+function createSeededRNG(seed: string) {
+  let s = 0;
+  for (let i = 0; i < seed.length; i++) {
+    s = Math.imul(31, s) + seed.charCodeAt(i) | 0;
+  }
+  
+  return function() {
+    s = Math.imul(1103515245, s) + 12345 | 0;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
 // Deterministic simulation engine
 export function simulateGame(
   player: Player,
   game: Game,
   home: TeamRecord,
   away: TeamRecord,
-  attrs: AttributeSet
+  attrs: AttributeSet,
+  playerTeamId: string
 ): { 
   updatedGame: Game;
   homeUpdate: Partial<TeamRecord>;
   awayUpdate: Partial<TeamRecord>;
 } {
+  // Create deterministic seed from game data
+  const seed = `${game.id}_${game.week}_${player.id}`;
+  const rng = createSeededRNG(seed);
+
   // Calculate player overall rating
   const playerOverall = Math.round(
     attrs.shooting * 0.35 +
@@ -22,14 +40,13 @@ export function simulateGame(
   );
 
   // Add small random factor for variety
-  const playerRating = Math.max(40, Math.min(99, playerOverall + (Math.random() * 10 - 5)));
+  const playerRating = Math.max(40, Math.min(99, playerOverall + (rng() * 10 - 5)));
 
   // Calculate team strengths (base 70-85 + random)
-  let homeStrength = 70 + Math.random() * 15;
-  let awayStrength = 70 + Math.random() * 15;
+  let homeStrength = 70 + rng() * 15;
+  let awayStrength = 70 + rng() * 15;
 
   // If player's team is playing, boost their team strength
-  const playerTeamId = player.id.split('_')[0]; // Assuming player ID format
   const isPlayerHome = game.homeTeamId === playerTeamId;
   const isPlayerAway = game.awayTeamId === playerTeamId;
 
@@ -42,10 +59,10 @@ export function simulateGame(
   // Generate realistic high school scores (45-80 range)
   const baseScore = 55;
   const homeScore = Math.round(
-    baseScore + (homeStrength - 70) / 3 + (Math.random() * 20 - 10)
+    baseScore + (homeStrength - 70) / 3 + (rng() * 20 - 10)
   );
   const awayScore = Math.round(
-    baseScore + (awayStrength - 70) / 3 + (Math.random() * 20 - 10)
+    baseScore + (awayStrength - 70) / 3 + (rng() * 20 - 10)
   );
 
   // Clamp to realistic range
@@ -66,11 +83,11 @@ export function simulateGame(
     const baseBlk = attrs.defense / 20;
 
     playerLine = {
-      pts: Math.max(0, Math.min(45, Math.round((basePts + Math.random() * 10 - 5) * energyMultiplier))),
-      reb: Math.max(0, Math.min(18, Math.round((baseReb + Math.random() * 6 - 3) * energyMultiplier))),
-      ast: Math.max(0, Math.min(12, Math.round((baseAst + Math.random() * 4 - 2) * energyMultiplier))),
-      stl: Math.max(0, Math.min(6, Math.round((baseStl + Math.random() * 2 - 1) * energyMultiplier))),
-      blk: Math.max(0, Math.min(6, Math.round((baseBlk + Math.random() * 2 - 1) * energyMultiplier)))
+      pts: Math.max(0, Math.min(45, Math.round((basePts + rng() * 10 - 5) * energyMultiplier))),
+      reb: Math.max(0, Math.min(18, Math.round((baseReb + rng() * 6 - 3) * energyMultiplier))),
+      ast: Math.max(0, Math.min(12, Math.round((baseAst + rng() * 4 - 2) * energyMultiplier))),
+      stl: Math.max(0, Math.min(6, Math.round((baseStl + rng() * 2 - 1) * energyMultiplier))),
+      blk: Math.max(0, Math.min(6, Math.round((baseBlk + rng() * 2 - 1) * energyMultiplier)))
     };
   }
 

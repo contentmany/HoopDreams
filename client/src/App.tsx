@@ -24,8 +24,10 @@ import Dash from "@/pages/Dash";
 import News from "@/pages/News";
 import AvatarPhoto from "@/pages/AvatarPhoto";
 import Profile from "@/pages/Profile";
+import PlayerProfile from "@/pages/PlayerProfile";
 import Accessories from "@/pages/Accessories";
 import SimPage from "@/pages/SimPage";
+import SimPanel from "@/pages/SimPanel";
 import PhotoAvatar from "@/components/PhotoAvatar";
 
 function Router() {
@@ -77,6 +79,9 @@ function Router() {
         <RouteGuard requireActiveSave>
           <Profile />
         </RouteGuard>
+      </Route>
+      <Route path="/player">
+        <PlayerProfile />
       </Route>
       <Route path="/accessories">
         <RouteGuard requireActiveSave>
@@ -173,9 +178,7 @@ function Router() {
       </Route>
       
       <Route path="/sim">
-        <RouteGuard requireActiveSave>
-          <SimPage />
-        </RouteGuard>
+        <SimPanel />
       </Route>
       
       <Route path="/inbox">
