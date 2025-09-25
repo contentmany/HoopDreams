@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import AvatarImage from "@/features/avatar/AvatarImage";
+import AvatarPhoto from "@/components/AvatarPhoto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { teams, settings } from "@/utils/localStorage";
+import { useGameStore } from "@/state/gameStore";
+import { seedTeams } from "@/lib/teamData";
 import { 
   heightRanges, 
   inchesToFeetInches, 
@@ -37,16 +38,15 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
-  // AvatarImage will display user's chosen photo or silhouette fallback
+  // AvatarPhoto will display user's chosen photo or silhouette fallback
   
-  const teamsList = teams.get();
-  const currentSettings = settings.get();
+  const teamsList = seedTeams(); // teams from teamData
   const positions = ["PG", "SG", "SF", "PF", "C"];
 
   // Initialize height from settings
   useEffect(() => {
-    setUseMetric(currentSettings.units === 'metric');
-  }, [currentSettings.units]);
+    setUseMetric(false); // Default to imperial
+  }, []);
 
   // No-op: removing seed-based procedural avatar
 
@@ -138,21 +138,18 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
       return;
     }
     
-    const finalData = {
-      nameFirst: playerData.firstName,
-      nameLast: playerData.lastName,
-      position: playerData.position,
+    // Save draft to Zustand store (Builder will read this)
+    useGameStore.getState().saveBuilderDraft({
+      firstName: playerData.firstName,
+      lastName: playerData.lastName,
+      position: playerData.position as "PG" | "SG" | "SF" | "PF" | "C",
       archetype: playerData.archetype,
-      teamId: playerData.teamId,
       heightInches: playerData.heightInches,
       heightCm: inchesToCm(playerData.heightInches),
-    };
+    });
     
-    // Store temporary player data for builder
-    localStorage.setItem('hd:tempPlayer', JSON.stringify(finalData));
-    
-    console.log('Creating player:', finalData);
-    onCreatePlayer?.(finalData);
+    console.log('Creating player with data:', playerData);
+    onCreatePlayer?.(playerData);
   };
 
   return (
@@ -308,7 +305,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
-                <AvatarImage size={40} />
+                <AvatarPhoto size={40} />
                 <div className="flex-1">
                   <Button
                     variant="outline"
