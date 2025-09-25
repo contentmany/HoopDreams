@@ -118,13 +118,15 @@ export default function PhotoAvatar({ currentPhotoUrl, onSave }: PhotoAvatarProp
     });
   }, [exportCroppedImage, onSave, toast]);
 
-  const handleBack = () => {
-    // Try to go back using browser history, fallback to home
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      setLocation('/home');
+  const navigate = (delta: number) => {
+    // Use wouter's setLocation with fallback
+    if (delta === -1) {
+      setLocation('/profile'); // Fallback to profile since that's where PhotoAvatar is typically accessed from
     }
+  };
+
+  const handleBack = () => {
+    navigate(-1);
   };
 
   return (

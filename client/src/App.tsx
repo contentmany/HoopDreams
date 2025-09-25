@@ -172,12 +172,6 @@ function Router() {
         </RouteGuard>
       </Route>
       
-      <Route path="/accessories">
-        <RouteGuard requireActiveSave>
-          <Accessories />
-        </RouteGuard>
-      </Route>
-      
       <Route path="/sim">
         <RouteGuard requireActiveSave>
           <SimPage />
