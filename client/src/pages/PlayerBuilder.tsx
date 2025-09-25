@@ -63,6 +63,21 @@ export default function PlayerBuilder() {
     }
   }, []);
 
+  // Save draft when player data changes
+  useEffect(() => {
+    saveDraftPlayer({
+      nameFirst: playerName.firstName,
+      nameLast: playerName.lastName,
+      firstName: playerName.firstName,
+      lastName: playerName.lastName,
+      position,
+      archetype,
+      heightInches: height.inches,
+      heightCm: height.cm,
+      attributes
+    });
+  }, [playerName, position, archetype, height, attributes]);
+
   const adjustAttribute = (attr: keyof BuilderAttributes, delta: number) => {
     const newValue = Math.max(25, Math.min(99, attributes[attr] + delta));
     const actualDelta = newValue - attributes[attr];
