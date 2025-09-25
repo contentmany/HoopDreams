@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
+import { useBackNavigation } from '@/utils/navigation';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
 import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
 import { clearBuilderDraft } from '@/utils/builderPersistence';
@@ -31,6 +32,7 @@ const DEFAULT_BUILDER_ATTRIBUTES: BuilderAttributes = {
 
 export default function PlayerBuilder() {
   const [, setLocation] = useLocation();
+  const navigateBack = useBackNavigation('/avatar-photo');
   // Avatar handled by procedural system
   const [playerName, setPlayerName] = useState({ firstName: '', lastName: '' });
   const [position, setPosition] = useState('PG');
@@ -154,7 +156,7 @@ export default function PlayerBuilder() {
   };
 
   const handleBack = () => {
-    setLocation('/avatar-photo');
+    navigateBack();
   };
 
   const getAttributeColor = (value: number) => {
