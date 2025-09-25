@@ -103,6 +103,7 @@ export interface CareerState {
 }
 
 export interface RootState {
+  isInitialized: boolean;
   league: LeagueState;
   career: CareerState;
 }

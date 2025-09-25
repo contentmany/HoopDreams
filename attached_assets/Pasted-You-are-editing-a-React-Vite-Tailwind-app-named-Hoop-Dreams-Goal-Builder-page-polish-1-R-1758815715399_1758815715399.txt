@@ -1,0 +1,149 @@
+You are editing a React + Vite + Tailwind app named “Hoop Dreams”.
+
+Goal (Builder page polish):
+1) Remove the “Player Information” section from the Player Builder page (we already collect this on the New Career screen).
+2) Fix the duplicate “Player Builder” header showing twice.
+3) In “Character Preview”, render the player’s photo (if saved) or a gray silhouette. Use the photo saved by our photo-uploader (localStorage key: "hd.avatar.dataUrl"). The avatar must be square, rounded, object-cover, and never zoom-cropped incorrectly.
+
+Steps
+
+A) Add a small reusable avatar component.
+- Create: src/components/AvatarPhoto.tsx with the following code:
+
+--- file: src/components/AvatarPhoto.tsx
+import React from "react";
+
+// Simple inline gray silhouette (SVG) fallback
+const SILHOUETTE_DATA_URL =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+    <rect width="128" height="128" rx="64" ry="64" fill="#3a3a3a"/>
+    <circle cx="64" cy="46" r="26" fill="#8a8a8a"/>
+    <path d="M16 120c0-26 21-47 48-47s48 21 48 47" fill="#8a8a8a"/>
+  </svg>`);
+
+export function getStoredAvatarUrl(): string {
+  const fromLs = typeof window !== "undefined"
+    ? window.localStorage.getItem("hd.avatar.dataUrl")
+    : null;
+  return fromLs || SILHOUETTE_DATA_URL;
+}
+
+type AvatarPhotoProps = {
+  size?: number;           // px, default 72
+  className?: string;
+  alt?: string;
+};
+
+export default function AvatarPhoto({ size = 72, className = "", alt = "Avatar" }: AvatarPhotoProps) {
+  const src = getStoredAvatarUrl();
+  const px = `${size}px`;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      className={`rounded-full object-cover object-center aspect-square border border-zinc-700 ${className}`}
+      style={{ width: px, height: px }}
+      draggable={false}
+    />
+  );
+}
+
+B) Update the Builder page:
+- Find the file that renders the Player Builder UI (usually src/pages/Builder.tsx or src/pages/builder/index.tsx). If you’re unsure, search the repo for the text "Player Builder".
+- Replace the entire file contents with this implementation (keep the same file path):
+
+--- file: src/pages/Builder.tsx
+import React from "react";
+import AvatarPhoto from "@/components/AvatarPhoto";
+// If you have a global store, keep these two imports working with your project.
+// Otherwise remove them and inline your own sources for name/position/height/archetype/attributes.
+import { useGameStore } from "@/state/game"; // <— adjust path if your store lives elsewhere
+import { cn } from "@/lib/cn";               // optional: remove if you don’t use a cn helper
+
+export default function Builder() {
+  // Read already-entered identity from store (set on New Career screen)
+  const player = useGameStore?.((s) => s.player) ?? {
+    firstName: "Your",
+    lastName: "Name",
+    position: "PG",
+    archetype: "Balanced",
+    heightInches: 72,
+    attributes: { Finishing: 60, Shooting: 60, Defense: 60, Rebounding: 60, Physicals: 60 },
+    pointsAvailable: 20,
+  };
+
+  const fullName = `${player.firstName ?? ""} ${player.lastName ?? ""}`.trim() || "Your Name";
+  const heightInches = player.heightInches ?? 72;
+  const feet = Math.floor(heightInches / 12);
+  const inches = heightInches % 12;
+  const heightLabel = `${feet}'${inches}" (${Math.round(heightInches * 2.54)}cm)`;
+
+  // If you already have sliders/handlers in this page, keep them wired.
+  // This scaffold only renders the top section + attributes container shell.
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      {/* Single header (no duplicates) */}
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold text-orange-400">Player Builder</h1>
+        <p className="text-sm text-zinc-400">Basketball Life Simulator</p>
+      </header>
+
+      {/* Character Preview (photo + identity). No Player Information form here. */}
+      <section className="mb-6 rounded-xl bg-zinc-900/60 border border-zinc-800 p-4">
+        <h2 className="text-xl font-semibold mb-3">Character Preview</h2>
+        <div className="flex items-center gap-4">
+          <AvatarPhoto size={72} />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-md bg-zinc-800 px-2 py-0.5 text-xs font-medium">
+                {player.position ?? "PG"}
+              </span>
+              <span className="text-sm text-zinc-400">{player.archetype ?? "Balanced"}</span>
+              <span className="text-sm text-zinc-500">{heightLabel}</span>
+            </div>
+            <div className="text-2xl font-semibold">{fullName}</div>
+            <p className="text-xs text-zinc-500 mt-1">Procedural avatar</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Attributes section (leave your existing sliders/buttons inside this container) */}
+      <section className="rounded-xl bg-zinc-900/60 border border-zinc-800 p-4">
+        <h2 className="text-xl font-semibold mb-3">Attributes</h2>
+        {/* Keep your existing attribute sliders / +/- controls here.
+            If they live as a separate component (e.g., <AttributesEditor />), render it below: */}
+        {/* <AttributesEditor /> */}
+      </section>
+    </div>
+  );
+}
+
+C) Remove the “Player Information” component/imports:
+- In the same Builder page, delete any imports like:
+    import PlayerInformation from "...";
+- Remove the whole JSX block that rendered first/last name, position, archetype form fields.
+- If a dedicated component file exists (e.g., src/components/PlayerInformation.tsx), delete the file.
+
+D) Kill the duplicated header:
+- In the Builder page, ensure only one header block remains (the one in the code above). Delete any other <header> or <h1>...Player Builder...</h1> blocks further down the page.
+
+E) Ensure path aliases resolve:
+- If your project doesn’t support "@/..." aliases, change:
+    "@/components/AvatarPhoto"  ->  "../components/AvatarPhoto" (or the correct relative path)
+    "@/state/game"              ->  "../state/game"
+    "@/lib/cn"                  ->  "../lib/cn"
+- Save all files.
+
+F) Run & verify:
+- Start dev server and open /builder.
+- Confirm:
+  • Only one “Player Builder” header.
+  • No “Player Information” form on this page.
+  • The Character Preview shows the uploaded photo (from localStorage "hd.avatar.dataUrl"), or the gray silhouette if none.
+  • The photo renders as a round, non-distorted square (object-cover) and never zooms incorrectly.
+
+Make minimal, surgical changes—don’t rename routes or remove existing attribute logic.

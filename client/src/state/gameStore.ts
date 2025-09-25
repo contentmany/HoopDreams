@@ -10,6 +10,7 @@ const DRAFT_KEY = 'hoop-dreams-builder-draft';
 interface GameStore extends RootState {
   // Actions
   initIfNeeded: () => void;
+  hasValidPlayer: () => boolean;
   setPhoto: (dataUrl: string) => void;
   saveBuilderDraft: (draft: BuilderDraft) => void;
   getBuilderDraft: () => BuilderDraft | null;
@@ -69,6 +70,7 @@ const createDefaultState = (): RootState => {
   });
 
   return {
+    isInitialized: false, // Flag to track if player has been created
     league: {
       level: 'High School',
       year: currentYear,
@@ -125,10 +127,12 @@ export const useGameStore = create<GameStore>()(
         if (!draft) return;
 
         set((state) => ({
+          isInitialized: true, // Mark as properly initialized
           career: {
             ...state.career,
             player: {
               ...state.career.player,
+              id: `player_${Date.now()}`, // Give unique ID
               firstName: draft.firstName || state.career.player.firstName,
               lastName: draft.lastName || state.career.player.lastName,
               position: draft.position || state.career.player.position,
@@ -143,6 +147,13 @@ export const useGameStore = create<GameStore>()(
 
         // Clear draft after applying
         localStorage.removeItem(DRAFT_KEY);
+      },
+
+      hasValidPlayer: () => {
+        const state = get();
+        return state.isInitialized && 
+               state.career.player.firstName !== 'Your' && 
+               state.career.player.lastName !== 'Player';
       },
 
       playNextGame: () => {

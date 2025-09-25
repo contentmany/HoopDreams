@@ -2,13 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
-import { useBackNavigation } from '@/utils/navigation';
 import { useGameStore } from '@/state/gameStore';
+import AvatarPhoto from '@/components/AvatarPhoto';
 import type { AttributeSet } from '@/types';
 
 interface BuilderAttributes {
@@ -31,50 +28,48 @@ const DEFAULT_BUILDER_ATTRIBUTES: BuilderAttributes = {
 
 export default function PlayerBuilder() {
   const [, setLocation] = useLocation();
-  const navigateBack = useBackNavigation('/avatar-photo');
-  const { getBuilderDraft, saveBuilderDraft, applyBuilderDraft } = useGameStore();
+  const { getBuilderDraft, saveBuilderDraft, applyBuilderDraft, career } = useGameStore();
   
-  const [playerName, setPlayerName] = useState({ firstName: '', lastName: '' });
-  const [position, setPosition] = useState('PG');
-  const [archetype, setArchetype] = useState('Balanced');
-  const [height, setHeight] = useState({ inches: 72, cm: 183 });
   const [attributes, setAttributes] = useState<BuilderAttributes>(DEFAULT_BUILDER_ATTRIBUTES);
   const [availablePoints, setAvailablePoints] = useState(20);
 
+  // Get player info from career (set on New Career screen)
+  const player = career.player;
+  const fullName = `${player.firstName} ${player.lastName}`.trim() || "Your Name";
+  const heightInches = 72; // Default height
+  const feet = Math.floor(heightInches / 12);
+  const inches = heightInches % 12;
+  const heightLabel = `${feet}'${inches}" (${Math.round(heightInches * 2.54)}cm)`;
+
   useEffect(() => {
-    // Load draft player data from new store
+    // Load draft attributes only
     const draft = getBuilderDraft();
-    if (draft) {
-      setPlayerName({
-        firstName: draft.firstName || '',
-        lastName: draft.lastName || ''
-      });
-      setPosition(draft.position || 'PG');
-      setArchetype(draft.archetype || 'Balanced');
-      if (draft.heightCm) {
-        const inches = Math.round(draft.heightCm / 2.54);
-        setHeight({
-          inches,
-          cm: draft.heightCm
+    if (draft && draft.attributes) {
+      // Map the attributes properly
+      const draftAttributes = draft.attributes as any;
+      if (draftAttributes.finishing !== undefined) {
+        setAttributes({
+          finishing: draftAttributes.finishing || 60,
+          shooting: draftAttributes.shooting || 55,
+          playmaking: draftAttributes.playmaking || 50,
+          rebounding: draftAttributes.rebounding || 45,
+          defense: draftAttributes.defense || 40,
+          physicals: draftAttributes.physicals || 65
         });
-      }
-      if (draft.attributes) {
-        setAttributes(draft.attributes);
       }
     }
   }, [getBuilderDraft]);
 
-  // Save draft when player data changes
+  // Save draft when attributes change
   useEffect(() => {
     saveBuilderDraft({
-      firstName: playerName.firstName,
-      lastName: playerName.lastName,
-      position,
-      archetype,
-      heightCm: height.cm,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      position: player.position,
+      archetype: player.archetype,
       attributes
     });
-  }, [playerName, position, archetype, height, attributes, saveBuilderDraft]);
+  }, [attributes, saveBuilderDraft, player]);
 
   const adjustAttribute = (attr: keyof BuilderAttributes, delta: number) => {
     const newValue = Math.max(25, Math.min(99, attributes[attr] + delta));
@@ -87,54 +82,11 @@ export default function PlayerBuilder() {
   };
 
   const handleStartCareer = () => {
-    // Convert BuilderAttributes to full AttributeSet
-    const fullAttributes: AttributeSet = {
-      // Shooting
-      close: attributes.finishing,
-      mid: attributes.shooting,
-      three: attributes.shooting,
-      freeThrow: attributes.shooting,
-      // Finishing  
-      drivingLayup: attributes.finishing,
-      drivingDunk: attributes.finishing,
-      postControl: attributes.finishing,
-      // Playmaking
-      passAccuracy: attributes.playmaking,
-      ballHandle: attributes.playmaking,
-      speedWithBall: attributes.playmaking,
-      // Defense
-      interiorD: attributes.defense,
-      perimeterD: attributes.defense,
-      steal: attributes.defense,
-      block: attributes.defense,
-      oReb: attributes.rebounding,
-      dReb: attributes.rebounding,
-      // Physicals
-      speed: attributes.physicals,
-      acceleration: attributes.physicals,
-      strength: attributes.physicals,
-      vertical: attributes.physicals,
-      stamina: attributes.physicals
-    };
-
-    // Avatar will be handled by procedural system
-
     // Apply the builder draft to create the new career
-    applyBuilderDraft({
-      firstName: playerName.firstName,
-      lastName: playerName.lastName,
-      position,
-      archetype,
-      heightCm: height.cm,
-      attributes: fullAttributes
-    });
+    applyBuilderDraft();
 
     // Navigate to dashboard (home route)
     setLocation('/home');
-  };
-
-  const handleBack = () => {
-    navigateBack();
   };
 
   const getAttributeColor = (value: number) => {
@@ -154,169 +106,105 @@ export default function PlayerBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 pb-20">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-primary">Player Builder</h1>
-          <p className="text-sm text-muted-foreground">Basketball Life Simulator</p>
-        </div>
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      {/* Single header (no duplicates) */}
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold text-primary">Player Builder</h1>
+        <p className="text-sm text-muted-foreground">Basketball Life Simulator</p>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Character Preview */}
-          <Card className="lg:sticky lg:top-4 h-fit">
-            <CardHeader>
-              <CardTitle>Character Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-center">
-                <div className="flex flex-col items-center space-y-2">
-                  <canvas className="avatar96" data-seed="player-builder-default" style={{borderRadius: '50%'}}></canvas>
-                  <p className="text-xs text-muted-foreground">Procedural avatar</p>
-                </div>
-              </div>
-              
-              <div className="text-center space-y-1">
-                <h3 className="font-semibold text-lg" data-testid="text-player-name">
-                  {playerName.firstName} {playerName.lastName}
-                </h3>
-                <div className="flex justify-center gap-2 flex-wrap">
-                  <Badge variant="secondary">{position}</Badge>
-                  <Badge variant="outline">{archetype}</Badge>
-                  <Badge variant="outline">
-                    {Math.floor(height.inches / 12)}'{height.inches % 12}" ({height.cm}cm)
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Attributes */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Attributes
-                  <Badge variant="outline" data-testid="text-available-points">
-                    {availablePoints} points available
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {Object.entries(attributes).map(([key, value]) => (
-                  <div key={key} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">
-                        {attributeLabels[key as keyof BuilderAttributes]}
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => adjustAttribute(key as keyof BuilderAttributes, -1)}
-                          disabled={value <= 25}
-                          data-testid={`button-${key}-decrease`}
-                        >
-                          -
-                        </Button>
-                        <span className="w-12 text-center font-mono" data-testid={`text-${key}-value`}>
-                          {value}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => adjustAttribute(key as keyof BuilderAttributes, 1)}
-                          disabled={value >= 99 || availablePoints <= 0}
-                          data-testid={`button-${key}-increase`}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <Progress 
-                        value={value} 
-                        max={99}
-                        className="h-2"
-                      />
-                      <div 
-                        className={`absolute top-0 left-0 h-2 rounded-full transition-all ${getAttributeColor(value)}`}
-                        style={{ width: `${(value / 99) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Player Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Player Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      value={playerName.firstName}
-                      onChange={(e) => setPlayerName(prev => ({ ...prev, firstName: e.target.value }))}
-                      data-testid="input-first-name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      value={playerName.lastName}
-                      onChange={(e) => setPlayerName(prev => ({ ...prev, lastName: e.target.value }))}
-                      data-testid="input-last-name"
-                    />
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Position</Label>
-                    <div className="text-sm text-muted-foreground mt-1" data-testid="text-position">
-                      {position}
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Archetype</Label>
-                    <div className="text-sm text-muted-foreground mt-1" data-testid="text-archetype">
-                      {archetype}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Navigation */}
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                onClick={handleBack}
-                className="flex-1"
-                data-testid="button-back"
-              >
-                Back to Customize
-              </Button>
-              <Button
-                onClick={handleStartCareer}
-                className="flex-1"
-                disabled={!playerName.firstName || !playerName.lastName}
-                data-testid="button-start-career"
-              >
-                Start Career
-              </Button>
+      {/* Character Preview (photo + identity). No Player Information form here. */}
+      <section className="mb-6 rounded-xl bg-card border border-border p-4">
+        <h2 className="text-xl font-semibold mb-3">Character Preview</h2>
+        <div className="flex items-center gap-4">
+          <AvatarPhoto size={72} />
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="secondary">
+                {player.position}
+              </Badge>
+              <span className="text-sm text-muted-foreground">{player.archetype}</span>
+              <span className="text-sm text-muted-foreground">{heightLabel}</span>
             </div>
+            <div className="text-2xl font-semibold">{fullName}</div>
+            <p className="text-xs text-muted-foreground mt-1">Procedural avatar</p>
           </div>
         </div>
+      </section>
+
+      {/* Attributes section */}
+      <section className="rounded-xl bg-card border border-border p-4 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Attributes</h2>
+          <Badge variant="outline" data-testid="text-available-points">
+            {availablePoints} points available
+          </Badge>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2">
+          {Object.entries(attributes).map(([key, value]) => (
+            <div key={key} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  {attributeLabels[key as keyof BuilderAttributes]}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => adjustAttribute(key as keyof BuilderAttributes, -1)}
+                    disabled={value <= 25}
+                    data-testid={`button-${key}-decrease`}
+                  >
+                    -
+                  </Button>
+                  <span className="w-12 text-center font-mono" data-testid={`text-${key}-value`}>
+                    {value}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => adjustAttribute(key as keyof BuilderAttributes, 1)}
+                    disabled={value >= 99 || availablePoints <= 0}
+                    data-testid={`button-${key}-increase`}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+              <div className="relative">
+                <Progress 
+                  value={value} 
+                  max={99}
+                  className="h-2"
+                />
+                <div 
+                  className={`absolute top-0 left-0 h-2 rounded-full transition-all ${getAttributeColor(value)}`}
+                  style={{ width: `${(value / 99) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Navigation */}
+      <div className="flex gap-3">
+        <Button
+          variant="secondary"
+          onClick={() => setLocation('/new')}
+          className="flex-1"
+          data-testid="button-back"
+        >
+          Back to Customize
+        </Button>
+        <Button
+          onClick={handleStartCareer}
+          className="flex-1"
+          data-testid="button-start-career"
+        >
+          Start Career
+        </Button>
       </div>
     </div>
   );

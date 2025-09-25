@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { activeSlot } from "@/utils/localStorage";
+import { useGameStore } from "@/state/gameStore";
 import { useToast } from "@/hooks/use-toast";
 
 interface RouteGuardProps {
@@ -11,11 +11,11 @@ interface RouteGuardProps {
 export default function RouteGuard({ children, requireActiveSave = false }: RouteGuardProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const hasValidPlayer = useGameStore(state => state.hasValidPlayer);
 
   useEffect(() => {
     if (requireActiveSave) {
-      const currentSlot = activeSlot.get();
-      if (currentSlot === null) {
+      if (!hasValidPlayer()) {
         // Show toast first, then redirect after a brief delay
         toast({
           title: "Save Required",
@@ -27,11 +27,10 @@ export default function RouteGuard({ children, requireActiveSave = false }: Rout
         }, 100);
       }
     }
-  }, [requireActiveSave, setLocation, toast]);
+  }, [requireActiveSave, setLocation, toast, hasValidPlayer]);
 
   if (requireActiveSave) {
-    const currentSlot = activeSlot.get();
-    if (currentSlot === null) {
+    if (!hasValidPlayer()) {
       return null; // Will redirect via useEffect
     }
   }
