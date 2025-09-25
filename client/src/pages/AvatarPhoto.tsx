@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import BackLink from "@/components/BackLink";
 import { useGameStore } from "@/state/gameStore";
 import { useToast } from "@/hooks/use-toast";
@@ -102,7 +103,14 @@ export default function AvatarPhoto() {
               <CardTitle className="text-white">Current Avatar</CardTitle>
             </CardHeader>
             <CardContent className="flex justify-center">
-              <AvatarImage size={96} />
+              <Avatar className="w-24 h-24">
+                <AvatarImage src={current} alt="Current avatar" />
+                <AvatarFallback>
+                  <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                    No Photo
+                  </div>
+                </AvatarFallback>
+              </Avatar>
             </CardContent>
           </Card>
 
