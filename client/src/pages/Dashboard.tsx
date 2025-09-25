@@ -1,269 +1,206 @@
 import { useState, useEffect } from "react";
-import AvatarImage from "@/features/avatar/AvatarImage";
-import GameHeader from "@/components/GameHeader";
-import GameCard from "@/components/GameCard";
-import QuickActions from "@/components/QuickActions";
-import LeagueSnapshot from "@/components/LeagueSnapshot";
-import StatsStrip from "@/components/StatsStrip";
-import SimControls from "@/components/SimControls";
-import BottomTabBar from "@/components/BottomTabBar";
-import GameResultsModal from "@/components/GameResultsModal";
-import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
-import { loadSave, newSeason, advanceWeek, getNextGame, simToEndOfSeason, type SaveState } from "@/state/sim";
-import { useSave } from "@/hooks/useSave";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import BackLink from "@/components/BackLink";
+import TeamLogo from "@/components/TeamLogo";
+import { useGameStore } from "@/state/gameStore";
+import { seedTeams } from "@/lib/teamData";
 import { useToast } from "@/hooks/use-toast";
-import { TEAMS } from "@/data/teams";
-import type { Player } from "@/utils/localStorage";
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-  const saveState = useSave(); // Use the reactive hook
+  const { career, league, playNextGame, getNextGame, getCurrentAge, initIfNeeded } = useGameStore();
   const { toast } = useToast();
-  // Photo avatar handled by AvatarImage; fallback to silhouette
-  const [gameResultsModal, setGameResultsModal] = useState<{
-    isOpen: boolean;
-    result?: any;
-    opponent?: any;
-    location?: 'Home' | 'Away';
-  }>({ isOpen: false });
+  const teams = seedTeams();
+  const playerTeam = teams.find(t => t.id === career.teamId);
+  const nextGame = getNextGame();
+  const currentAge = getCurrentAge();
 
   useEffect(() => {
-    const player = playerStorage.get();
-    if (player) {
-      setCurrentPlayer(player);
-      
-      // Initialize SaveState if needed (useSave hook handles the state)
-      const currentSave = loadSave();
-      if (!currentSave || !currentSave.player) {
-        // Initialize new save state from player data
-        const initialSeason = newSeason(2025, player.teamId || 'cvhs', 'northern');
-        const initialSaveState: SaveState = {
-          year: 2025,
-          week: 1,
-          age: 16,
-          birthdayWeek: 10,
-          playerTeamId: player.teamId || 'cvhs',
-          season: initialSeason,
-          awards: [],
-          history: [{ label: 'Started high school career', dateISO: new Date().toISOString() }],
-          accessories: [],
-          player: {
-            firstName: player.nameFirst || 'Your',
-            lastName: player.nameLast || 'Player',
-            position: player.position || 'PG',
-            archetype: 'Playmaker',
-            heightInCm: player.heightCm || 180,
-            baseAttributes: {
-              shooting: 70,
-              finishing: 65,
-              defense: 60,
-              rebounding: 55,
-              physicals: 75
-            }
-          }
-        };
-        saveSave(initialSaveState);
-      }
-    }
-  }, []);
-
-  const refreshData = () => {
-    // Data refreshes automatically via useSave hook
-  };
-
-  const getTeamName = (teamId: string): string => {
-    const teamNames = {
-      '1': 'Central High Tigers',
-      '2': 'Westside Prep Eagles', 
-      '3': 'Riverside Academy Lions',
-      '4': 'Oak Valley Panthers',
-      '5': 'Pine Ridge Wolves',
-      '6': 'Mountain View Hawks',
-      '7': 'Valley Tech Rams',
-      '8': 'East Side Bears'
-    };
-    return teamNames[teamId as keyof typeof teamNames] || 'Your Team';
-  };
+    initIfNeeded();
+  }, [initIfNeeded]);
 
   const handlePlayGame = () => {
-    const currentSave = loadSave();
-    const currentGame = getNextGame(currentSave);
-    
-    if (!currentGame) {
-      // Handle end of season case
-      if (currentSave.week > 20) {
-        const completedSave = simToEndOfSeason(currentSave);
-        toast({
-          title: "Season completed",
-          description: "New season started."
-        });
-        return;
-      }
+    if (!nextGame || career.player.energy < 3) {
+      toast({
+        title: "Cannot play game",
+        description: career.player.energy < 3 ? "Not enough energy" : "No game scheduled"
+      });
       return;
     }
     
-    const opponent = TEAMS[currentGame.opponentId];
-    if (!opponent) return;
-    
-    // Use unified engine - advanceWeek includes game play AND week advancement
-    const updatedSave = advanceWeek(currentSave);
-    
-    // Get the result for the modal (last played game result)
-    const result = updatedSave.season.results[updatedSave.season.results.length - 1];
-    if (result) {
-      // Format result data for GameResultsModal
-      const playerScore = result.won ? 95 : 88;
-      const opponentScore = result.won ? 88 : 95;
-      
-      // Show results modal with expected format
-      setGameResultsModal({
-        isOpen: true,
-        result: {
-          playerStats: {
-            points: result.points,
-            rebounds: result.rebounds,
-            assists: result.assists
-          },
-          teamStats: {
-            win: result.won,
-            playerScore,
-            opponentScore
-          },
-          gameGrade: result.points >= 20 ? 'A' : result.points >= 15 ? 'B' : 'C',
-          energyUsed: 3,
-          injuryRisk: false
-        },
-        opponent: {
-          name: opponent.name,
-          abbrev: opponent.abbrev
-        },
-        location: result.home ? 'Home' : 'Away'
-      });
-      
+    const success = playNextGame();
+    if (success) {
       toast({
-        title: result.won ? "Victory!" : "Defeat",
-        description: `${result.points} PTS, ${result.rebounds} REB, ${result.assists} AST`
+        title: "Game completed",
+        description: "Check your stats and standings!"
       });
     }
   };
 
-  // These are now handled by SimControls component
-
-  const handleScouting = () => {
-    console.log('Scouting functionality coming soon!');
+  const getOpponentTeam = () => {
+    if (!nextGame) return null;
+    const opponentId = nextGame.homeTeamId === career.teamId ? nextGame.awayTeamId : nextGame.homeTeamId;
+    return teams.find(t => t.id === opponentId);
   };
 
-  if (!currentPlayer || !saveState) {
-    return (
-      <div className="min-h-screen bg-background">
-        <GameHeader />
-        <main className="px-4 pt-4 pb-32 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading player data...</p>
-        </main>
-        <BottomTabBar />
-      </div>
-    );
-  }
-
-  // Convert standings to display format
-  const standings = Object.entries(saveState.season.standings).map(([teamId, record]) => ({
-    name: TEAMS[teamId]?.name || teamId,
-    wins: record.w,
-    losses: record.l,
-    streak: record.w > record.l ? `W${record.w}` : `L${record.l}`,
-    color: teamId === saveState.playerTeamId ? "#7A5BFF" : "#38E1C6"
-  }));
-
-  const schedule = saveState.season.schedule.slice(saveState.week, saveState.week + 3).map((game, index) => ({
-    homeTeam: game.home ? TEAMS[saveState.playerTeamId]?.name || 'You' : TEAMS[game.opponentId]?.name || 'TBD',
-    awayTeam: game.home ? TEAMS[game.opponentId]?.name || 'TBD' : TEAMS[saveState.playerTeamId]?.name || 'You',
-    week: game.week
-  }));
-
-  const stats = [
-    { label: "Energy", current: currentPlayer.energy || 8, max: 10 },
-    { label: "Mood", current: currentPlayer.mood || 7, max: 10 },
-    { label: "Clout", current: currentPlayer.clout || 5, max: 100 },
-    { label: "Chemistry", current: currentPlayer.chemistry || 65, max: 100 },
-    { label: "Health", current: currentPlayer.health || 100, max: 100 },
-    { label: "Reputation", current: currentPlayer.reputation || 0, max: 100 },
-  ];
+  const opponentTeam = getOpponentTeam();
+  const isHome = nextGame?.homeTeamId === career.teamId;
 
   return (
-    <>
-      <main className="space-y-6">
-        {/* Player Info Card */}
-        <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
-          <AvatarImage size={64} />
-          <div className="flex-1">
-            <button 
-              onClick={() => onNavigate?.('/profile')}
-              className="font-semibold text-left hover:text-primary transition-colors"
-              data-testid="button-player-name"
-            >
-              {currentPlayer.nameFirst} {currentPlayer.nameLast}
-            </button>
-            <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>
+    <div className="min-h-screen bg-background p-4 pb-20">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header with player info */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-primary">
+                {career.player.firstName} {career.player.lastName} ({currentAge})
+              </h1>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="secondary">{league.level}</Badge>
+                <Badge variant="outline">{league.year}</Badge>
+                <Badge variant="outline">W{league.week}</Badge>
+              </div>
+            </div>
           </div>
+          <button 
+            onClick={() => onNavigate?.('/sim')}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            data-testid="button-overflow"
+          >
+            <span className="text-xl">»</span>
+          </button>
         </div>
 
-        {/* New Simulation Controls */}
-        <SimControls 
-          currentSave={saveState}
-          onSimComplete={refreshData}
-        />
-
-        {(() => {
-          const nextGame = getNextGame(saveState);
-          if (nextGame) {
-            return (
-              <GameCard 
-                opponentId={nextGame.opponentId}
-                gameType="Regular Season"
-                location={nextGame.home ? 'Home' : 'Away'}
-                energyCost={3}
-                onPlayGame={handlePlayGame}
-                onScouting={handleScouting}
-              />
-            );
-          } else if (saveState.week > 20) {
-            return (
-              <div className="text-center py-8">
-                <h3 className="text-lg font-semibold mb-2">Regular Season Complete!</h3>
-                <p className="text-muted-foreground">
-                  No remaining regular-season games.
-                </p>
+        {/* Player avatar and team info */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <button onClick={() => onNavigate?.('/player')}>
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={career.player.photo} alt={`${career.player.firstName} ${career.player.lastName}`} />
+                  <AvatarFallback>
+                    {career.player.firstName[0]}{career.player.lastName[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+              
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  {playerTeam && <TeamLogo team={playerTeam} size={24} />}
+                  <div>
+                    <p className="font-semibold">{playerTeam?.name || 'Your Team'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {career.player.position} • {career.player.archetype}
+                    </p>
+                  </div>
+                </div>
               </div>
-            );
-          }
-          return null;
-        })()}
-        
-        
-        <QuickActions onAction={(path) => onNavigate?.(path)} />
-        
-        {saveState && standings.length > 0 && (
-          <LeagueSnapshot 
-            standings={standings}
-            schedule={schedule}
-            onViewFull={(tab) => onNavigate?.(`/league?tab=${tab}`)}
-          />
-        )}
-      </main>
+              
+              <div className="grid grid-cols-2 gap-4 text-center text-sm">
+                <div>
+                  <div className="font-semibold">{career.player.energy}</div>
+                  <div className="text-muted-foreground">Energy</div>
+                </div>
+                <div>
+                  <div className="font-semibold">{career.player.chemistry}</div>
+                  <div className="text-muted-foreground">Chemistry</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {gameResultsModal.result && gameResultsModal.opponent && (
-        <GameResultsModal
-          isOpen={gameResultsModal.isOpen}
-          onClose={() => setGameResultsModal({ isOpen: false })}
-          gameResult={gameResultsModal.result}
-          opponent={gameResultsModal.opponent}
-          location={gameResultsModal.location!}
-        />
-      )}
-    </>
+        {/* Next Game */}
+        {nextGame && opponentTeam && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Next Game</h3>
+                  <p className="text-sm text-muted-foreground">Week {nextGame.week} • Regular Season</p>
+                </div>
+                
+                <div className="flex items-center justify-center gap-6">
+                  {/* Player Team */}
+                  <div className="text-center">
+                    {playerTeam && <TeamLogo team={playerTeam} size={48} className="mx-auto mb-2" />}
+                    <p className="font-medium">{playerTeam?.name}</p>
+                    <p className="text-xs text-muted-foreground">{isHome ? 'Home' : 'Away'}</p>
+                  </div>
+                  
+                  {/* VS */}
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <span className="font-bold text-sm">VS</span>
+                  </div>
+                  
+                  {/* Opponent */}
+                  <div className="text-center">
+                    <TeamLogo team={opponentTeam} size={48} className="mx-auto mb-2" />
+                    <p className="font-medium">{opponentTeam.name}</p>
+                    <p className="text-xs text-muted-foreground">{isHome ? 'Away' : 'Home'}</p>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handlePlayGame}
+                  disabled={career.player.energy < 3}
+                  className="w-full"
+                  data-testid="button-play-game"
+                >
+                  Play Game (-3 Energy)
+                </Button>
+                
+                {career.player.energy < 3 && (
+                  <p className="text-sm text-muted-foreground">
+                    Not enough energy. Rest or simulate weeks to recover.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {!nextGame && (
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <div className="space-y-3">
+                <div className="text-4xl">🏆</div>
+                <div>
+                  <h3 className="text-lg font-semibold">Season Complete!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Use simulation controls to advance to next season.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-4">
+          <Button 
+            variant="outline" 
+            onClick={() => onNavigate?.('/league')}
+            data-testid="button-standings"
+          >
+            League Standings
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => onNavigate?.('/accessories')}
+            data-testid="button-accessories"
+          >
+            Accessories
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
