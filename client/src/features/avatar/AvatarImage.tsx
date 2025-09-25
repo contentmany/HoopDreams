@@ -42,7 +42,7 @@ export default function AvatarImage({
       style={{ 
         width: size, 
         height: size, 
-        borderRadius: "9999px", 
+        borderRadius: "50%", 
         objectFit: "cover",
         objectPosition: "center", 
         display: "block"
