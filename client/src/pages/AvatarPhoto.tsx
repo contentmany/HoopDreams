@@ -8,7 +8,7 @@ import { saveAvatarPhoto, getAvatarPhoto, clearAvatarPhoto } from "@/features/av
 import AvatarImage from "@/features/avatar/AvatarImage";
 import { useToast } from "@/hooks/use-toast";
 
-const EXPORT_SIZE = 512;
+const EXPORT_SIZE = 256;
 
 export default function AvatarPhoto() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);

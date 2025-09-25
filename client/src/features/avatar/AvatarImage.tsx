@@ -3,7 +3,7 @@ import { getAvatarPhoto } from "./storage";
 function Silhouette({ size = 48 }: { size?: number }) {
   return (
     <img 
-      src="/assets/silhouette-grey.svg" 
+      src="/img/silhouette-grey.png" 
       alt="Default avatar"
       width={size}
       height={size}
