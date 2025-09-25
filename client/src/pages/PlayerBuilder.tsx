@@ -118,6 +118,9 @@ export default function PlayerBuilder() {
       age: 15,
       graduationAge: 18,
       birthdayWeek: Math.floor(Math.random() * 20) + 1,
+      status: {
+        schoolPhase: "HighSchool" as const
+      },
       attributes: fullAttributes,
       badgePoints: 0,
       badges: [],
