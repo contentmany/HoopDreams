@@ -1,34 +1,44 @@
-import type { Attributes } from '@/state/sim';
+import { Accessory } from '@/types/accessories';
 
-export interface Accessory {
-  id: string;
-  name: string;
-  price: number;
-  boost: { attr: keyof Attributes; amount: number };
-  durationGames: number;
-}
-
-// Small catalog for now (empty visible shop, but define type)
-export const ACCESSORIES: Record<string, Accessory> = {
-  shootingBoots: {
-    id: 'shootingBoots',
-    name: 'Lucky Shooting Boots',
-    price: 50,
-    boost: { attr: 'shooting', amount: 5 },
-    durationGames: 10
+export const ACCESSORIES: Accessory[] = [
+  {
+    id: "shooting-sleeve",
+    name: "Shooting Sleeve",
+    slot: "arm",
+    boost: { shooting: 3 },
+    games: 4,
+    price: 300
   },
-  proteinShake: {
-    id: 'proteinShake',
-    name: 'Power Protein Shake',
-    price: 30,
-    boost: { attr: 'physicals', amount: 3 },
-    durationGames: 5
+  {
+    id: "grip-wristband", 
+    name: "Grip Wristband",
+    slot: "wrist",
+    boost: { finishing: 2 },
+    games: 3,
+    price: 150
   },
-  defenseWristband: {
-    id: 'defenseWristband', 
-    name: 'Defense Focus Band',
-    price: 40,
-    boost: { attr: 'defense', amount: 4 },
-    durationGames: 8
+  {
+    id: "compression-leg-sleeve",
+    name: "Compression Leg Sleeve",
+    slot: "leg", 
+    boost: { speed: 2, stamina: 1 },
+    games: 5,
+    price: 200
+  },
+  {
+    id: "performance-headband",
+    name: "Performance Headband",
+    slot: "head",
+    boost: { defense: 2 },
+    games: 6,
+    price: 100
+  },
+  {
+    id: "court-vision-shoes",
+    name: "Court Vision Shoes",
+    slot: "shoes",
+    boost: { playmaking: 3, speed: 1 },
+    games: 8,
+    price: 500
   }
-};
+];

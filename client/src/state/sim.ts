@@ -36,10 +36,11 @@ export interface Season {
 }
 
 export interface AccessoryInstance {
-  id: string;
-  name: string;
+  instanceId: string;
+  accessoryId: string;
+  equipped: boolean;
   gamesRemaining: number;
-  boost: { attr: keyof Attributes; amount: number };
+  acquiredISO: string;
 }
 
 export interface SaveState {
@@ -47,11 +48,18 @@ export interface SaveState {
   week: number;
   age: number;
   birthdayWeek: number;
+  graduationAge: number;
   playerTeamId: string;
   season: Season;
   awards: string[];
   history: { label: string; dateISO: string }[];
   accessories: AccessoryInstance[];
+  status: {
+    schoolPhase: "HighSchool" | "Graduated";
+  };
+  avatar?: {
+    photo?: string;
+  };
   player: {
     firstName: string;
     lastName: string;
@@ -72,7 +80,8 @@ export function loadSave(): SaveState {
     return {
       year: 2024,
       week: 1,
-      age: 16,
+      age: 15,
+    graduationAge: 18,
       birthdayWeek: 10,
       playerTeamId: 'cvhs',
       season: newSeason(2024, 'cvhs', 'northern'),
