@@ -1,5 +1,6 @@
 import { TEAMS } from '@/data/teams';
 import { CONFERENCES } from '@/data/conferences';
+import { applyAccessoryBoosts, onGameResolved } from './accessories';
 
 // Types
 export interface Attributes {
@@ -88,6 +89,9 @@ export function loadSave(): SaveState {
       awards: [],
       history: [{ label: 'Started high school career', dateISO: new Date().toISOString() }],
       accessories: [],
+      status: {
+        schoolPhase: "HighSchool" as const
+      },
       player: {
         firstName: 'Your',
         lastName: 'Player',
@@ -122,17 +126,7 @@ export function getNextGame(s: SaveState): Game | null {
   return s.season.schedule.find(g => g.week === s.week) || null;
 }
 
-export function applyAccessoryBoosts(base: Attributes, acc: AccessoryInstance[]): Attributes {
-  const boosted = { ...base };
-  
-  for (const accessory of acc) {
-    if (accessory.gamesRemaining > 0) {
-      boosted[accessory.boost.attr] += accessory.boost.amount;
-    }
-  }
-  
-  return boosted;
-}
+// Removed - using applyAccessoryBoosts from state/accessories.ts instead
 
 export function randStats(attrs: Attributes): { points: number; rebounds: number; assists: number } {
   // Simple RNG influenced by attributes
@@ -320,55 +314,7 @@ export function runConferenceTournament(s: SaveState): SaveState {
 
 // MOST IMPORTANT: Single call sites
 export function playCurrentGame(s: SaveState): SaveState {
-  // Step 1: Check if there's a game to play
-  const g = getNextGame(s);
-  if (!g) return s; // no-op
-  
-  // Step 2: Build effective attributes
-  const effectiveAttrs = applyAccessoryBoosts(s.player.baseAttributes, s.accessories.filter(acc => acc.gamesRemaining > 0));
-  
-  // Step 3: Create randomized Result
-  const stats = randStats(effectiveAttrs);
-  const playerRating = (effectiveAttrs.shooting + effectiveAttrs.finishing + effectiveAttrs.physicals) / 3;
-  const winChance = Math.min(0.95, Math.max(0.05, 0.5 + (playerRating - 70) * 0.01)); // Rating bias
-  const won = Math.random() < winChance;
-  
-  const result: Result = {
-    week: g.week,
-    opponentId: g.opponentId,
-    home: g.home,
-    points: stats.points,
-    rebounds: stats.rebounds,
-    assists: stats.assists,
-    won
-  };
-  
-  // Step 4: Push result
-  const newResults = [...s.season.results, result];
-  
-  // Step 5: Decrement gamesRemaining for equipped accessories
-  const updatedAccessories = s.accessories.map(acc => ({
-    ...acc,
-    gamesRemaining: acc.gamesRemaining > 0 ? acc.gamesRemaining - 1 : 0
-  }));
-  
-  // Step 6: Update standings
-  const newStandings = { ...s.season.standings };
-  updateStandings(newStandings, s.playerTeamId, g.opponentId, won);
-  
-  // Step 7: Save and return
-  const updatedState = {
-    ...s,
-    accessories: updatedAccessories,
-    season: {
-      ...s.season,
-      results: newResults,
-      standings: newStandings
-    }
-  };
-  
-  saveSave(updatedState);
-  return updatedState;
+  return resolveGame(s);
 }
 
 export function advanceWeek(s: SaveState): SaveState {
@@ -380,14 +326,35 @@ export function advanceWeek(s: SaveState): SaveState {
   
   // Step 3: Check for birthday
   if (updatedState.week === updatedState.birthdayWeek) {
+    const newAge = updatedState.age + 1;
     updatedState = {
       ...updatedState,
-      age: updatedState.age + 1,
+      age: newAge,
       history: [
         ...updatedState.history,
-        { label: `Turned ${updatedState.age + 1} years old`, dateISO: new Date().toISOString() }
+        { label: `Turned ${newAge} years old`, dateISO: new Date().toISOString() }
       ]
     };
+    
+    // Step 3a: Check for graduation
+    if (newAge >= updatedState.graduationAge && updatedState.status.schoolPhase === "HighSchool") {
+      updatedState = {
+        ...updatedState,
+        status: {
+          ...updatedState.status,
+          schoolPhase: "Graduated"
+        },
+        history: [
+          ...updatedState.history,
+          { label: 'Graduated from High School!', dateISO: new Date().toISOString() }
+        ]
+      };
+      
+      // Add graduation toast notification
+      import('./saveBus').then(({ publishSaveChanged }) => {
+        publishSaveChanged();
+      });
+    }
   }
   
   // Step 4: Handle week boundaries

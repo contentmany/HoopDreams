@@ -44,9 +44,9 @@ export function applyAccessoryBoosts(baseAttributes: Record<string, number>, sav
 
   // Apply boosts
   equippedAccessories.forEach(({ catalog }) => {
-    if (catalog) {
+    if (catalog?.boost) {
       Object.entries(catalog.boost).forEach(([attr, boost]) => {
-        if (boostedAttributes[attr] !== undefined) {
+        if (typeof boost === 'number' && boostedAttributes[attr] !== undefined) {
           boostedAttributes[attr] += boost;
         }
       });

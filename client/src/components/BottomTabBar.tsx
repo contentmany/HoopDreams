@@ -1,12 +1,12 @@
 import { useLocation } from "wouter";
-import { Home, Trophy, Users, MessageCircle, Settings } from "lucide-react";
+import { Home, Trophy, Users, MessageCircle, Settings, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const tabs = [
   { path: "/home", icon: Home, label: "Home" },
   { path: "/league", icon: Trophy, label: "League" },
   { path: "/team", icon: Users, label: "Team" },
-  { path: "/social", icon: MessageCircle, label: "Social" },
+  { path: "/accessories", icon: Package, label: "Accessories" },
   { path: "/settings", icon: Settings, label: "Settings" },
 ];
 

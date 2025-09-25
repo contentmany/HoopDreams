@@ -25,6 +25,8 @@ import News from "@/pages/News";
 import AvatarPhoto from "@/pages/AvatarPhoto";
 import Profile from "@/pages/Profile";
 import Accessories from "@/pages/Accessories";
+import SimPage from "@/pages/SimPage";
+import PhotoAvatar from "@/components/PhotoAvatar";
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -167,6 +169,18 @@ function Router() {
               </div>
             </div>
           </GameLayout>
+        </RouteGuard>
+      </Route>
+      
+      <Route path="/accessories">
+        <RouteGuard requireActiveSave>
+          <Accessories />
+        </RouteGuard>
+      </Route>
+      
+      <Route path="/sim">
+        <RouteGuard requireActiveSave>
+          <SimPage />
         </RouteGuard>
       </Route>
       

@@ -1,90 +1,150 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import BackLink from '@/components/BackLink';
-import { loadSave, saveSave, type AccessoryInstance } from '@/state/sim';
+import { useToast } from '@/hooks/use-toast';
+import { useSave } from '@/hooks/useSave';
+import { ACCESSORIES } from '@/data/accessories';
+import { equipAccessory, unequipAccessory, addAccessoryInstance } from '@/state/accessories';
+import { saveSave } from '@/state/sim';
+import GameHeader from '@/components/GameHeader';
+import BottomTabBar from '@/components/BottomTabBar';
 
 export default function Accessories() {
-  const saveState = loadSave();
-  const equippedAccessories = saveState?.accessories || [];
-  
-  const handleRemoveExpired = (accessoryId: string) => {
-    if (!saveState) return;
-    
-    const updatedAccessories = saveState.accessories.filter(acc => acc.id !== accessoryId);
-    const updatedSave = { ...saveState, accessories: updatedAccessories };
+  const saveState = useSave();
+  const { toast } = useToast();
+
+  const handleEquip = (instanceId: string) => {
+    const updatedSave = equipAccessory(instanceId, saveState);
     saveSave(updatedSave);
-    
-    // Refresh page
-    window.location.reload();
+    toast({
+      title: "Accessory Equipped",
+      description: "Accessory equipped successfully"
+    });
+  };
+
+  const handleUnequip = (instanceId: string) => {
+    const updatedSave = unequipAccessory(instanceId, saveState);
+    saveSave(updatedSave);
+    toast({
+      title: "Accessory Unequipped", 
+      description: "Accessory unequipped successfully"
+    });
+  };
+
+  // For demo purposes - add sample accessories
+  const handleAddSample = (accessoryId: string) => {
+    const updatedSave = addAccessoryInstance(accessoryId, saveState);
+    saveSave(updatedSave);
+    toast({
+      title: "Accessory Added",
+      description: "Sample accessory added to inventory"
+    });
   };
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <BackLink className="text-primary hover:text-primary/80 transition-colors">
-            ← Back
-          </BackLink>
-          <h1 className="text-3xl font-bold">Accessories</h1>
+    <div className="min-h-screen bg-background">
+      <GameHeader />
+      <main className="px-4 pt-4 pb-32 space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Accessories</h1>
+          <p className="text-muted-foreground">Manage your gear and boosts</p>
         </div>
 
+        {/* Owned Accessories */}
         <Card>
           <CardHeader>
-            <CardTitle>Equipped Items</CardTitle>
+            <CardTitle>My Accessories</CardTitle>
           </CardHeader>
           <CardContent>
-            {equippedAccessories.length > 0 ? (
-              <div className="space-y-4">
-                {equippedAccessories.map((accessory, index) => (
-                  <div key={`${accessory.id}-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="space-y-1">
-                      <h3 className="font-semibold">{accessory.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        +{accessory.boost.amount} {accessory.boost.attr}
-                      </p>
-                      <div className="flex gap-2">
-                        <Badge variant={accessory.gamesRemaining > 0 ? "default" : "secondary"}>
-                          {accessory.gamesRemaining > 0 
-                            ? `${accessory.gamesRemaining} games left`
-                            : "Expired"
-                          }
-                        </Badge>
+            {saveState.accessories.length > 0 ? (
+              <div className="space-y-3">
+                {saveState.accessories.map(instance => {
+                  const catalog = ACCESSORIES.find(a => a.id === instance.accessoryId);
+                  if (!catalog) return null;
+                  
+                  return (
+                    <div key={instance.instanceId} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{catalog.name}</h3>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {catalog.slot}
+                          </Badge>
+                          {instance.equipped && (
+                            <Badge variant="default" className="text-xs">
+                              {instance.gamesRemaining} games left
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Boost: {Object.entries(catalog.boost).map(([attr, value]) => 
+                            `+${value} ${attr}`
+                          ).join(', ')}
+                        </p>
                       </div>
-                    </div>
-                    {accessory.gamesRemaining === 0 && (
                       <Button
-                        onClick={() => handleRemoveExpired(accessory.id)}
-                        variant="outline"
                         size="sm"
+                        variant={instance.equipped ? "outline" : "default"}
+                        onClick={() => instance.equipped ? handleUnequip(instance.instanceId) : handleEquip(instance.instanceId)}
+                        disabled={instance.equipped && instance.gamesRemaining <= 0}
+                        data-testid={`button-${instance.equipped ? 'unequip' : 'equip'}-${instance.instanceId}`}
                       >
-                        Remove
+                        {instance.equipped ? 'Unequip' : 'Equip'}
                       </Button>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              <div className="text-center text-muted-foreground py-8">
-                <p>No accessories yet</p>
-                <p className="text-sm">Items that boost your stats will appear here</p>
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No accessories yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Complete games and achievements to earn accessories
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
-        
+
+        {/* Sample Accessories (for demo) */}
         <Card>
           <CardHeader>
-            <CardTitle>Shop</CardTitle>
+            <CardTitle>Available Accessories (Demo)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center text-muted-foreground py-8">
-              <p>Shop coming soon</p>
-              <p className="text-sm">Purchase items to boost your performance</p>
+            <div className="grid gap-3">
+              {ACCESSORIES.map(accessory => (
+                <div key={accessory.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <h3 className="font-medium">{accessory.name}</h3>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="secondary" className="text-xs">
+                        {accessory.slot}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {accessory.games} games
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Boost: {Object.entries(accessory.boost).map(([attr, value]) => 
+                        `+${value} ${attr}`
+                      ).join(', ')}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAddSample(accessory.id)}
+                    data-testid={`button-add-${accessory.id}`}
+                  >
+                    Add Sample
+                  </Button>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
+      <BottomTabBar />
     </div>
   );
 }
