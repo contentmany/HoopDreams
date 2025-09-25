@@ -144,8 +144,6 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
       lastName: playerData.lastName,
       position: playerData.position as "PG" | "SG" | "SF" | "PF" | "C",
       archetype: playerData.archetype,
-      heightInches: playerData.heightInches,
-      heightCm: inchesToCm(playerData.heightInches),
     });
     
     console.log('Creating player with data:', playerData);
