@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
 import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
 import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
+import { clearBuilderDraft } from '@/utils/builderPersistence';
 
 interface BuilderAttributes {
   finishing: number;
@@ -114,7 +115,9 @@ export default function PlayerBuilder() {
       teamId: 'user-team', // Default team
       year: 1,
       week: 1,
-      age: 18,
+      age: 15,
+      graduationAge: 18,
+      birthdayWeek: Math.floor(Math.random() * 20) + 1,
       attributes: fullAttributes,
       badgePoints: 0,
       badges: [],
@@ -139,6 +142,9 @@ export default function PlayerBuilder() {
     // Save to slot 1 and set as active
     saveSlots.save(1, finalPlayer as Player);
     activeSlot.set(1);
+
+    // Clear the builder draft after successfully starting career
+    clearBuilderDraft();
 
     // Navigate to dashboard (home route)
     setLocation('/home');
