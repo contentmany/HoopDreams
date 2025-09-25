@@ -8,9 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useLocation } from 'wouter';
 import { useBackNavigation } from '@/utils/navigation';
-import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
-import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
-import { clearBuilderDraft } from '@/utils/builderPersistence';
+import { useGameStore } from '@/state/gameStore';
+import type { AttributeSet } from '@/types';
 
 interface BuilderAttributes {
   finishing: number;
@@ -33,7 +32,8 @@ const DEFAULT_BUILDER_ATTRIBUTES: BuilderAttributes = {
 export default function PlayerBuilder() {
   const [, setLocation] = useLocation();
   const navigateBack = useBackNavigation('/avatar-photo');
-  // Avatar handled by procedural system
+  const { getBuilderDraft, saveBuilderDraft, applyBuilderDraft } = useGameStore();
+  
   const [playerName, setPlayerName] = useState({ firstName: '', lastName: '' });
   const [position, setPosition] = useState('PG');
   const [archetype, setArchetype] = useState('Balanced');
@@ -42,41 +42,39 @@ export default function PlayerBuilder() {
   const [availablePoints, setAvailablePoints] = useState(20);
 
   useEffect(() => {
-    // Load draft player data
-    const draft = getDraftPlayer();
+    // Load draft player data from new store
+    const draft = getBuilderDraft();
     if (draft) {
       setPlayerName({
-        firstName: draft.nameFirst || draft.firstName || '',
-        lastName: draft.nameLast || draft.lastName || ''
+        firstName: draft.firstName || '',
+        lastName: draft.lastName || ''
       });
       setPosition(draft.position || 'PG');
       setArchetype(draft.archetype || 'Balanced');
-      if (draft.heightInches) {
+      if (draft.heightCm) {
+        const inches = Math.round(draft.heightCm / 2.54);
         setHeight({
-          inches: draft.heightInches,
-          cm: draft.heightCm || Math.round(draft.heightInches * 2.54)
+          inches,
+          cm: draft.heightCm
         });
       }
       if (draft.attributes) {
         setAttributes(draft.attributes);
       }
     }
-  }, []);
+  }, [getBuilderDraft]);
 
   // Save draft when player data changes
   useEffect(() => {
-    saveDraftPlayer({
-      nameFirst: playerName.firstName,
-      nameLast: playerName.lastName,
+    saveBuilderDraft({
       firstName: playerName.firstName,
       lastName: playerName.lastName,
       position,
       archetype,
-      heightInches: height.inches,
       heightCm: height.cm,
       attributes
     });
-  }, [playerName, position, archetype, height, attributes]);
+  }, [playerName, position, archetype, height, attributes, saveBuilderDraft]);
 
   const adjustAttribute = (attr: keyof BuilderAttributes, delta: number) => {
     const newValue = Math.max(25, Math.min(99, attributes[attr] + delta));
@@ -89,8 +87,8 @@ export default function PlayerBuilder() {
   };
 
   const handleStartCareer = () => {
-    // Convert BuilderAttributes to full Attributes
-    const fullAttributes = {
+    // Convert BuilderAttributes to full AttributeSet
+    const fullAttributes: AttributeSet = {
       // Shooting
       close: attributes.finishing,
       mid: attributes.shooting,
@@ -121,50 +119,15 @@ export default function PlayerBuilder() {
 
     // Avatar will be handled by procedural system
 
-    // Create final player object
-    const finalPlayer: Partial<Player> = {
-      nameFirst: playerName.firstName,
-      nameLast: playerName.lastName,
+    // Apply the builder draft to create the new career
+    applyBuilderDraft({
+      firstName: playerName.firstName,
+      lastName: playerName.lastName,
       position,
       archetype,
-      heightInches: height.inches,
       heightCm: height.cm,
-      teamId: 'user-team', // Default team
-      year: 1,
-      week: 1,
-      age: 15,
-      graduationAge: 18,
-      birthdayWeek: Math.floor(Math.random() * 20) + 1,
-      status: {
-        schoolPhase: "HighSchool" as const
-      },
-      attributes: fullAttributes,
-      badgePoints: 0,
-      badges: [],
-      milestones: {
-        threeMade: 0,
-        assists: 0,
-        steals: 0,
-        blocks: 0,
-        dunks: 0,
-        stops: 0,
-        deepThrees: 0
-      },
-      energy: 100,
-      mood: 80,
-      clout: 0,
-      chemistry: 50,
-      health: 100,
-      reputation: 0,
-      seasonCapUsed: 0
-    };
-
-    // Save to slot 1 and set as active
-    saveSlots.save(1, finalPlayer as Player);
-    activeSlot.set(1);
-
-    // Clear the builder draft after successfully starting career
-    clearBuilderDraft();
+      attributes: fullAttributes
+    });
 
     // Navigate to dashboard (home route)
     setLocation('/home');
