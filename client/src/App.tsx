@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import RouteGuard from "@/components/RouteGuard";
-import { activeSlot, player as playerStorage } from "@/utils/localStorage";
+import { useGameStore } from "@/state/gameStore";
 
 // Layouts
 import PreGameLayout from "@/layouts/PreGameLayout";
@@ -22,7 +22,17 @@ import League from "@/pages/League";
 import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
+ feat/photo-avatar
 import AvatarPhotoPage from "@/pages/AvatarPhotoPage";
+
+import AvatarPhoto from "@/pages/AvatarPhoto";
+import Profile from "@/pages/Profile";
+import PlayerProfile from "@/pages/PlayerProfile";
+import Accessories from "@/pages/Accessories";
+import SimPage from "@/pages/SimPage";
+import SimPanel from "@/pages/SimPanel";
+import PhotoAvatar from "@/components/PhotoAvatar";
+ main
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -40,13 +50,13 @@ function Router() {
       </Route>
       <Route path="/home">
         {() => {
-          const player = playerStorage.get();
+          const { league } = useGameStore();
           return (
             <RouteGuard requireActiveSave>
               <GameLayout 
-                year={player?.seasonData?.currentYear}
-                week={player?.seasonData?.currentWeek}
-                maxWeeks={20}
+                year={league.year}
+                week={league.week}
+                maxWeeks={league.totalWeeks}
                 showAdvanceWeek={true}
               >
                 <Dashboard onNavigate={handleNavigate} />
@@ -67,9 +77,26 @@ function Router() {
         </PreGameLayout>
       </Route>
       <Route path="/avatar-photo">
+ feat/photo-avatar
         <PreGameLayout title="Set Your Photo">
           <AvatarPhotoPage />
         </PreGameLayout>
+
+        <AvatarPhoto />
+      </Route>
+      <Route path="/profile">
+        <RouteGuard requireActiveSave>
+          <Profile />
+        </RouteGuard>
+      </Route>
+      <Route path="/player">
+        <PlayerProfile />
+      </Route>
+      <Route path="/accessories">
+        <RouteGuard requireActiveSave>
+          <Accessories />
+        </RouteGuard>
+ main
       </Route>
       <Route path="/builder">
         <PreGameLayout title="Player Builder">
@@ -78,20 +105,13 @@ function Router() {
       </Route>
       <Route path="/load">
         <PreGameLayout title="Load Game">
-          <LoadSave 
-            onLoadSlot={(id) => {
-              console.log('Loading slot:', id);
-              setLocation('/home');
-            }}
-            onNewGame={() => setLocation('/new')}
-            onDeleteSlot={(id) => console.log('Delete slot:', id)}
-          />
+          <LoadSave />
         </PreGameLayout>
       </Route>
       <Route path="/settings">
         {() => {
-          const currentSlot = activeSlot.get();
-          const noSaveMode = currentSlot === null;
+          const { hasValidPlayer } = useGameStore();
+          const noSaveMode = !hasValidPlayer();
           
           if (noSaveMode) {
             return (
@@ -117,17 +137,11 @@ function Router() {
         }}
       </Route>
       <Route path="/league">
-        {() => {
-          const urlParams = new URLSearchParams(window.location.search);
-          const tab = urlParams.get('tab') || 'standings';
-          return (
-            <RouteGuard requireActiveSave>
-              <GameLayout>
-                <League defaultTab={tab} />
-              </GameLayout>
-            </RouteGuard>
-          );
-        }}
+        <RouteGuard requireActiveSave>
+          <GameLayout>
+            <League />
+          </GameLayout>
+        </RouteGuard>
       </Route>
       <Route path="/badges">
         <Badges />
@@ -158,6 +172,10 @@ function Router() {
             </div>
           </GameLayout>
         </RouteGuard>
+      </Route>
+      
+      <Route path="/sim">
+        <SimPanel />
       </Route>
       
       <Route path="/inbox">

@@ -1,0 +1,257 @@
+You are working in the HoopDreams repo inside GitHub Codespaces. Apply this patch end-to-end to fix the photo avatar flow and back navigation:
+
+GOALS
+- File picker must allow gallery OR camera (do NOT force camera).
+- Cropping defaults to “fit” (no extreme zoom). Slider min == cover scale.
+- After Save, export a square 512×512 PNG to localStorage; always display this saved PNG so the avatar never changes/zooms unexpectedly.
+- Replace “Back to Main Menu” with proper history back everywhere; if no history, fall back to “/”.
+- Use a neutral gray silhouette until a photo exists.
+- Stay on the same page after Save (show a toast/message). Back returns to previous page.
+
+=======================
+0) PREFLIGHT
+=======================
+Run:
+npm config set registry https://registry.npmjs.org/
+npm -C client install
+
+=======================
+1) ADD client/src/features/avatar/storage.ts
+=======================
+export type AvatarPhoto = { dataUrl: string; updatedAt: number };
+
+const KEY = "avatar.photo.v1";
+
+export function saveAvatarPhoto(dataUrl: string) {
+  const payload: AvatarPhoto = { dataUrl, updatedAt: Date.now() };
+  localStorage.setItem(KEY, JSON.stringify(payload));
+}
+export function getAvatarPhoto(): AvatarPhoto | null {
+  try {
+    const raw = localStorage.getItem(KEY);
+    return raw ? (JSON.parse(raw) as AvatarPhoto) : null;
+  } catch {
+    return null;
+  }
+}
+export function clearAvatarPhoto() {
+  localStorage.removeItem(KEY);
+}
+
+=======================
+2) ADD client/src/components/BackLink.tsx
+=======================
+import React from "react";
+import { useNavigate } from "react-router-dom";
+
+export default function BackLink({
+  fallback = "/",
+  children = "← Back",
+  className = "",
+}: { fallback?: string; children?: React.ReactNode; className?: string }) {
+  const navigate = useNavigate();
+  const onClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const idx = (window.history.state && (window.history.state as any).idx) ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate(fallback);
+  };
+  return (
+    <a href={fallback} onClick={onClick} className={className}>
+      {children}
+    </a>
+  );
+}
+
+=======================
+3) ADD client/src/features/avatar/AvatarImage.tsx
+=======================
+import React from "react";
+import { getAvatarPhoto } from "./storage";
+
+function Silhouette({ size = 48 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 128 128" role="img" aria-label="silhouette"
+      style={{ display: "block", borderRadius: "50%", background: "#1f1f1f" }}>
+      <circle cx="64" cy="64" r="64" fill="#262626" />
+      <circle cx="64" cy="50" r="26" fill="#8a8a8a" />
+      <path d="M18 112c6-22 24-34 46-34s40 12 46 34" fill="#8a8a8a" />
+    </svg>
+  );
+}
+
+export default function AvatarImage({ size = 48, className = "", alt = "Avatar" }:
+  { size?: number; className?: string; alt?: string }) {
+  const photo = getAvatarPhoto();
+  if (!photo) return <Silhouette size={size} />;
+  return (
+    <img src={photo.dataUrl} alt={alt} width={size} height={size}
+      style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover",
+               objectPosition: "center", display: "block", background: "#1f1f1f" }}
+      className={className} />
+  );
+}
+
+=======================
+4) REPLACE (or ADD) client/src/pages/AvatarPhoto.tsx (route: /avatar-photo)
+=======================
+import React, { useMemo, useRef, useState } from "react";
+import BackLink from "@/components/BackLink";
+import { saveAvatarPhoto, getAvatarPhoto, clearAvatarPhoto } from "@/features/avatar/storage";
+import AvatarImage from "@/features/avatar/AvatarImage";
+// If you have a toaster, import it; otherwise this will no-op.
+import { toast } from "sonner";
+
+const EXPORT_SIZE = 512;
+
+export default function AvatarPhoto() {
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [minScale, setMinScale] = useState(1);
+  const [scale, setScale] = useState(1);
+  const cropSize = 320;
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const current = getAvatarPhoto();
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    setFileUrl(url);
+  }
+
+  function onImgLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const el = e.currentTarget;
+    const w = el.naturalWidth, h = el.naturalHeight;
+    setNatural({ w, h });
+    const cover = Math.max(cropSize / w, cropSize / h); // fit (no zoom)
+    setMinScale(cover);
+    setScale(cover);
+  }
+
+  function exportCanvas(): string | null {
+    if (!imgRef.current || !natural) return null;
+    const { w, h } = natural;
+    const s = scale;
+    const canvas = document.createElement("canvas");
+    canvas.width = EXPORT_SIZE; canvas.height = EXPORT_SIZE;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#111"; ctx.fillRect(0, 0, EXPORT_SIZE, EXPORT_SIZE);
+    const drawW = w * (EXPORT_SIZE / cropSize) * s;
+    const drawH = h * (EXPORT_SIZE / cropSize) * s;
+    const dx = (EXPORT_SIZE - drawW) / 2;
+    const dy = (EXPORT_SIZE - drawH) / 2;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(imgRef.current, dx, dy, drawW, drawH);
+    return canvas.toDataURL("image/png");
+  }
+
+  function onSave() {
+    const dataUrl = exportCanvas();
+    if (!dataUrl) return;
+    saveAvatarPhoto(dataUrl);
+    try { toast?.success?.("Photo saved"); } catch {}
+    // stay here; user uses Back to return.
+  }
+
+  function onClear() {
+    clearAvatarPhoto();
+    setFileUrl(null);
+    setNatural(null);
+    try { toast?.message?.("Photo cleared"); } catch {}
+  }
+
+  const previewStyle = useMemo(() => ({ transform: `translate(-50%, -50%) scale(${scale})` }),
+    [scale]);
+
+  return (
+    <div style={{ padding: 16, color: "#eee" }}>
+      <h1 style={{ marginBottom: 8 }}>Set Your Photo</h1>
+      <p style={{ marginTop: 0, color: "#bbb" }}>Silhouette shows until you save a photo.</p>
+
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div>
+          <h3 style={{ margin: "8px 0" }}>Current</h3>
+          <AvatarImage size={96} />
+        </div>
+
+        <div style={{ minWidth: 320 }}>
+          <h3 style={{ margin: "8px 0" }}>Upload a photo</h3>
+          {/* accept = gallery or camera; DO NOT add capture attr */}
+          <input type="file" accept="image/*" onChange={onFile} />
+
+          {fileUrl && (
+            <>
+              <div style={{
+                  width: cropSize, height: cropSize, marginTop: 12, position: "relative",
+                  borderRadius: 8, overflow: "hidden", background: "#000",
+                }}>
+                <img ref={imgRef} src={fileUrl} onLoad={onImgLoad} alt="to crop"
+                  style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    transform: `translate(-50%, -50%) scale(${scale})`,
+                    transformOrigin: "center center", userSelect: "none", pointerEvents: "none",
+                  }} />
+              </div>
+
+              <label style={{ display: "block", marginTop: 12 }}>
+                Zoom
+                <input type="range" min={minScale} max={Math.max(minScale * 2, minScale + 0.01)}
+                  step={0.01} value={scale}
+                  onChange={(e) => setScale(parseFloat(e.target.value))}
+                  style={{ width: cropSize }} />
+              </label>
+            </>
+          )}
+
+          <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
+            <button onClick={onSave} disabled={!fileUrl} style={{ padding: "8px 12px" }}>Save</button>
+            <button onClick={onClear} style={{ padding: "8px 12px" }}>Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <BackLink className="text-blue-400">← Back</BackLink>
+      </div>
+    </div>
+  );
+}
+
+=======================
+5) USE AvatarImage EVERYWHERE
+=======================
+Replace any old avatar <img> with:
+import AvatarImage from "@/features/avatar/AvatarImage";
+<AvatarImage size={40} />
+
+=======================
+6) CONSISTENT BACK NAV
+=======================
+Replace any “Back to Main Menu” anchor with:
+import BackLink from "@/components/BackLink";
+<BackLink>← Back</BackLink>
+
+=======================
+7) ROUTE (ensure it exists)
+=======================
+In your router:
+<Route path="/avatar-photo" element={<AvatarPhoto />} />
+
+=======================
+8) RUN & TEST
+=======================
+npm -C client run dev
+– /avatar-photo shows Photo Library / Take Photo chooser.
+– Default crop is not zoomed; slider lets you zoom in slightly.
+– Save keeps you on the page; Back returns to previous page.
+– Avatar displays consistently and never re-zooms.
+
+=======================
+9) COMMIT
+=======================
+git checkout -b feat/fix-avatar-flow
+git add -A
+git commit -m "feat(avatar): gallery upload, sane default zoom, stable 1:1 avatar, consistent Back navigation"
+git push --set-upstream origin feat/fix-avatar-flow

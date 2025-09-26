@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { useBackNavigation } from '@/utils/navigation';
 
 interface AvatarCustomizeNewProps {
   onNavigate?: (path: string) => void;
@@ -10,6 +11,7 @@ interface AvatarCustomizeNewProps {
 
 export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewProps) {
   const [, setLocation] = useLocation();
+  const navigateBack = useBackNavigation('/new');
   const [avatarReady, setAvatarReady] = useState(false);
 
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function AvatarCustomizeNew({ onNavigate }: AvatarCustomizeNewPro
                 size="icon" 
                 onClick={() => {
                   onNavigate?.('/new');
-                  setLocation('/new');
+                  navigateBack();
                 }}
                 data-testid="button-back"
               >

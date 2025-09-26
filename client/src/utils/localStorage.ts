@@ -70,6 +70,11 @@ export interface Player {
   year: number;
   week: number;
   age: number;
+  graduationAge: number;
+  birthdayWeek: number;
+  status: {
+    schoolPhase: "HighSchool" | "Graduated";
+  };
   attributes: Attributes;
   badgePoints: number;
   badges: Badge[];

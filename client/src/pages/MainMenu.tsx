@@ -1,19 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, RotateCcw, Users, Settings } from "lucide-react";
-import { activeSlot } from "@/utils/localStorage";
+import { useGameStore } from "@/state/gameStore";
 
 interface MainMenuProps {
   onNavigate?: (path: string) => void;
 }
 
 export default function MainMenu({ onNavigate }: MainMenuProps) {
+  const { hasValidPlayer } = useGameStore();
+  
   const handlePlayClick = () => {
-    const currentSlot = activeSlot.get();
-    if (currentSlot) {
+    if (hasValidPlayer()) {
       onNavigate?.('/home');
     } else {
-      onNavigate?.('/new');
+      onNavigate?.('/load');
     }
   };
 

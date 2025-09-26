@@ -1,0 +1,183 @@
+You are working in a Vite + React + TypeScript app (client/). Keep the current look & feel. Do NOT remove existing UI styles. Implement the following features and fixes end-to-end.
+
+# HIGH-LEVEL GOALS
+- Move "Simulation Controls" out of the Home page into the existing “»” overflow route/panel.
+- Show age next to the player name (start at age 15 when career begins; age increases by 1 each August 1 or when a school year advances). Do not duplicate the “High School 2026 W01” pill that already exists.
+- Make simming actually play games and update schedule, team records, player stats, and week indexes. "Play Game" button and "Sim Week(s)/Season" must share the same simulation engine.
+- Add real-looking high school conference standings (like the screenshot): show Team Logo (letter only), Team Name, GP/W/L/W%/GB, and Pts For per Game (PFG). Teams belong to a Conference (e.g., Ohio, Missouri/Kansas).
+- Team logos are letter-based (no large color box): a circle or rounded badge containing the first letter of the team nickname; colored using the team’s primary/secondary color.
+- On Home “Next Game”, show the opponent team name and letter logo (no big colored square), just like the standings row.
+- Persist the Player Builder inputs when navigating back/forth (name, archetype, attributes, height, position, etc.). Do not reset when leaving the page and returning. Remove the duplicated “Player Information” inputs in the Character Preview; keep the preview and attributes only.
+- Photo uploader: allow picking from camera **and** gallery; don’t force max zoom; keep a sane min/max zoom; auto-crop to a square 1:1; never push users back to Main Menu automatically; “Back” should return them to the previous page. After saving, the avatar photo must keep its framing (no re-zoom in listings). Show the photo only next to the name (as in the screenshot), not duplicated in the “Next Game” panel.
+- Add an Accessories page (placeholder) reachable from the bottom nav under “Team” or “Social” (choose “Team” submenu: “Roster”, “Accessories”). It shows empty inventory, Equip/Unequip states, and a note that boosts will be added later. Save equipped state in localStorage.
+
+# DATA & STATE (new/updated files)
+Create or update these TypeScript modules.
+
+1) client/src/types.ts
+- Define:
+  - `AttributeSet = { finishing:number; shooting:number; rebounding:number; defense:number; physicals:number }`
+  - `Accessory = { id:string; name:string; slot:'wrist'|'sleeve'|'headband'|'shoes'|'misc'; durationGames:number; boost:{ [K in keyof AttributeSet]?: number } }`
+  - `AccessoryOwned = Accessory & { owned:boolean; equipped:boolean }`
+  - `Team = { id:string; name:string; abbrev:string; conference:string; colors:{ primary:string; secondary:string }; }`
+  - `Game = { id:string; week:number; homeTeamId:string; awayTeamId:string; played:boolean; score?:{home:number;away:number}; playerLine?: { pts:number; reb:number; ast:number; stl:number; blk:number }; }`
+  - `TeamRecord = { teamId:string; gp:number; w:number; l:number; pf:number; pa:number }`
+  - `StandingRow = TeamRecord & { pct:number; gb:number; pfg:number }`
+  - `Player = { id:string; firstName:string; lastName:string; startYear:number; startAge:number; birthMonth?:number; // default 8 (Aug)
+               position:'PG'|'SG'|'SF'|'PF'|'C';
+               archetype:string;
+               attributes:AttributeSet;
+               energy:number; health:number; chemistry:number; reputation:number;
+               photo?:string; // dataURL
+               awards:string[]; history:string[];
+             }`
+  - `LeagueState = { level:'High School'; year:number; week:number; totalWeeks:number; teams:Team[]; schedule:Game[]; records:Record<string,TeamRecord>; conferences:string[] }`
+  - `CareerState = { player:Player; teamId:string; accessories:AccessoryOwned[] }`
+  - `RootState = { league:LeagueState; career:CareerState }`
+
+2) client/src/state/gameStore.ts (or similar)
+- Use Zustand or a small Context to hold `RootState` with actions:
+  - `initIfNeeded()` – if no save in localStorage, create default player (age 15, startYear = currentYear), sample league teams, schedule (20 weeks regular season), and zeroed records.
+  - `setPhoto(dataUrl:string)`
+  - `saveBuilderDraft(draft:Partial<Player> & { attributes?:Partial<AttributeSet> })` // persist draft in localStorage so builder values survive navigation
+  - `applyBuilderDraft()` // merge draft into career.player once “Start Career” is pressed
+  - `advanceWeek(n=1)` – runs simulation for n weeks using the engine; increments league.week; updates records and player stats; rotates “Next Game”.
+  - `advanceToSeasonEnd()` – sim remaining weeks
+  - `playNextGame()` – same core engine but for exactly one game; update energy (−3), etc.
+  - `toggleAccessoryEquip(id:string)`
+- Persist full `RootState` to localStorage on every mutation. Use a version key so older saves can migrate.
+
+3) client/src/lib/teamData.ts
+- Seed ~16–24 high school teams with colors, abbrev, and conferences (e.g., { conference:'Ohio', ... }, { conference:'Missouri/Kansas', ... }).
+- Export `seedTeams(): Team[]` that returns the list, plus helper `generateInitialSchedule(teams,totalWeeks)` that creates a balanced schedule for the player’s team (1 game/week) and fills opponent pairs for sim calc.
+- Provide `standingRows(records): StandingRow[]` computing pct, gb and pfg = pf/gp.
+
+4) client/src/lib/sim.ts
+- Export a deterministic simulation:
+  - Inputs: `player:Player`, `game:Game`, `home:TeamRecord`, `away:TeamRecord`, `attrs:AttributeSet`
+  - Compute player overall = weighted average (shooting 0.35, finishing 0.2, defense 0.15, rebounding 0.1, physicals 0.2) + small random.
+  - Compute team strengths as base 70–85 + tiny random; if player’s team is in game, add a fraction of player overall and chemistry.
+  - Generate realistic scores (HS: 45–80 range); update `playerLine` using attributes (e.g., pts ~ N( overall/2 , 5 ), bounded).
+  - Return updated `game`, and delta updates for TeamRecord (gp,w,l,pf,pa).
+- Make sure BOTH `playNextGame()` and `advanceWeek()` call this same function so results stay consistent.
+- When a season rolls over (`week > totalWeeks`), increment `league.year++`, set `week=1`, increase player age by +1, restore energy to 100, carry over records reset.
+
+# UI CHANGES
+
+A) Move sim controls to the "»" overflow.
+- Create `client/src/pages/SimPanel.tsx` that renders:
+  - Buttons: Sim Next Week, input + Sim Weeks, Sim to End of Season.
+  - It reads/updates the store via actions.
+- Wire the topbar “»” button to open this panel (if it already routes to a page/drawer, reuse it). Remove any Simulation Controls card from Home.
+
+B) Age next to name.
+- In `Home.tsx` (player header), compute age: `const age = career.player.startAge + (league.year - career.player.startYear);`
+- Render: `Samson Madu (15)` style. Do not duplicate "High School / 2026 / W01" pill row.
+
+C) Next Game card
+- Replace the small avatar in the left of “Next Game” with **TeamLogo** of the player’s team.
+- In the VS circle at center, show “VS”.
+- On the right side, show opponent team letter logo and the name “vs Central Valley High”.
+- Add a small “Regular Season / Away | Home” line.
+- “Play Game (−3 Energy)” calls `playNextGame()`. After playing, the next opponent shows.
+
+D) Team logos
+- New `client/src/components/TeamLogo.tsx`:
+  - Props: `team:Team`, `size=32`.
+  - Render a circle with a neutral dark background; the **text letter** (team.abbrev[0]) colored with `team.colors.primary` and a thin ring using `team.colors.secondary`. No big square blocks. Ensure the letter scales nicely.
+- Use in Home, League Standings, and Schedule lists.
+
+E) League standings
+- New `client/src/pages/League.tsx`:
+  - Tabs per conference.
+  - Table columns: (logo+name), GP, W, L, W%, GB, PFG
+  - Use data from `standingRows(records)` filtered by conference.
+  - Clicking a team can later open a team page (stub now).
+
+F) Player profile (tap on the player name)
+- New `client/src/pages/PlayerProfile.tsx`:
+  - Header with photo (or silhouette), name, age, position, team.
+  - Cards: Awards (empty list until earned), Stats (season totals/averages from simulated `playerLine`), History (empty until events).
+  - Back returns to previous page (history.back()).
+
+G) Accessories placeholder
+- New `client/src/pages/Accessories.tsx`:
+  - Shows empty inventory grid: “No accessories yet. Buy items later in the Shop. Equipped items appear here.”
+  - Can toggle `equipped` for owned items (when we seed some later).
+- Add a “Accessories” entry under the **Team** tab or subnav. Route: `/accessories`.
+
+H) Builder persistence & preview cleanup
+- In `client/src/pages/Builder.tsx` (or wherever the builder lives):
+  - Every form edit calls `saveBuilderDraft`.
+  - On mount, load draft into controlled inputs so leaving the page and returning keeps values.
+  - Remove the duplicate “Player Information” block from the Character Preview page; keep one single name entry on the previous step and ensure the preview shows current name from draft.
+  - When “Start Career” is pressed, call `applyBuilderDraft()`; create career save; navigate to `/home`.
+
+I) Photo uploader fixes
+- In `client/src/pages/AvatarPhoto.tsx`:
+  - `<input type="file" accept="image/*">` (NO `capture` attribute so gallery can be used on iOS/Android).
+  - Use a square crop area with min zoom = image fits entirely, max zoom = 2.5x (do not over-zoom to hair).
+  - Use CSS `object-fit: cover; object-position: center;` for preview consistency.
+  - On Save, write to store via `setPhoto()` and stay on the page. Provide a “Back” link that uses `navigate(-1)` or `history.back()`. Do not auto redirect to Main Menu.
+  - Everywhere the avatar is shown, render at the same square ratio; never reapply arbitrary zoom.
+
+# ROUTING
+- Ensure routes exist for:
+  - `/home` (main)
+  - `/league` (standings)
+  - `/accessories`
+  - `/player` (profile)
+  - `/avatar-photo`
+  - `/sim` or the current overflow “»” target
+
+# HOME HEADER BADGES
+- Keep the three pills: Level (“High School”), Year (“2026”), Week (“W01”), then the “»” button opens the Sim Panel.
+- DO NOT repeat the year/week anywhere else in the card.
+
+# STATS IMPACT FROM ATTRIBUTES
+- In the sim engine, make attributes matter:
+  - shooting → points; finishing → FT/paint pts; rebounding → rebounds; defense → steals/blocks; physicals → minutes & pace.
+- Clamp totals to reasonable HS ranges:
+  - pts 5–45, reb 0–18, ast 0–12, stl 0–6, blk 0–6.
+- Energy affects performance: if energy < 40, apply −10% to outputs; after playing, energy −3 (never below 0).
+
+# AGE / SEASON ROLLOVER
+- Player starts at 15. Age increases by +1 when season increments (on rollover) or August 1. Show `(15)` beside the name.
+- Keep American HS season length ~20 weeks regular season + playoffs stub (we’ll add brackets later). For now, when week > 20, do rollover.
+
+# UI POLISH
+- Silhouette: replace with the grey style from user’s reference (rounded bust icon), SVG path. Use muted gray foreground on dark round background.
+- Make sure back navigation works everywhere (use router navigate(-1)).
+
+# WIRES & INTEGRATIONS
+- Ensure “Play Game” button and any Sim controls use the same store actions. After simming, the next opponent and record/standings update immediately.
+- Next Game card should always reflect the next unplayed scheduled game for the player’s team.
+
+# FILES TO ADD
+- src/types.ts
+- src/state/gameStore.ts
+- src/lib/teamData.ts
+- src/lib/sim.ts
+- src/components/TeamLogo.tsx
+- src/pages/League.tsx
+- src/pages/PlayerProfile.tsx
+- src/pages/Accessories.tsx
+- src/pages/SimPanel.tsx (or reuse your overflow route)
+- (adjust existing) src/pages/Home.tsx
+- (adjust existing) src/pages/AvatarPhoto.tsx
+- (adjust existing) src/pages/Builder.tsx
+
+# ACCEPTANCE CHECKLIST
+1) Home shows: “Samson Madu (15)” next to round photo/silhouette; NO simulation card on Home.
+2) Tapping the “»” opens the Simulation Controls; Sim Next Week advances the schedule, updates standings and player line; Play Game also advances one game using the SAME engine.
+3) Next Game card shows opponent name + letter logo (not a big colored box).
+4) League → Conference tabs with standings table: logo+name, GP, W, L, W%, GB, PFG.
+5) Tapping the player name opens Player Profile with empty Awards/History and a season Stats block that grows as games simulate.
+6) Builder inputs persist when moving between steps; Character Preview has no duplicate name inputs.
+7) Photo uploader allows gallery selection, crops square, never auto-redirects; Back returns to previous page.
+8) Accessories page exists (empty inventory), can toggle equipped for placeholder items, state persists.
+9) Season rollover increments year and player age; week resets to W01.
+
+# COMMIT
+Create a branch `feat/hs-logos-standings-sim-move` and commit with:
+"feat: move sim controls to overflow; add age; unify sim engine; team letter logos; conference standings; builder persistence; photo uploader fixes; accessories placeholder; next-game + records wired"

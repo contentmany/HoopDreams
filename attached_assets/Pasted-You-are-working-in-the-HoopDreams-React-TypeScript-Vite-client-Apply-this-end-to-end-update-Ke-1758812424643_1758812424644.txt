@@ -1,0 +1,142 @@
+You are working in the HoopDreams React + TypeScript + Vite client. Apply this end-to-end update. Keep code typed, modular, and clean.
+
+====================================================
+0) PREP
+====================================================
+- Ensure deps present: react, react-dom, react-router-dom, @tanstack/react-query, classnames.
+- If missing, run: npm config set registry https://registry.npmjs.org/ && npm install
+
+====================================================
+A) PHOTO AVATAR UX (gallery, crop, stable display)
+====================================================
+Goal: user can pick from gallery OR camera, crop to square without auto-zooming, save once, and see the photo consistently next to the name only.
+
+1) PhotoAvatar component:
+   - <input type="file" accept="image/*"> (NO forced capture; allow gallery or camera).
+   - When loading image, initial fit = CONTAIN (no zoom). Zoom slider: min 1.0, max 3.0, step 0.01.
+   - Crop to 1:1 square; export 256x256 PNG/JPEG.
+   - Save result as dataURL to save.avatar.photo and to localStorage.
+   - After Save: toast “Photo saved”, stay on page (no redirect). Back = navigate(-1).
+
+2) Silhouette:
+   - Add public/img/silhouette-grey.png (neutral head/shoulders). Use as fallback anywhere photo missing.
+
+3) Display:
+   - Avatar shows ONLY to the left of player name in the top identity card. Do NOT duplicate inside “Next Game”.
+
+====================================================
+B) PERSIST CHARACTER BUILDER INPUTS
+====================================================
+- Persist builder draft (names, archetype, height, attributes) via sessionStorage or SaveDraft context.
+- Navigating Builder ↔ Photo ↔ Builder must preserve fields.
+- On Start Career: write draft to SaveState, then clear builderDraft.
+
+====================================================
+C) PLAYER AGE & SCHOOL PROGRESSION
+====================================================
+- On new career:
+  save.age = 15
+  save.graduationAge = 18
+  save.birthdayWeek = random int 1..20
+  save.status.schoolPhase = "HighSchool"
+
+- advanceWeek():
+  if (save.week === save.birthdayWeek) save.age++;
+  save.week++; if (save.week > 20) { save.week = 1; save.season++; }
+  if (save.age >= save.graduationAge && save.status.schoolPhase === "HighSchool") {
+    save.status.schoolPhase = "Graduated";
+    toast("Graduated High School.");
+  }
+
+- Header on /home: “{First} {Last} • Age {save.age}”.
+
+====================================================
+D) UNIFIED SIM/PLAY SYNC
+====================================================
+- Create resolveGame(save, opponent) used by BOTH Play and Sim:
+  returns { statsDelta, chemistryDelta, energyCost, result, injuries?, reputation? }.
+- After Play OR any Sim:
+  - move schedule to next opponent
+  - apply deltas to bars/attributes
+  - decrement equipped accessories (see F)
+  - persist + refresh UI
+- Ensure “Next Game” card and “Play Game” reflect the same opponent after simming.
+
+====================================================
+E) MOVE SIM UI TO ITS OWN PAGE
+====================================================
+- New page: /sim (pages/SimPage.tsx) with:
+  [Sim Next Week], [input N + Sim Weeks], [Sim to End of Season].
+- Remove Simulation Controls from /home.
+- Header chevron » routes to /sim. Add <Route path="/sim" element={<SimPage/>} />.
+
+====================================================
+F) ACCESSORIES (inventory + boosts)
+====================================================
+types/accessories.ts:
+  export type Accessory = { id:string; name:string; slot:"wrist"|"arm"|"leg"|"head"|"shoes"; boost: Partial<Attributes>; games:number; price?:number; };
+  export type AccessoryInstance = { instanceId:string; accessoryId:string; equipped:boolean; gamesRemaining:number; acquiredISO:string; };
+
+SaveState:
+  accessories: AccessoryInstance[];
+
+data/accessories.ts (starter catalog):
+  export const ACCESSORIES: Accessory[] = [
+    { id:"shooting-sleeve", name:"Shooting Sleeve", slot:"arm", boost:{ shooting:3 }, games:4, price:300 },
+    { id:"grip-wristband", name:"Grip Wristband", slot:"wrist", boost:{ finishing:2 }, games:3, price:150 },
+  ];
+
+state/accessories.ts helpers:
+  equipAccessory(instanceId) → equipped=true; gamesRemaining=catalog.games.
+  unequipAccessory(instanceId) → equipped=false.
+  applyAccessoryBoosts(attrs, save) → returns attrs with summed boosts from equipped items.
+  onGameResolved(save) → for each equipped, gamesRemaining--; auto-unequip at 0.
+
+UI:
+  pages/Accessories.tsx lists owned items; show empty state if none; Equip/Unequip button; show gamesRemaining when equipped.
+Routes/Nav:
+  Add bottom tab “Accessories” → /accessories.
+  <Route path="/accessories" element={<Accessories/>} />.
+
+====================================================
+G) TEAMS, LOGOS & NEXT GAME CARD
+====================================================
+- data/teams.ts: { id, name, abbr, conference, logoUrl } for current high-school teams & conferences (follow US high school varsity structure).
+- public/teams/{abbr}.svg simple logos.
+- Next Game card shows opponent logo (24–32px), full name + (ABBR), and Home/Away + Regular Season labels.
+
+====================================================
+H) BACK NAV RULE
+====================================================
+- All page “Back” buttons call navigate(-1). If no history, navigate("/home").
+- Remove any hard redirect-to-main-menu after actions.
+
+====================================================
+I) ROUTES (ensure exist)
+====================================================
+/home, /builder, /avatar-photo, /team, /league, /social, /settings, /accessories (new), /sim (new)
+
+====================================================
+J) STYLES & AVATAR FIT
+====================================================
+- Avatar images use object-fit: cover; center crop; no unexpected zoom.
+- Replace all fallbacks with silhouette-grey.png.
+
+====================================================
+K) TEST PLAN
+====================================================
+1) Builder inputs persist across Builder ↔ Photo ↔ Builder; Start Career uses stored values.
+2) New career starts at Age 15; age++ on birthday week; after season(s) when age >=18, set status Graduated and toast.
+3) Home has no Sim card; chevron » opens /sim; sim ops update Next Game + stats; Play Game stays in sync.
+4) Accessories: equip one, play/sim → boosts applied and gamesRemaining decremented; auto-unequip at 0.
+5) Photo upload allows gallery or camera; initial view not zoomed; saved photo persists and shows only next to name.
+6) Back buttons return to previous page; fallback to /home.
+7) Next Game shows opponent logo + name (ABBR).
+
+====================================================
+L) COMMIT & RUN
+====================================================
+git checkout -b feat/age15-simpage-accessories-photo
+git add .
+git commit -m "Age 15 start; HS graduation @18; /sim page via chevron; unified sim/play; builder persistence; team logos; Accessories tab & boosts; gallery-based photo avatar with stable crop; better back nav; silhouette update."
+npm run dev   (or: npm -C client run dev)
