@@ -1,3 +1,8 @@
+ feat/photo-avatar
+import { useState, useEffect } from "react";
+import AvatarOrPhoto from "@/components/AvatarOrPhoto";
+
+ main
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -9,10 +14,38 @@ export default function LoadSave() {
   const [, setLocation] = useLocation();
   const { hasValidPlayer } = useGameStore();
 
+ feat/photo-avatar
+export default function LoadSave({ onLoadSlot, onNewGame, onDeleteSlot }: LoadSaveProps) {
+  const [slots, setSlots] = useState<SaveSlot[]>([]);
+  // No procedural avatar system
+
+  useEffect(() => {
+    // Load all save slots
+    const allSlots = saveSlots.get();
+    setSlots(allSlots);
+  }, []);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+
+  const handleDelete = (slotId: number) => {
+    setShowDeleteConfirm(null);
+    saveSlots.delete(slotId);
+    // Refresh slots after deletion
+    setSlots(saveSlots.get());
+    onDeleteSlot?.(slotId);
+  };
+
+  const handleLoadSlot = (slotId: number) => {
+    activeSlot.set(slotId);
+    onLoadSlot?.(slotId);
+    // Refresh slots to update lastPlayed
+    setSlots(saveSlots.get());
+
   const handleLoadExistingGame = () => {
     if (hasValidPlayer()) {
       setLocation('/home');
     }
+ main
   };
 
   const handleNewGame = () => {
@@ -33,6 +66,49 @@ export default function LoadSave() {
           </CardHeader>
           
           <CardContent className="space-y-4">
+ feat/photo-avatar
+            {slots.map((slot) => (
+              <div key={slot.id} className="border border-border rounded-lg p-4">
+                {slot.player ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <AvatarOrPhoto size={40} />
+                      
+                      <div>
+                        <h3 className="font-semibold" data-testid={`text-player-name-${slot.id}`}>
+                          {slot.player.nameFirst} {slot.player.nameLast}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {slot.player.teamName || 'Team'}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {slot.player.position}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Year {slot.player.year} • Week {slot.player.week.toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowDeleteConfirm(slot.id)}
+                        data-testid={`button-delete-${slot.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="default" 
+                        onClick={() => handleLoadSlot(slot.id)}
+                        data-testid={`button-continue-${slot.id}`}
+                      >
+                        Continue
+                      </Button>
+
             {hasValidPlayer() ? (
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between">
@@ -45,6 +121,7 @@ export default function LoadSave() {
                       <p className="text-xs text-muted-foreground">
                         Continue your basketball journey
                       </p>
+ main
                     </div>
                   </div>
                   <Button

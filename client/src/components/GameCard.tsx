@@ -1,4 +1,5 @@
 import React from "react";
+import AvatarOrPhoto from "@/components/AvatarOrPhoto";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,8 @@ export default function GameCard({
   onPlayGame,
   onScouting
 }: GameCardProps) {
+ feat/photo-avatar
+
   const opponent = TEAMS[opponentId];
   
   if (!opponent) {
@@ -34,6 +37,7 @@ export default function GameCard({
       </Card>
     );
   }
+ main
   // No procedural avatar scripts; purely UI
   return (
     <Card className="hover-elevate">
@@ -50,7 +54,11 @@ export default function GameCard({
         <div className="flex items-center gap-4 py-4">
           {/* Team logo on the left */}
           <div className="flex-shrink-0">
+ feat/photo-avatar
+            <AvatarOrPhoto size={64} />
+
             <TeamLogo teamId={opponentId} size={64} />
+ main
           </div>
           
           {/* Game info on the right */}

@@ -1,4 +1,20 @@
 import { useState, useEffect } from "react";
+ feat/photo-avatar
+import AvatarOrPhoto from "@/components/AvatarOrPhoto";
+import GameHeader from "@/components/GameHeader";
+import GameCard from "@/components/GameCard";
+import QuickActions from "@/components/QuickActions";
+import LeagueSnapshot from "@/components/LeagueSnapshot";
+import StatsStrip from "@/components/StatsStrip";
+import { CharacterPreview } from "@/components/character/CharacterPreview";
+import { DEFAULT_CHARACTER_LOOK } from "@/types/character";
+import BottomTabBar from "@/components/BottomTabBar";
+import GameResultsModal from "@/components/GameResultsModal";
+import { player as playerStorage, saveSlots, activeSlot } from "@/utils/localStorage";
+import { simulateGame, type GameResult, type OpponentTeam } from "@/utils/gameSimulation";
+import { initializeSeason, updateSeasonAfterGame, advanceWeek, type SeasonData } from "@/utils/seasonManager";
+import type { Player } from "@/utils/localStorage";
+
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,18 +24,31 @@ import TeamLogo from "@/components/TeamLogo";
 import { useGameStore } from "@/state/gameStore";
 import { seedTeams } from "@/lib/teamData";
 import { useToast } from "@/hooks/use-toast";
+ main
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
+ feat/photo-avatar
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [seasonData, setSeasonData] = useState<SeasonData | null>(null);
+  // Photo avatar handled by AvatarOrPhoto; no procedural assets
+  const [gameResultsModal, setGameResultsModal] = useState<{
+    isOpen: boolean;
+    result?: GameResult;
+    opponent?: OpponentTeam;
+    location?: 'Home' | 'Away';
+  }>({ isOpen: false });
+
   const { career, league, playNextGame, getNextGame, getCurrentAge, initIfNeeded } = useGameStore();
   const { toast } = useToast();
   const teams = seedTeams();
   const playerTeam = teams.find(t => t.id === career.teamId);
   const nextGame = getNextGame();
   const currentAge = getCurrentAge();
+ main
 
   useEffect(() => {
     initIfNeeded();
@@ -53,6 +82,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const isHome = nextGame?.homeTeamId === career.teamId;
 
   return (
+ feat/photo-avatar
+    <>
+      <main className="space-y-6">
+        {/* Player Info Card */}
+        <div className="flex items-center gap-3 p-4 bg-card rounded-lg border">
+          <AvatarOrPhoto size={64} />
+          <div className="flex-1">
+            <h3 className="font-semibold">{currentPlayer.nameFirst} {currentPlayer.nameLast}</h3>
+            <p className="text-sm text-muted-foreground">{currentPlayer.position} • {getTeamName(currentPlayer.teamId)}</p>
+
     <div className="min-h-screen bg-background p-4 pb-20">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header with player info */}
@@ -68,6 +107,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <Badge variant="outline">W{league.week}</Badge>
               </div>
             </div>
+ main
           </div>
           <button 
             onClick={() => onNavigate?.('/sim')}
