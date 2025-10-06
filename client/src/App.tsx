@@ -29,6 +29,49 @@ import Accessories from "@/pages/Accessories";
 import SimPage from "@/pages/SimPage";
 import SimPanel from "@/pages/SimPanel";
 
+function HomePage({ handleNavigate }: { handleNavigate: (path: string) => void }) {
+  const { league } = useGameStore();
+  return (
+    <RouteGuard requireActiveSave>
+      <GameLayout 
+        year={league.year}
+        week={league.week}
+        maxWeeks={league.totalWeeks}
+        showAdvanceWeek={true}
+      >
+        <Dashboard onNavigate={handleNavigate} />
+      </GameLayout>
+    </RouteGuard>
+  );
+}
+
+function SettingsPage({ setLocation }: { setLocation: (path: string) => void }) {
+  const { hasValidPlayer } = useGameStore();
+  const noSaveMode = !hasValidPlayer();
+  
+  if (noSaveMode) {
+    return (
+      <PreGameLayout title="Settings">
+        <Settings 
+          onNavigateToLoad={() => setLocation('/load')}
+          onResetGame={() => setLocation('/')}
+          noSaveMode={noSaveMode}
+        />
+      </PreGameLayout>
+    );
+  } else {
+    return (
+      <GameLayout>
+        <Settings 
+          onNavigateToLoad={() => setLocation('/load')}
+          onResetGame={() => setLocation('/')}
+          noSaveMode={noSaveMode}
+        />
+      </GameLayout>
+    );
+  }
+}
+
 function Router() {
   const [, setLocation] = useLocation();
 
@@ -44,21 +87,7 @@ function Router() {
         </PreGameLayout>
       </Route>
       <Route path="/home">
-        {() => {
-          const { league } = useGameStore();
-          return (
-            <RouteGuard requireActiveSave>
-              <GameLayout 
-                year={league.year}
-                week={league.week}
-                maxWeeks={league.totalWeeks}
-                showAdvanceWeek={true}
-              >
-                <Dashboard onNavigate={handleNavigate} />
-              </GameLayout>
-            </RouteGuard>
-          );
-        }}
+        <HomePage handleNavigate={handleNavigate} />
       </Route>
       <Route path="/new">
         <PreGameLayout title="Create Player">
@@ -98,32 +127,7 @@ function Router() {
         </PreGameLayout>
       </Route>
       <Route path="/settings">
-        {() => {
-          const { hasValidPlayer } = useGameStore();
-          const noSaveMode = !hasValidPlayer();
-          
-          if (noSaveMode) {
-            return (
-              <PreGameLayout title="Settings">
-                <Settings 
-                  onNavigateToLoad={() => setLocation('/load')}
-                  onResetGame={() => setLocation('/')}
-                  noSaveMode={noSaveMode}
-                />
-              </PreGameLayout>
-            );
-          } else {
-            return (
-              <GameLayout>
-                <Settings 
-                  onNavigateToLoad={() => setLocation('/load')}
-                  onResetGame={() => setLocation('/')}
-                  noSaveMode={noSaveMode}
-                />
-              </GameLayout>
-            );
-          }
-        }}
+        <SettingsPage setLocation={setLocation} />
       </Route>
       <Route path="/league">
         <RouteGuard requireActiveSave>
