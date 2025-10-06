@@ -4,17 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useLocation } from 'wouter';
- feat/photo-avatar
-import { getDraftPlayer, saveDraftPlayer } from '@/utils/character';
-import { type Player, saveSlots, activeSlot } from '@/utils/localStorage';
- HEAD
-import AvatarOrPhoto from '@/components/AvatarOrPhoto';
-
-origin/main
 import { useGameStore } from '@/state/gameStore';
 import AvatarPhoto from '@/components/AvatarPhoto';
 import type { AttributeSet } from '@/types';
-main
 
 interface BuilderAttributes {
   finishing: number;
@@ -41,22 +33,6 @@ export default function PlayerBuilder() {
   const [attributes, setAttributes] = useState<BuilderAttributes>(DEFAULT_BUILDER_ATTRIBUTES);
   const [availablePoints, setAvailablePoints] = useState(20);
 
- feat/photo-avatar
-  useEffect(() => {
-    // Load draft player data
-    const draft = getDraftPlayer();
-    if (draft) {
-      setPlayerName({
-        firstName: draft.nameFirst || draft.firstName || '',
-        lastName: draft.nameLast || draft.lastName || ''
-      });
-      setPosition(draft.position || 'PG');
-      setArchetype(draft.archetype || 'Balanced');
-      if (draft.heightInches) {
-        setHeight({
-          inches: draft.heightInches,
-          cm: draft.heightCm || Math.round(draft.heightInches * 2.54)
-
   // Get player info from career (set on New Career screen)
   const player = career.player;
   const fullName = `${player.firstName} ${player.lastName}`.trim() || "Your Name";
@@ -79,7 +55,6 @@ export default function PlayerBuilder() {
           rebounding: draftAttributes.rebounding || 45,
           defense: draftAttributes.defense || 40,
           physicals: draftAttributes.physicals || 65
- main
         });
       }
     }
@@ -114,13 +89,6 @@ export default function PlayerBuilder() {
     setLocation('/home');
   };
 
- feat/photo-avatar
-  const handleBack = () => {
-    setLocation('/avatar-photo');
-  };
-
-
- main
   const getAttributeColor = (value: number) => {
     if (value >= 80) return 'bg-green-500';
     if (value >= 70) return 'bg-yellow-500';
@@ -162,31 +130,6 @@ export default function PlayerBuilder() {
             <p className="text-xs text-muted-foreground mt-1">Procedural avatar</p>
           </div>
         </div>
- feat/photo-avatar
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Character Preview */}
-          <Card className="lg:sticky lg:top-4 h-fit">
-            <CardHeader>
-              <CardTitle>Character Preview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-center">
-                <AvatarOrPhoto size={96} />
-              </div>
-              
-              <div className="text-center space-y-1">
-                <h3 className="font-semibold text-lg" data-testid="text-player-name">
-                  {playerName.firstName} {playerName.lastName}
-                </h3>
-                <div className="flex justify-center gap-2 flex-wrap">
-                  <Badge variant="secondary">{position}</Badge>
-                  <Badge variant="outline">{archetype}</Badge>
-                  <Badge variant="outline">
-                    {Math.floor(height.inches / 12)}'{height.inches % 12}" ({height.cm}cm)
-                  </Badge>
-
       </section>
 
       {/* Attributes section */}
@@ -227,7 +170,6 @@ export default function PlayerBuilder() {
                   >
                     +
                   </Button>
- main
                 </div>
               </div>
               <div className="relative">

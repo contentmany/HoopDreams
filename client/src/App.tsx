@@ -22,17 +22,12 @@ import League from "@/pages/League";
 import Badges from "@/pages/Badges";
 import Dash from "@/pages/Dash";
 import News from "@/pages/News";
- feat/photo-avatar
-import AvatarPhotoPage from "@/pages/AvatarPhotoPage";
-
 import AvatarPhoto from "@/pages/AvatarPhoto";
 import Profile from "@/pages/Profile";
 import PlayerProfile from "@/pages/PlayerProfile";
 import Accessories from "@/pages/Accessories";
 import SimPage from "@/pages/SimPage";
 import SimPanel from "@/pages/SimPanel";
-import PhotoAvatar from "@/components/PhotoAvatar";
- main
 
 function Router() {
   const [, setLocation] = useLocation();
@@ -77,11 +72,6 @@ function Router() {
         </PreGameLayout>
       </Route>
       <Route path="/avatar-photo">
- feat/photo-avatar
-        <PreGameLayout title="Set Your Photo">
-          <AvatarPhotoPage />
-        </PreGameLayout>
-
         <AvatarPhoto />
       </Route>
       <Route path="/profile">
@@ -96,7 +86,6 @@ function Router() {
         <RouteGuard requireActiveSave>
           <Accessories />
         </RouteGuard>
- main
       </Route>
       <Route path="/builder">
         <PreGameLayout title="Player Builder">
