@@ -1,7 +1,7 @@
 import GameHeader from "@/components/GameHeader";
 import BottomTabBar from "@/components/BottomTabBar";
 import StatsStrip from "@/components/StatsStrip";
-import { activeSlot, saveSlots } from "@/utils/localStorage";
+import { useGameStore } from "@/state/gameStore";
 
 interface GameLayoutProps {
   children: React.ReactNode;
@@ -28,9 +28,9 @@ export default function GameLayout({
   onSimWeeks,
   showStats = true
 }: GameLayoutProps) {
-  const currentSlot = activeSlot.get();
-  const slots = saveSlots.get();
-  const playerData = currentSlot ? slots[currentSlot - 1]?.player : null;
+  const { career } = useGameStore();
+  const playerData = career.player;
+  
   const stats = playerData ? [
     { label: "Energy", current: playerData.energy || 100, max: 100 },
     { label: "Health", current: playerData.health || 100, max: 100 },
