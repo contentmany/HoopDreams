@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
- feat/photo-avatar
-import AvatarOrPhoto from "@/components/AvatarOrPhoto";
-
 import AvatarPhoto from "@/components/AvatarPhoto";
- main
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,16 +38,8 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
   const [heightInches, setHeightInches] = useState(2);
   const [heightCm, setHeightCm] = useState(188);
   const [heightError, setHeightError] = useState("");
- feat/photo-avatar
-  // No procedural avatar system; AvatarOrPhoto will display the user's chosen photo if any
   
-  const teamsList = teams.get();
-  const currentSettings = settings.get();
-
-  // AvatarPhoto will display user's chosen photo or silhouette fallback
-  
-  const teamsList = seedTeams(); // teams from teamData
- main
+  const teamsList = seedTeams();
   const positions = ["PG", "SG", "SF", "PF", "C"];
 
   // Initialize height from settings
@@ -314,11 +302,7 @@ export default function CreatePlayer({ onCreatePlayer, onNavigate }: CreatePlaye
             <div className="space-y-3">
               <Label>Appearance</Label>
               <div className="flex items-center gap-4">
- feat/photo-avatar
-                <AvatarOrPhoto size={40} />
-
                 <AvatarPhoto size={40} />
- main
                 <div className="flex-1">
                   <Button
                     variant="outline"
